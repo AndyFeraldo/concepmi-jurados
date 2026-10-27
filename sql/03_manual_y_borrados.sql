@@ -1,0 +1,4 @@
+-- Aplicado en Supabase: registro manual (Conocimientos y Talent Show) y borrado con motivo.
+-- Ver migración jur_04_manual_y_borrados en el proyecto "Concurso-Concepmi".
+-- Tablas/columnas nuevas: jur_ajustes.datos (jsonb), jur_borrados (historial).
+-- Funciones nuevas: jur_admin_manual(...), jur_admin_borrar_calificaciones(codigo, ids[], motivo).
