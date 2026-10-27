@@ -1,0 +1,56 @@
+PANEL DE JURADOS · VI CONCEPMI 2026
+====================================
+
+Qué es
+------
+Página aparte de la landing para que los jurados califiquen los concursos y el
+administrador vea los resultados en vivo, la Copa CONCEPMI y exporte a Excel.
+No comparte archivos con la landing: se publica en su propio repositorio.
+
+Carpetas
+--------
+index.html            Punto de entrada
+css/estilos.css       Diseño (mismo sistema visual del Concurso de Conocimientos)
+js/concursos.js       Rúbricas oficiales de las bases (lo único a editar si cambian las bases)
+js/calculo.js         Promedios, redondeo, rankings, empates y Copa
+js/jurado.js          Pantallas del jurado
+js/admin.js           Pantallas del administrador
+js/excel.js           Exportación a Excel
+js/api.js             Conexión con Supabase
+js/config.js          Dirección de Supabase y segundos de refresco
+img/                  Logo CONCEPMI, Wolfito y logo del Student Club
+vendor/               Librerías (Supabase, confeti, Excel) guardadas localmente
+sql/                  Copia de lo que ya está creado en Supabase (no hay que volver a ejecutarlo)
+
+Base de datos
+-------------
+Proyecto Supabase "Concurso-Concepmi". Tablas con prefijo jur_ (no tocan las del
+Concurso de Conocimientos). Las tablas están cerradas al público: todo pasa por
+funciones que validan el código de jurado o de administrador y rechazan puntajes
+fuera del máximo de cada criterio.
+
+Publicar en GitHub Pages (sin programar)
+----------------------------------------
+1. En github.com crea un repositorio nuevo llamado  concepmi-jurados  (público).
+2. Entra al repositorio > "uploading an existing file" y arrastra TODO el contenido
+   de esta carpeta (index.html, css, js, img, vendor, sql, LEEME.txt).
+3. Commit changes.
+4. Settings > Pages > Source: "Deploy from a branch" > Branch: main / (root) > Save.
+5. En 1–2 minutos queda en:  https://andyferaldo.github.io/concepmi-jurados/
+
+Dónde se guardan tus datos (IMPORTANTE)
+----------------------------------------
+- Versión publicada en GitHub (andyferaldo.github.io/concepmi-jurados): todo se guarda
+  en la base de datos Supabase, en la nube. Esta es la que usarás en el evento.
+- Vista previa en claude.ai: es solo de prueba. Guarda en tu navegador y los códigos
+  que crees ahí NO funcionan en la versión real.
+- Actualizar la página (subir archivos nuevos a GitHub) NO borra jurados, delegaciones
+  ni calificaciones: esos datos viven en Supabase, no en los archivos.
+- Respaldo: en Jurados > "Copiar respaldo" guardas nombre, código, concursos,
+  descripción y foto de todos los jurados. "Importar respaldo" los vuelve a crear con
+  los mismos códigos. El Excel también trae la hoja "Jurados y códigos".
+
+Si cambian las bases
+--------------------
+Si cambia el máximo de un criterio, hay que cambiarlo en js/concursos.js Y en la
+tabla jur_criterios de Supabase (si no, la base de datos rechazará el puntaje).
