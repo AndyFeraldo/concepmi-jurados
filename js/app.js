@@ -6,6 +6,7 @@ import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js";
 import { CONCURSOS } from "./concursos.js";
 import { vistaJurado } from "./jurado.js";
 import { vistaAdmin } from "./admin.js";
+import { vistaTallerista } from "./tallerista.js";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -52,10 +53,16 @@ function portada() {
             <span class="puerta__txt">Ingresa con el código que te entregó el equipo organizador.</span>
             <span class="puerta__ir">Entrar a calificar ${I.flecha}</span>
           </button>
+          <button class="puerta puerta--tallerista" data-rol="tallerista">
+            <span class="puerta__icono">${I.pizarra}</span>
+            <span class="puerta__nombre">Tallerista</span>
+            <span class="puerta__txt">Registra al equipo ganador de tu taller y suma puntos a sus delegaciones.</span>
+            <span class="puerta__ir">Registrar ganadores ${I.flecha}</span>
+          </button>
           <button class="puerta puerta--admin" data-rol="admin">
             <span class="puerta__icono">${I.escudo}</span>
             <span class="puerta__nombre">Admin</span>
-            <span class="puerta__txt">Resultados en vivo, jurados, delegaciones y exportación a Excel.</span>
+            <span class="puerta__txt">Resultados en vivo, jurados, talleristas, delegaciones y Excel.</span>
             <span class="puerta__ir">Abrir panel ${I.flecha}</span>
           </button>
         </div>
@@ -68,14 +75,21 @@ function portada() {
   app.querySelectorAll(".puerta").forEach((b) => (b.onclick = () => pedirCodigo(b.dataset.rol)));
 }
 
+const ROLES = {
+  jurado: { titulo: "Acceso de jurado", icono: "mazo", fondo: "linear-gradient(135deg,#FF6A1F,#FF9A55)", btn: "btn--naranja", demo: "JUR001, JUR002 o JUR003", boton: "Jurado" },
+  tallerista: { titulo: "Acceso de tallerista", icono: "pizarra", fondo: "linear-gradient(135deg,#A98BFF,#6E2BE6)", btn: "btn--naranja", demo: "TAL001", boton: "Tallerista" },
+  admin: { titulo: "Acceso de administrador", icono: "escudo", fondo: "linear-gradient(135deg,#1FCBEA,#6E2BE6)", btn: "btn--primario", demo: "ADMIN1", boton: "Admin" },
+};
+
 function pedirCodigo(rol) {
   const esAdmin = rol === "admin";
+  const R = ROLES[rol];
   const m = modal(`
     <div style="text-align:center">
-      <div class="puerta__icono" style="margin:0 auto 12px;${esAdmin ? "background:linear-gradient(135deg,#1FCBEA,#6E2BE6)" : "background:linear-gradient(135deg,#FF6A1F,#FF9A55)"}">${esAdmin ? I.escudo : I.mazo}</div>
-      <h2>${esAdmin ? "Acceso de administrador" : "Acceso de jurado"}</h2>
+      <div class="puerta__icono" style="margin:0 auto 12px;background:${R.fondo}">${I[R.icono]}</div>
+      <h2>${R.titulo}</h2>
       <p style="margin:0;color:var(--niebla)">${esAdmin ? "Escribe tu código de administrador." : "Escribe el código de 6 caracteres que te entregaron."}</p>
-      ${ES_DEMO ? `<p class="ayuda" style="margin-top:8px">Vista previa: prueba con <b>${esAdmin ? "ADMIN1" : "JUR001, JUR002 o JUR003"}</b></p>` : ""}
+      ${ES_DEMO ? `<p class="ayuda" style="margin-top:8px">Vista previa: prueba con <b>${R.demo}</b></p>` : ""}
     </div>
     <form>
       <label class="sr" for="cod">Código</label>
@@ -83,7 +97,7 @@ function pedirCodigo(rol) {
       <p class="error" aria-live="polite"></p>
       <div class="modal__acciones" style="justify-content:stretch">
         <button type="button" class="btn" data-cancelar style="flex:1">Cancelar</button>
-        <button class="btn ${esAdmin ? "btn--primario" : "btn--naranja"}" style="flex:2">Entrar ${I.flecha}</button>
+        <button class="btn ${R.btn}" style="flex:2">Entrar ${I.flecha}</button>
       </div>
     </form>`);
   const form = m.el.querySelector("form");
@@ -99,7 +113,7 @@ function pedirCodigo(rol) {
     try {
       const r = await api.entrar(codigo);
       if (!r || r.rol !== rol) {
-        err.textContent = r ? (rol === "admin" ? "Ese es un código de jurado. Usa el botón Jurado." : "Ese es el código de administrador. Usa el botón Admin.") : "Código incorrecto. Revisa e inténtalo otra vez.";
+        err.textContent = r ? `Ese código es de ${r.rol === "admin" ? "administrador" : r.rol}. Usa el botón ${ROLES[r.rol]?.boton || ""}.` : "Código incorrecto. Revisa e inténtalo otra vez.";
         inp.classList.remove("temblor"); void inp.offsetWidth; inp.classList.add("temblor"); inp.select();
         return;
       }
@@ -115,6 +129,7 @@ function pedirCodigo(rol) {
 function abrir() {
   const s = sesion.leer();
   if (s?.rol === "jurado") return vistaJurado(app, s.codigo);
+  if (s?.rol === "tallerista") return vistaTallerista(app, s.codigo);
   if (s?.rol === "admin") return vistaAdmin(app, s.codigo);
   portada();
 }

@@ -6,6 +6,7 @@ import { SEGUNDOS_REFRESCO } from "./config.js";
 import { CONCURSOS, porId, SANCIONES } from "./concursos.js";
 import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js";
 import { exportarExcel } from "./excel.js";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js";
 import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js";
 import { salir } from "./app.js";
 
@@ -14,6 +15,7 @@ const PESTANAS = [
   { id: "resultados", txt: "Resultados", icono: "tabla" },
   { id: "copa", txt: "Copa CONCEPMI", icono: "copa" },
   { id: "jurados", txt: "Jurados", icono: "personas" },
+  { id: "talleristas", txt: "Talleristas", icono: "pizarra" },
   { id: "delegaciones", txt: "Delegaciones", icono: "bandera" },
 ];
 const CON_JURADO = CONCURSOS.filter((c) => c.jurados > 0);
@@ -30,6 +32,9 @@ export async function vistaAdmin(app, codigo) {
   data.calificaciones.forEach((x) => vistos.add(x.id + x.actualizado));
 
   const jur = (id) => data.jurados.find((j) => j.id === id);
+  const tal = (id) => data.talleristas.find((t) => t.id === id);
+  const ganador = (tid) => data.ganadores_talleres.find((g) => g.taller_id === tid);
+  const tallerAbierto = (tid) => data.talleres?.find((t) => t.id === tid)?.abierto !== false;
   const del = (id) => data.delegaciones.find((d) => d.id === id);
   const abierto = (cid) => data.concursos.find((c) => c.id === cid)?.abierto !== false;
   const ajuste = (cid, did) => data.ajustes.find((a) => a.concurso_id === cid && a.delegacion_id === did) || {};
@@ -62,7 +67,7 @@ export async function vistaAdmin(app, codigo) {
   function pintar() {
     const v = $("#vista", app);
     if (!v) return;
-    ({ vivo, resultados: vistaResultados, copa, jurados, delegaciones })[pestana](v);
+    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, delegaciones })[pestana](v);
   }
 
   async function recargar(forzar = false) {
@@ -479,13 +484,13 @@ export async function vistaAdmin(app, codigo) {
     const lugar = (f, n) => f ? `<div class="podio__lugar podio__lugar--${n}"><span class="medalla medalla--${n}">${n}</span><div class="podio__nombre">${esc(f.delegacion.nombre)}</div><div class="podio__pts">${f.total}</div><small class="tenue">puntos</small></div>` : `<div></div>`;
     const corto = (c) => c.nombre.replace("Concurso Nacional de ", "").replace("Concurso de ", "");
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Copa CONCEPMI VI</h1><p>Suma de puntos de los ${CONCURSOS.length} concursos que se califican aquí (máximo ${maxCopaTotal} pts). Charlas y talleres no están incluidos.</p></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Copa CONCEPMI VI</h1><p>Suma de puntos de los ${CONCURSOS.length} concursos (máximo ${maxCopaTotal} pts) y de los ${TALLERES.length} talleres (${PUNTOS_TALLER} pts por taller ganado). Las charlas principales aún no están incluidas.</p></div></div>
       ${top.length ? `<div class="podio">${lugar(top[1], 2)}${lugar(top[0], 1)}${lugar(top[2], 3)}</div>` : ""}
       ${data.delegaciones.length ? `<div class="tabla-envoltura"><table class="tabla">
-        <thead><tr><th rowspan="2">Puesto</th><th rowspan="2">Delegación</th><th colspan="${aca.length}" class="grupo-a" style="text-align:center">Académicos</th><th colspan="${cul.length}" class="grupo-c" style="text-align:center">Culturales</th><th rowspan="2" class="num">Total</th></tr>
-          <tr>${[...aca, ...cul].map((c) => `<th class="num">${esc(corto(c))}<br><small>${c.maxCopa}</small></th>`).join("")}</tr></thead>
+        <thead><tr><th rowspan="2">Puesto</th><th rowspan="2">Delegación</th><th colspan="${aca.length}" class="grupo-a" style="text-align:center">Académicos</th><th colspan="${cul.length}" class="grupo-c" style="text-align:center">Culturales</th><th colspan="${TALLERES.length}" class="grupo-a" style="text-align:center">Talleres</th><th rowspan="2" class="num">Total</th></tr>
+          <tr>${[...aca, ...cul].map((c) => `<th class="num">${esc(corto(c))}<br><small>${c.maxCopa}</small></th>`).join("")}${TALLERES.map((t) => `<th class="num" title="${esc(t.nombre)}">Taller ${t.num}<br><small>${PUNTOS_TALLER}</small></th>`).join("")}</tr></thead>
         <tbody>${filas.map((f) => `<tr><td>${medalla(f.total > 0 ? f.puesto : null)}</td><td><b>${esc(f.delegacion.nombre)}</b></td>
-          ${[...aca, ...cul].map((c) => `<td class="num ${f.pts[c.id] == null ? "tenue" : ""}">${f.pts[c.id] ?? "—"}</td>`).join("")}
+          ${[...aca, ...cul, ...TALLERES].map((c) => `<td class="num ${f.pts[c.id] == null ? "tenue" : ""}">${f.pts[c.id] ?? "—"}</td>`).join("")}
           <td class="num grande">${f.total}</td></tr>`).join("")}</tbody></table></div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn--naranja" data-excel2>${I.descargar}Exportar todo a Excel</button><button class="btn" data-fiesta>${I.copa}Celebrar al líder</button></div>`
       : `<div class="vacio"><b>Primero registra las delegaciones</b>Ve a la pestaña Delegaciones.</div>`}`;
@@ -514,20 +519,70 @@ export async function vistaAdmin(app, codigo) {
               <button class="btn btn--mini btn--peligro" data-quitar="${j.id}">${I.basura}Eliminar</button>
             </div></article>`; }).join("")}
       </div>`;
-    $("[data-crear]", v).onclick = () => formJurado(null);
+    $("[data-crear]", v).onclick = () => formPersona("jurado", null);
     $("[data-respaldo]", v).onclick = copiarRespaldo;
     $("[data-importar]", v).onclick = importarRespaldo;
-    $$("[data-editar]", v).forEach((b) => (b.onclick = () => formJurado(jur(b.dataset.editar))));
+    $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona("jurado", jur(b.dataset.editar))));
     $$("[data-copiar]", v).forEach((b) => (b.onclick = () => copiar(b.dataset.copiar)));
     $$("[data-regen]", v).forEach((b) => (b.onclick = async () => {
       const j = jur(b.dataset.regen);
       if (!(await confirmar("¿Generar un código nuevo?", `El código actual de <b>${esc(j.nombre)}</b> dejará de funcionar. Sus calificaciones se conservan.`, { boton: "Generar nuevo código" }))) return;
-      try { const r = await api.adminJurado(codigo, { ...j, nuevoCodigo: true, foto: null }); await recargar(true); mostrarCodigo(j.nombre, r.codigo); } catch (e) { aviso(e.message, "error"); }
+      try { const r = await api.adminJurado(codigo, { ...j, nuevoCodigo: true, foto: null }); await recargar(true); mostrarCodigo(j.nombre, r.codigo, "Jurado"); } catch (e) { aviso(e.message, "error"); }
     }));
     $$("[data-quitar]", v).forEach((b) => (b.onclick = async () => {
       const j = jur(b.dataset.quitar);
       if (!(await confirmar("¿Eliminar este jurado?", `Se borrarán <b>${esc(j.nombre)}</b> y todas sus calificaciones. Esto no se puede deshacer.`, { boton: "Eliminar jurado", peligro: true }))) return;
       try { await api.adminJurado(codigo, { id: j.id, borrar: true }); aviso("Jurado eliminado"); recargar(true); } catch (e) { aviso(e.message, "error"); }
+    }));
+  }
+
+  // ---------------- Talleristas y ganadores de talleres ----------------
+  function talleristas(v) {
+    const del2 = (id) => del(id)?.siglas || del(id)?.nombre || "Delegación eliminada";
+    v.innerHTML = `
+      <div class="cabeza" style="margin-top:0"><div><h1>Talleres</h1><p>Los ${TALLERES.length} talleres son en paralelo (${HORA_TALLERES}). Cada integrante del equipo ganador suma ${PUNTOS_TALLER} pts a su delegación (una vez por delegación).</p></div></div>
+      <div class="ganadores">${TALLERES.map((t) => {
+        const g = ganador(t.id); const ids = delegacionesGanadoras(g); const ab = tallerAbierto(t.id);
+        return `<article class="concurso concurso--info c-${t.color}">
+          <span class="concurso__tipo">Taller ${t.num} · ${esc(t.lugar)}</span>
+          <h3>${esc(t.nombre)}</h3>
+          ${g?.integrantes.length ? `<ol>${g.integrantes.map((x) => `<li><b style="color:var(--blanco)">${esc(x.nombre)}</b> · ${esc(del2(x.delegacion))}</li>`).join("")}</ol>
+            <div class="reparto">${ids.map((id) => `<span class="chip chip--verde">+${PUNTOS_TALLER} · ${esc(del2(id))}</span>`).join("")}</div>
+            <p class="ayuda" style="margin:6px 0 0">Registrado ${hace(g.actualizado)}${g.tallerista ? ` por ${esc(g.tallerista)}` : ""}</p>`
+          : `<p class="concurso__apodo">Aún no hay ganadores registrados.</p>`}
+          <div style="margin-top:8px"><button class="interruptor ${ab ? "interruptor--abierto" : "interruptor--cerrado"}" data-taller="${t.id}" title="${ab ? "Cerrar el registro" : "Reabrir el registro"}">${ab ? I.abierto + "Abierto" : I.candado + "Cerrado"}</button></div>
+        </article>`; }).join("")}</div>
+      <div class="cabeza"><div><h1>Talleristas</h1><p>Crea un código para cada tallerista y elige qué talleres tiene habilitados.</p></div></div>
+      <div class="jurados">
+        <button class="crear" data-crear>${I.mas}<span>Crear código de tallerista</span></button>
+        ${data.talleristas.map((t) => `<article class="jurado">
+            <div class="jurado__cab">${avatar(t.nombre, t.foto)}<div><h4>${esc(t.nombre)}</h4><p>${t.talleres.length} taller${t.talleres.length === 1 ? "" : "es"}</p></div></div>
+            ${t.descripcion ? `<p>${esc(t.descripcion)}</p>` : ""}
+            <div class="jurado__chips">${t.talleres.map((id) => `<span class="chip">Taller ${esc(tallerPorId(id)?.num || id)} · ${esc(tallerPorId(id)?.nombre || "")}</span>`).join("")}</div>
+            <div class="jurado__codigo"><code>${esc(t.codigo)}</code><button class="btn btn--mini btn--icono" data-copiar="${esc(t.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></div>
+            <div class="jurado__acc">
+              <button class="btn btn--mini" data-editar="${t.id}">${I.lapiz}Editar</button>
+              <button class="btn btn--mini" data-regen="${t.id}">${I.girar}Nuevo código</button>
+              <button class="btn btn--mini btn--peligro" data-quitar="${t.id}">${I.basura}Eliminar</button>
+            </div></article>`).join("")}
+      </div>`;
+    $("[data-crear]", v).onclick = () => formPersona("tallerista", null);
+    $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona("tallerista", tal(b.dataset.editar))));
+    $$("[data-copiar]", v).forEach((b) => (b.onclick = () => copiar(b.dataset.copiar)));
+    $$("[data-taller]", v).forEach((b) => (b.onclick = async () => {
+      const tid = b.dataset.taller; const ab = tallerAbierto(tid);
+      if (ab && !(await confirmar("¿Cerrar el registro?", `El tallerista del <b>Taller ${esc(tallerPorId(tid).num)}</b> ya no podrá cambiar a los ganadores. Puedes reabrirlo cuando quieras.`, { boton: "Cerrar registro", peligro: true }))) return;
+      try { await api.adminTaller(codigo, tid, !ab); aviso(ab ? "Registro cerrado" : "Registro reabierto"); recargar(true); } catch (e) { aviso(e.message, "error"); }
+    }));
+    $$("[data-regen]", v).forEach((b) => (b.onclick = async () => {
+      const t = tal(b.dataset.regen);
+      if (!(await confirmar("¿Generar un código nuevo?", `El código actual de <b>${esc(t.nombre)}</b> dejará de funcionar. Los ganadores que registró se conservan.`, { boton: "Generar nuevo código" }))) return;
+      try { const r = await api.adminTallerista(codigo, { ...t, nuevoCodigo: true, foto: null }); await recargar(true); mostrarCodigo(t.nombre, r.codigo, "Tallerista"); } catch (e) { aviso(e.message, "error"); }
+    }));
+    $$("[data-quitar]", v).forEach((b) => (b.onclick = async () => {
+      const t = tal(b.dataset.quitar);
+      if (!(await confirmar("¿Eliminar este tallerista?", `Se borrará <b>${esc(t.nombre)}</b> y su código dejará de funcionar. Los ganadores que registró se conservan.`, { boton: "Eliminar tallerista", peligro: true }))) return;
+      try { await api.adminTallerista(codigo, { id: t.id, borrar: true }); aviso("Tallerista eliminado"); recargar(true); } catch (e) { aviso(e.message, "error"); }
     }));
   }
 
@@ -571,12 +626,23 @@ export async function vistaAdmin(app, codigo) {
     };
   }
 
-  function formJurado(j) {
+  // Formulario de jurado o tallerista (mismos campos; cambian las opciones)
+  const PERSONA = {
+    jurado: { titulo: "jurado", campo: "concursos", leyenda: "Concursos en los que puede calificar", falta: "Elige al menos un concurso.", boton: "Jurado",
+      opciones: () => CON_JURADO.map((c) => ({ id: c.id, nombre: c.nombre, sub: `${c.tipo === "academico" ? "Académico" : "Cultural"} · ${c.modo === "gymkana" ? "registro de resultados" : `${c.jurados} jurados`}` })),
+      nota: "Conocimientos y Talent Show los registras tú desde Resultados.", guardar: (o) => api.adminJurado(codigo, o) },
+    tallerista: { titulo: "tallerista", campo: "talleres", leyenda: "Talleres que tiene habilitados", falta: "Elige al menos un taller.", boton: "Tallerista",
+      opciones: () => TALLERES.map((t) => ({ id: t.id, nombre: `Taller ${t.num} · ${t.nombre}`, sub: `${HORA_TALLERES} · ${t.lugar}` })),
+      nota: `El tallerista registra al equipo ganador: ${PUNTOS_TALLER} pts para cada delegación del equipo.`, guardar: (o) => api.adminTallerista(codigo, o) },
+  };
+
+  function formPersona(tipo, j) {
+    const P = PERSONA[tipo];
     let foto = j?.foto || "";
     let fotoCambiada = false;
     const m = modal(`
-      <h2>${j ? "Editar jurado" : "Crear código de jurado"}</h2>
-      <p style="margin:0;color:var(--niebla)">${j ? "Los cambios se aplican al instante." : "Al guardar se genera un código único de 6 caracteres para este jurado."}</p>
+      <h2>${j ? `Editar ${P.titulo}` : `Crear código de ${P.titulo}`}</h2>
+      <p style="margin:0;color:var(--niebla)">${j ? "Los cambios se aplican al instante." : `Al guardar se genera un código único de 6 caracteres para este ${P.titulo}.`}</p>
       <form class="form">
         <div class="foto-sel"><span data-prev>${avatar(j?.nombre || "?", foto)}</span>
           <div style="display:grid;gap:6px"><label class="btn btn--mini" style="cursor:pointer">${I.camara}Subir foto<input type="file" accept="image/*" hidden data-foto></label>
@@ -584,11 +650,11 @@ export async function vistaAdmin(app, codigo) {
             <p class="ayuda">JPG o PNG. Se recorta en cuadrado.</p></div></div>
         <label class="campo"><span>Nombre completo</span><input name="nombre" required maxlength="120" value="${esc(j?.nombre || "")}" placeholder="Ej. Ing. María Fernanda Quispe Rojas"></label>
         <label class="campo"><span>Código de acceso ${j ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" autocapitalize="characters" value="${esc(j?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase">
-          <span class="ayuda" style="font-weight:400">Úsalo para conservar un código que ya le enviaste al jurado (4 a 16 letras o números).</span></label>
-        <label class="campo"><span>Descripción breve</span><textarea name="desc" maxlength="400" placeholder="Cargo, especialidad o experiencia (se muestra al jurado al entrar)">${esc(j?.descripcion || "")}</textarea></label>
-        <fieldset style="border:0;padding:0;margin:0"><legend class="campo" style="margin-bottom:8px"><span>Concursos en los que puede calificar</span></legend>
-          <div class="checks">${CON_JURADO.map((c) => `<label class="check"><input type="checkbox" value="${c.id}" ${j?.concursos.includes(c.id) ? "checked" : ""}><span>${esc(c.nombre)}<small>${c.tipo === "academico" ? "Académico" : "Cultural"} · ${c.modo === "gymkana" ? "registro de resultados" : `${c.jurados} jurados`}</small></span></label>`).join("")}</div>
-          <p class="ayuda" style="margin-top:8px">Conocimientos y Talent Show los registras tú desde Resultados.</p></fieldset>
+          <span class="ayuda" style="font-weight:400">Úsalo para conservar un código que ya le enviaste al ${P.titulo} (4 a 16 letras o números).</span></label>
+        <label class="campo"><span>Descripción breve</span><textarea name="desc" maxlength="400" placeholder="Cargo, especialidad o experiencia (se muestra al ${P.titulo} al entrar)">${esc(j?.descripcion || "")}</textarea></label>
+        <fieldset style="border:0;padding:0;margin:0"><legend class="campo" style="margin-bottom:8px"><span>${P.leyenda}</span></legend>
+          <div class="checks">${P.opciones().map((c) => `<label class="check"><input type="checkbox" value="${c.id}" ${j?.[P.campo].includes(c.id) ? "checked" : ""}><span>${esc(c.nombre)}<small>${esc(c.sub)}</small></span></label>`).join("")}</div>
+          <p class="ayuda" style="margin-top:8px">${esc(P.nota)}</p></fieldset>
         <p class="error" aria-live="polite"></p>
         <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button>
           <button class="btn btn--naranja">${j ? `${I.check}Guardar cambios` : `${I.llave}Crear código`}</button></div>
@@ -603,25 +669,25 @@ export async function vistaAdmin(app, codigo) {
     $("[data-sinfoto]", m.el).onclick = () => { foto = ""; fotoCambiada = true; $("[data-prev]", m.el).innerHTML = avatar(f.nombre.value || "?", ""); $("[data-sinfoto]", m.el).hidden = true; };
     f.onsubmit = async (e) => {
       e.preventDefault();
-      const concursos = $$("input[type=checkbox]:checked", f).map((x) => x.value);
+      const elegidos = $$("input[type=checkbox]:checked", f).map((x) => x.value);
       const err = $(".error", f);
-      if (!f.nombre.value.trim()) { err.textContent = "Escribe el nombre completo del jurado."; return; }
-      if (!concursos.length) { err.textContent = "Elige al menos un concurso."; return; }
+      if (!f.nombre.value.trim()) { err.textContent = `Escribe el nombre completo del ${P.titulo}.`; return; }
+      if (!elegidos.length) { err.textContent = P.falta; return; }
       const btn = $("button:not([type=button])", f); btn.disabled = true;
       try {
         const cod = f.cod.value.replace(/\s/g, "").toUpperCase();
-        const r = await api.adminJurado(codigo, { id: j?.id || null, nombre: f.nombre.value, descripcion: f.desc.value.trim(), concursos, foto: fotoCambiada || !j ? foto : null,
+        const r = await P.guardar({ id: j?.id || null, nombre: f.nombre.value, descripcion: f.desc.value.trim(), [P.campo]: elegidos, foto: fotoCambiada || !j ? foto : null,
           codigoFijo: cod && cod !== j?.codigo ? cod : null });
         m.cerrar(); await recargar(true);
-        if (!j || r.codigo !== j.codigo) mostrarCodigo(f.nombre.value.trim(), r.codigo); else aviso("Jurado actualizado");
+        if (!j || r.codigo !== j.codigo) mostrarCodigo(f.nombre.value.trim(), r.codigo, P.boton); else aviso(`${P.boton} actualizado`);
       } catch (ex) { err.textContent = ex.message; btn.disabled = false; }
     };
   }
 
-  function mostrarCodigo(nombre, cod) {
+  function mostrarCodigo(nombre, cod, boton = "Jurado") {
     lanzarConfeti();
     const m = modal(`<div style="text-align:center"><div class="exito__icono" style="background:linear-gradient(135deg,#FFC23D,#FF6A1F);box-shadow:0 0 40px rgba(255,194,61,.6)">${I.llave}</div>
-      <h2>Código de ${esc(nombre)}</h2><p style="margin:0;color:var(--niebla)">Compártelo solo con este jurado. Con él entra por el botón Jurado.</p>
+      <h2>Código de ${esc(nombre)}</h2><p style="margin:0;color:var(--niebla)">Compártelo solo con esta persona. Con él entra por el botón ${esc(boton)}.</p>
       ${ES_DEMO ? `<p style="margin:10px 0 0;color:#FFD98A;font-size:.85rem"><b>Vista previa:</b> este código no funciona en la versión real. No lo envíes todavía.</p>` : ""}
       <div class="codigo-grande">${esc(cod)}</div></div>
       <div class="modal__acciones" style="justify-content:center"><button class="btn" data-copiar>${I.copiar}Copiar código</button><button class="btn btn--naranja" data-ok>Listo</button></div>`);

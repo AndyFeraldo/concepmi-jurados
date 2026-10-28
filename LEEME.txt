@@ -14,6 +14,8 @@ css/estilos.css       Diseño (mismo sistema visual del Concurso de Conocimiento
 js/concursos.js       Rúbricas oficiales de las bases (lo único a editar si cambian las bases)
 js/calculo.js         Promedios, redondeo, rankings, empates y Copa
 js/jurado.js          Pantallas del jurado
+js/tallerista.js      Pantallas del tallerista (registro de ganadores de talleres)
+js/talleres.js        Los 4 talleres y sus puntos (40 por delegación ganadora)
 js/admin.js           Pantallas del administrador
 js/excel.js           Exportación a Excel
 js/api.js             Conexión con Supabase
