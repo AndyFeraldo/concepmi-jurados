@@ -58,12 +58,11 @@ cualquier cambio de base de datos, explica qué hace y confirma con el usuario.
   - **Ponte la Liga**: series de 4 y pasa el 1.° a la Gran Final. Recibe 10, 8 y 6 pts en la final y 4 los eliminados.
   - **Tren de Globos**: series de 5 y pasan 3 a la final de 6. Recibe 10, 8, 6, 5, 4 y 3 pts en la final y 2 los eliminados.
 - Los empates comparten el promedio de puntos (redondeado).
-- Talleres (4, en paralelo, 11:30 a. m. – 1:00 p. m.): el tallerista registra al equipo ganador (1.er lugar), con nombre, apellido y delegación de cada integrante (empieza con 4 filas y el botón + agrega más, hasta 15). Cada delegación del equipo recibe **40 pts** en la Copa, una sola vez aunque tenga dos integrantes. Si se registra de nuevo, se reemplaza. El admin puede cerrar el registro de cada taller.
+- Talleres (4, en paralelo, 11:30 a. m. – 1:00 p. m.): el tallerista registra al equipo ganador (1.er lugar), con nombre, apellido y delegación de cada integrante (empieza con 4 filas y el botón + agrega más, hasta 15). Cada delegación del equipo recibe **40 pts** en la Copa, una sola vez aunque tenga dos integrantes (máximo 40 por taller, confirmado por el usuario). Si se registra de nuevo, se reemplaza. El admin puede cerrar el registro de cada taller.
 - Borrar calificaciones: el admin elige concurso, jurado y calificaciones, y escribe un motivo obligatorio que queda en `jur_borrados`.
 
 ## Pendientes y decisiones abiertas
 - Charlas principales: falta agregar su puntaje a la Copa (siguiente paso pedido por el usuario).
-- Talleres: confirmar si una delegación con 2 integrantes en el equipo ganador recibe 40 o 80 pts (hoy recibe 40).
 - Primera prueba real después de publicar: entrar como admin, crear una delegación y un jurado de prueba y calificar. La conexión navegador → Supabase no se pudo probar desde claude.ai.
 - El usuario había registrado jurados en la vista previa de claude.ai, que no guarda en la nube. Para pasarlos a la base real se usa **Jurados → Importar respaldo**, que los crea con los mismos códigos ya enviados.
 - Bailetón: hoy el puesto sale del puntaje de rúbrica. Falta definir si debe ordenar primero por etapa alcanzada (TOP 3, TOP 5, etapa 1).
