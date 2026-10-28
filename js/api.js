@@ -6,6 +6,7 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 import { CONCURSOS, porId } from "./concursos.js";
 import { TALLERES } from "./talleres.js";
+import { CHARLAS, SEG_PREGUNTA } from "./charlas.js";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -41,6 +42,17 @@ const real = {
   adminTallerista: (codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null }) =>
     rpc("jur_admin_tallerista", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_talleres: talleres, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
   adminTaller: (codigo, taller, abierto) => rpc("jur_admin_taller", { p_codigo: codigo, p_taller: taller, p_abierto: abierto }),
+  // Trivia de charlas
+  quizBuscar: (dni) => rpc("jur_quiz_buscar", { p_dni: dni }),
+  quizEstado: (charla, dni = null, token = null) => rpc("jur_quiz_estado", { p_charla: charla, p_dni: dni, p_token: token }),
+  quizUnirse: (charla, dni) => rpc("jur_quiz_unirse", { p_charla: charla, p_dni: dni }),
+  quizPregunta: (charla, dni, token, orden) => rpc("jur_quiz_pregunta", { p_charla: charla, p_dni: dni, p_token: token, p_orden: orden }),
+  quizResponder: (charla, dni, token, orden, opcion) => rpc("jur_quiz_responder", { p_charla: charla, p_dni: dni, p_token: token, p_orden: orden, p_opcion: opcion }),
+  quizResultado: (charla, dni, token) => rpc("jur_quiz_resultado", { p_charla: charla, p_dni: dni, p_token: token }),
+  adminQuiz: (codigo, charla) => rpc("jur_admin_quiz", { p_codigo: codigo, p_charla: charla }),
+  adminCharla: (codigo, charla, accion) => rpc("jur_admin_charla", { p_codigo: codigo, p_charla: charla, p_accion: accion }),
+  adminPreguntas: (codigo, charla, preguntas) => rpc("jur_admin_preguntas", { p_codigo: codigo, p_charla: charla, p_preguntas: preguntas }),
+  adminAsistentes: (codigo, filas) => rpc("jur_admin_asistentes", { p_codigo: codigo, p_filas: filas }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -80,13 +92,22 @@ function semilla() {
     abiertos: Object.fromEntries(CONCURSOS.map((c) => [c.id, true])),
     talleristas: [{ id: uid(), nombre: "Ana Lucía Paredes", codigo: "TAL001", talleres: ["t1", "t2"], descripcion: "Agile coach y docente de IA aplicada.", foto: "" }],
     ganadores: [],
-    talleresAbiertos: Object.fromEntries(TALLERES.map((t) => [t.id, true])) };
+    talleresAbiertos: Object.fromEntries(TALLERES.map((t) => [t.id, true])),
+    asistentes: ds.flatMap((d, i) => [1, 2].map((k) => ({ dni: `7000000${i}${k}`, codigo: `C${i}${k}`, nombre: `Asistente ${k} ${d.siglas}`, delegacion_id: d.id, delegacion_texto: d.siglas }))),
+    charlas: {}, preguntas: preguntasDemo(), jugadores: [], respuestas: [] };
+}
+function preguntasDemo() {
+  const base = [["¿Qué documento autoriza el inicio de un proyecto?", ["El acta de constitución", "El informe de cierre", "El backlog", "El plan de calidad"], 0],
+    ["En Scrum, ¿quién maximiza el valor del producto?", ["El Scrum Master", "El Product Owner", "El cliente", "El equipo de QA"], 1],
+    ["¿Cuál es la triple restricción?", ["Personas, procesos y tecnología", "Calidad, riesgo y moral", "Alcance, tiempo y costo", "Ventas y marketing"], 2]];
+  return Object.fromEntries(CHARLAS.map((c) => [c.id, base.map(([texto, opciones, correcta]) => ({ texto, opciones, correcta }))]));
 }
 let mem = null;
 function db() {
   if (mem) return mem;
   try { const s = localStorage.getItem(CLAVE_DEMO); if (s) mem = JSON.parse(s); } catch { /* sin almacenamiento */ }
-  if (!mem) mem = semilla();
+  if (!mem) { mem = semilla(); try { localStorage.setItem(CLAVE_DEMO, JSON.stringify(mem)); } catch { /* sin almacenamiento */ } }
+  mem.asistentes ||= []; mem.charlas ||= {}; mem.preguntas ||= preguntasDemo(); mem.jugadores ||= []; mem.respuestas ||= [];
   mem.talleristas ||= []; mem.ganadores ||= []; mem.talleresAbiertos ||= Object.fromEntries(TALLERES.map((t) => [t.id, true]));
   // Recupera jurados registrados en versiones anteriores de la vista previa
   for (const vieja of ["concepmi-jurados-demo-v1", "concepmi-jurados-demo-v2"]) {
@@ -103,6 +124,25 @@ const juradoDe = (c) => { const j = db().jurados.find((x) => x.codigo === norm(c
 const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas].some((x) => x.codigo === c && x.id !== excepto);
 const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; do { c = Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); } while (codigoUsado(c)); return c; };
 const talleristaDe = (c) => { const t = db().talleristas.find((x) => x.codigo === norm(c)); if (!t) throw new Error("Código de tallerista incorrecto"); return t; };
+
+const quizC = (id) => (db().charlas[id] ||= {});
+function quizFase(id) {
+  const c = quizC(id); if (c.estado !== "jugando") return "espera";
+  const ini = Date.parse(c.inicio), fin = ini + db().preguntas[id].length * SEG_PREGUNTA * 1000;
+  return Date.now() < ini ? "cuenta" : Date.now() >= fin ? "terminada" : "jugando";
+}
+function quizJugador(charla, dni, token) {
+  const j = db().jugadores.find((x) => x.charla_id === charla && x.dni === norm(dni) && x.token === token);
+  if (!j) throw new Error("No estás en la sala de esta charla"); return j;
+}
+function quizRanking(charla) {
+  const d = db(); const n = d.preguntas[charla].length;
+  return d.jugadores.filter((j) => j.charla_id === charla).map((j) => {
+    const rs = d.respuestas.filter((r) => r.charla_id === charla && r.dni === j.dni);
+    return { dni: j.dni, nombre: j.nombre, delegacion_id: j.delegacion_id, unido: j.unido, aciertos: rs.filter((r) => r.correcta).length, respondidas: rs.length,
+      tiempo_ms: rs.reduce((s, r) => s + r.ms, 0) + (n - rs.length) * SEG_PREGUNTA * 1000 };
+  }).sort((a, b) => b.aciertos - a.aciertos || a.tiempo_ms - b.tiempo_ms || a.unido - b.unido).map((x, i) => ({ ...x, puesto: i + 1 }));
+}
 
 const demo = {
   async entrar(codigo) { await espera(400); if (norm(codigo) === db().admin) return { rol: "admin" }; const j = db().jurados.find((x) => x.codigo === norm(codigo)); if (j) return { rol: "jurado", nombre: j.nombre };
@@ -132,7 +172,10 @@ const demo = {
   async adminDatos(codigo) { await espera(150); exigirAdmin(codigo); const d = db();
     return { concursos: CONCURSOS.map((c) => ({ id: c.id, abierto: d.abiertos[c.id] })), delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       jurados: d.jurados, calificaciones: [...d.calificaciones].sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)), ajustes: d.ajustes, borrados: d.borrados || [],
-      talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: d.talleristas, ganadores_talleres: d.ganadores }; },
+      talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: d.talleristas, ganadores_talleres: d.ganadores,
+      charlas: CHARLAS.map((c) => { const x = quizC(c.id); return { id: c.id, fase: quizFase(c.id), confirmado: x.confirmado || null, ganador_nombre: x.ganador_nombre || null,
+        ganador_delegacion: x.ganador_delegacion || null, preguntas: d.preguntas[c.id].length, jugadores: d.jugadores.filter((j) => j.charla_id === c.id).length }; }),
+      asistentes: { total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length } }; },
   async adminDelegacion(codigo, id, nombre, siglas, borrar = false) { await espera(); exigirAdmin(codigo); const d = db();
     if (borrar) { d.delegaciones = d.delegaciones.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.delegacion_id !== id); }
     else if (!String(nombre).trim()) throw new Error("Escribe el nombre de la delegación");
@@ -227,8 +270,63 @@ const demo = {
     if (fijo) t.codigo = fijo;
     guardar(); return { id: t.id, codigo: t.codigo }; },
   async adminTaller(codigo, taller, abierto) { await espera(); exigirAdmin(codigo); db().talleresAbiertos[taller] = abierto; guardar(); },
+  // ---- Trivia (vista previa: el tiempo lo lleva este navegador) ----
+  async quizBuscar(dni) { await espera(); const a = db().asistentes.find((x) => x.dni === norm(dni)); if (!a) return null;
+    const d = db().delegaciones.find((x) => x.id === a.delegacion_id); return { nombre: a.nombre, codigo: a.codigo, delegacion: d ? { id: d.id, nombre: d.nombre, siglas: d.siglas } : null }; },
+  async quizEstado(charla, dni = null, token = null) { await espera(80); const d = db(); const c = quizC(charla);
+    return { fase: quizFase(charla), inicio: c.inicio, ahora: new Date().toISOString(), seg: SEG_PREGUNTA, preguntas: d.preguntas[charla].length,
+      jugadores: d.jugadores.filter((j) => j.charla_id === charla).length, unido: d.jugadores.some((j) => j.charla_id === charla && j.dni === norm(dni) && j.token === token) }; },
+  async quizUnirse(charla, dni) { await espera(); const d = db();
+    if (quizFase(charla) !== "espera") throw new Error("La trivia ya empezó. Espera la siguiente charla.");
+    const a = d.asistentes.find((x) => x.dni === norm(dni)); if (!a) throw new Error("No encontramos ese DNI en la lista de inscritos");
+    if (!a.delegacion_id) throw new Error("Tu delegación aún no está registrada. Acércate al equipo organizador.");
+    if (d.jugadores.some((j) => j.charla_id === charla && j.dni === a.dni)) throw new Error("Este DNI ya está en la sala desde otro celular");
+    const token = uid(); d.jugadores.push({ charla_id: charla, dni: a.dni, token, nombre: a.nombre, delegacion_id: a.delegacion_id, unido: Date.now() }); guardar(); return { token }; },
+  async quizPregunta(charla, dni, token, orden) { await espera(80); const d = db(); quizJugador(charla, dni, token);
+    const c = quizC(charla); const ini = Date.parse(c.inicio) + orden * SEG_PREGUNTA * 1000;
+    if (!c.inicio || Date.now() < ini) throw new Error("Esa pregunta aún no está disponible");
+    const q = d.preguntas[charla][orden]; if (!q) return null;
+    return { orden, texto: q.texto, opciones: q.opciones, fin: new Date(ini + SEG_PREGUNTA * 1000).toISOString(), ahora: new Date().toISOString(),
+      respondida: d.respuestas.some((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === orden) }; },
+  async quizResponder(charla, dni, token, orden, opcion) { await espera(80); const d = db(); quizJugador(charla, dni, token);
+    const c = quizC(charla); const ms = Date.now() - (Date.parse(c.inicio) + orden * SEG_PREGUNTA * 1000);
+    if (ms < 0 || ms > SEG_PREGUNTA * 1000 + 1500) throw new Error("Se acabó el tiempo de esta pregunta");
+    if (d.respuestas.some((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === orden)) return;
+    d.respuestas.push({ charla_id: charla, dni: norm(dni), orden, opcion, correcta: opcion === d.preguntas[charla][orden].correcta, ms: Math.min(ms, SEG_PREGUNTA * 1000) }); guardar(); },
+  async quizResultado(charla, dni, token) { await espera(); quizJugador(charla, dni, token); const d = db(); const c = quizC(charla);
+    if (quizFase(charla) !== "terminada") throw new Error("La trivia aún no termina");
+    const r = quizRanking(charla).find((x) => x.dni === norm(dni));
+    return { aciertos: r.aciertos, puesto: r.puesto, tiempo_ms: r.tiempo_ms, preguntas: d.preguntas[charla].length, jugadores: d.jugadores.filter((j) => j.charla_id === charla).length,
+      confirmado: !!c.confirmado, ganador: c.ganador_nombre || null }; },
+  async adminQuiz(codigo, charla) { await espera(80); exigirAdmin(codigo); const d = db(); const c = quizC(charla);
+    const resp = d.respuestas.filter((r) => r.charla_id === charla);
+    return { fase: quizFase(charla), inicio: c.inicio, ahora: new Date().toISOString(), seg: SEG_PREGUNTA, confirmado: c.confirmado || null,
+      ganador_dni: c.ganador_dni || null, ganador_nombre: c.ganador_nombre || null, ganador_delegacion: c.ganador_delegacion || null,
+      preguntas: d.preguntas[charla].map((q, orden) => ({ orden, ...q })),
+      respuestas: [...new Set(resp.map((r) => r.orden))].map((orden) => ({ orden, n: resp.filter((r) => r.orden === orden).length, bien: resp.filter((r) => r.orden === orden && r.correcta).length })),
+      ranking: quizRanking(charla) }; },
+  async adminCharla(codigo, charla, accion) { await espera(); exigirAdmin(codigo); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
+    if (accion === "iniciar") { if (fase !== "espera") throw new Error("La trivia ya se inició"); c.estado = "jugando"; c.inicio = new Date(Date.now() + 5000).toISOString(); }
+    else if (accion === "reiniciar") { if (c.confirmado) throw new Error("Primero anula al ganador confirmado");
+      d.jugadores = d.jugadores.filter((j) => j.charla_id !== charla); d.respuestas = d.respuestas.filter((r) => r.charla_id !== charla); d.charlas[charla] = {}; }
+    else if (accion === "confirmar") { if (fase !== "terminada") throw new Error("Espera a que termine la última pregunta");
+      const g = quizRanking(charla)[0]; if (!g) throw new Error("Nadie participó en esta trivia");
+      Object.assign(c, { ganador_dni: g.dni, ganador_nombre: g.nombre, ganador_delegacion: g.delegacion_id, confirmado: new Date().toISOString() }); }
+    else if (accion === "anular") Object.assign(c, { ganador_dni: null, ganador_nombre: null, ganador_delegacion: null, confirmado: null });
+    guardar(); },
+  async adminPreguntas(codigo, charla, preguntas) { await espera(); exigirAdmin(codigo);
+    if (quizC(charla).estado === "jugando") throw new Error("Reinicia la trivia antes de cambiar las preguntas");
+    db().preguntas[charla] = preguntas.map((q) => ({ texto: q.texto, opciones: q.opciones, correcta: q.correcta })); guardar(); return preguntas.length; },
+  async adminAsistentes(codigo, filas) { await espera(); exigirAdmin(codigo); const d = db(); let n = 0;
+    for (const f of filas) { const dni = norm(f.dni); if (!dni || !String(f.nombre || "").trim()) continue;
+      d.asistentes = d.asistentes.filter((a) => a.dni !== dni);
+      d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "" }); n++; }
+    guardar(); return { importados: n, total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length }; },
   reiniciar() { mem = semilla(); guardar(); },
 };
+
+// En la vista previa cada llamada relee lo guardado, para que varias pestañas (admin y celulares) compartan el juego
+for (const k of Object.keys(demo)) { const f = demo[k]; demo[k] = (...a) => { mem = null; return f(...a); }; }
 
 export const api = DEMO ? demo : real;
 export const ES_DEMO = DEMO;

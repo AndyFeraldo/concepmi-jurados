@@ -5,6 +5,7 @@
 // =========================================================
 import { CONCURSOS, porId } from "./concursos.js";
 import { TALLERES, puntosTalleres } from "./talleres.js";
+import { CHARLAS, puntosCharlas } from "./charlas.js";
 
 export const redondear = (x) => Math.round(Number(x) + 1e-9);
 const prom = (a) => (a.length ? a.reduce((s, x) => s + Number(x), 0) / a.length : null);
@@ -197,10 +198,12 @@ export function copaGeneral(data) {
   const porConcurso = {};
   for (const c of CONCURSOS) porConcurso[c.id] = new Map(resultados(c.id, data).map((f) => [f.delegacion.id, f.copa]));
   const pt = puntosTalleres(data.ganadores_talleres);
+  const pc = puntosCharlas(data.charlas);
   const filas = data.delegaciones.map((d) => {
     const pts = {}; let total = 0;
     for (const c of CONCURSOS) { const v = porConcurso[c.id].get(d.id); pts[c.id] = v ?? null; total += v || 0; }
     for (const t of TALLERES) { const v = pt[d.id]?.[t.id]; pts[t.id] = v ?? null; total += v || 0; }
+    for (const c of CHARLAS) { const v = pc[d.id]?.[c.id]; pts[c.id] = v ?? null; total += v || 0; }
     return { delegacion: d, pts, total };
   });
   const rk = asignarPorRanking(filas.map((f) => ({ id: f.delegacion.id, v: f.total })), (a, b) => b.v - a.v, () => 0);
