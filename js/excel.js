@@ -1,9 +1,9 @@
 // Exporta todo a un Excel con una hoja por concurso
-import { CONCURSOS } from "./concursos.js?v=202610280251";
-import { resultados, copaGeneral, textoGymkana } from "./calculo.js?v=202610280251";
-import { mmss } from "./ui.js?v=202610280251";
-import { TALLERES, PUNTOS_TALLER, tallerPorId } from "./talleres.js?v=202610280251";
-import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js?v=202610280251";
+import { CONCURSOS } from "./concursos.js?v=202610280411";
+import { resultados, copaGeneral, textoGymkana } from "./calculo.js?v=202610280411";
+import { mmss } from "./ui.js?v=202610280411";
+import { TALLERES, PUNTOS_TALLER, tallerPorId } from "./talleres.js?v=202610280411";
+import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js?v=202610280411";
 
 const sancion = (aj) => (aj?.descalificado ? "Descalificado" : aj?.walkover ? "Walkover" : aj?.retraso ? "Entrega tardía (−10 % escrita)" : "");
 const r1 = (x) => (x == null ? "" : Math.round(x * 100) / 100);
@@ -84,9 +84,10 @@ export function exportarExcel(data) {
   }
   X.utils.book_append_sheet(wb, X.utils.json_to_sheet(gan.length ? gan : [{ Aviso: "Sin ganadores todavía" }]), "Talleres");
 
-  const ch = CHARLAS.map((c) => { const r = (data.charlas || []).find((x) => x.id === c.id) || {};
-    return { Charla: `Charla ${c.num} · ${c.nombre}`, Ponente: c.ponente, Preguntas: r.preguntas ?? "", Participantes: r.jugadores ?? "",
-      Ganador: r.confirmado ? r.ganador_nombre : "", Delegación: r.confirmado ? del.get(r.ganador_delegacion)?.nombre || "" : "", Puntos: r.confirmado ? PUNTOS_CHARLA : "" }; });
+  const ch = CHARLAS.flatMap((c) => { const r = (data.charlas || []).find((x) => x.id === c.id) || {};
+    const base = { Charla: `Charla ${c.num} · ${c.nombre}`, Ponente: c.ponente, Preguntas: r.preguntas ?? "", Participantes: r.jugadores ?? "" };
+    if (!r.confirmado || !(r.podio || []).length) return [{ ...base, Puesto: "", Nombre: "Sin podio confirmado", Delegación: "", Aciertos: "", Puntos: "" }];
+    return r.podio.map((p) => ({ ...base, Puesto: p.puesto, Nombre: p.nombre, Delegación: del.get(p.delegacion_id)?.nombre || "", Aciertos: p.aciertos ?? "", Puntos: p.pts })); });
   X.utils.book_append_sheet(wb, X.utils.json_to_sheet(ch), "Charlas");
 
   const crudo = data.calificaciones.map((x) => ({ Concurso: x.concurso_id, Fase: x.subprueba, Delegación: del.get(x.delegacion_id)?.nombre,

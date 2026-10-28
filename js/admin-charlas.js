@@ -2,15 +2,15 @@
 // Admin · Charlas principales: trivia, pantalla del auditorio,
 // inscritos (Excel de inscripción) y preguntas (Excel)
 // =========================================================
-import { api } from "./api.js?v=202610280251";
-import { CHARLAS, charlaPorId, PUNTOS_CHARLA, enlaceCharla } from "./charlas.js?v=202610280251";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202610280251";
+import { api } from "./api.js?v=202610280411";
+import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202610280411";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202610280411";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];
 const LETRAS = ["A", "B", "C", "D"];
 const sinTildes = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-const FASE_TXT = { espera: ["Sala de espera", "chip--celeste"], cuenta: ["Empezando…", "chip--ambar"], jugando: ["En juego", "chip--ambar"], terminada: ["Terminada", "chip--verde"] };
+const FASE_TXT = { espera: ["Sala de espera", "chip--celeste"], cuenta: ["Empezando…", "chip--ambar"], jugando: ["En juego", "chip--ambar"], pausa: ["En juego", "chip--ambar"], terminada: ["Terminada", "chip--verde"] };
 
 // ctx = { codigo(): string, data(): datos del admin, recargar(forzar), pausar(bool) }
 export function crearCharlas(ctx) {
@@ -22,19 +22,21 @@ export function crearCharlas(ctx) {
   function vista(v) {
     const as = ctx.data().asistentes || { total: 0, sin_delegacion: 0 };
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Charlas principales</h1><p>Al terminar cada charla, proyecta la pantalla del auditorio: los asistentes escanean el QR, entran con su DNI y juegan la trivia (20 s por pregunta). Al confirmar al ganador, su delegación suma <b>${PUNTOS_CHARLA} pts</b> en la Copa.</p></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Charlas principales</h1><p>Al terminar cada charla, proyecta la pantalla del auditorio: los asistentes escanean el QR, entran con su DNI y juegan la trivia (${SEG_PREGUNTA} s por pregunta; si todos responden, pasa a la siguiente). Al confirmar el podio, sus delegaciones suman <b>+${PUNTOS_PODIO[0]}</b>, <b>+${PUNTOS_PODIO[1]}</b> y <b>+${PUNTOS_PODIO[2]}</b> pts en la Copa.</p></div></div>
       <div class="charlas">${CHARLAS.map((c) => {
         const r = resumen(c.id); const [txt, cls] = FASE_TXT[r.fase || "espera"];
+        const hay = r.confirmado || r.jugadores > 0 || (r.fase && r.fase !== "espera");
         return `<article class="concurso concurso--info c-${c.color}">
           <span class="concurso__tipo">Charla Principal ${c.num} · ${esc(c.dia)} · ${esc(c.hora)}</span>
           <h3>${esc(c.nombre)}</h3>
           <p class="concurso__apodo">${esc(c.ponente)} · ${c.pilares.map(esc).join(" · ")}</p>
           <div class="jurado__chips" style="margin-top:8px"><span class="chip ${cls}">${txt}</span><span class="chip">${r.preguntas || 0} preguntas</span><span class="chip">${r.jugadores || 0} en la sala</span></div>
-          ${r.confirmado ? `<p style="margin:10px 0 0"><span class="chip chip--verde">${I.copa}Ganador: ${esc(r.ganador_nombre)} · +${PUNTOS_CHARLA} ${esc(nomDel(r.ganador_delegacion))}</span></p>` : ""}
+          ${r.confirmado ? `<div class="reparto">${(r.podio || []).map((p) => `<span class="chip chip--verde">${["🥇", "🥈", "🥉"][p.puesto - 1]} ${esc(p.nombre)} · +${p.pts} ${esc(nomDel(p.delegacion_id))}</span>`).join("")}</div>` : ""}
           <div class="charla__acc">
             <button class="btn btn--mini btn--naranja" data-proy="${c.id}">${I.vivo}Pantalla del auditorio</button>
             <button class="btn btn--mini" data-preg="${c.id}">${I.lapiz}Preguntas</button>
             <button class="btn btn--mini" data-enlace="${c.id}">${I.copiar}Copiar enlace</button>
+            ${hay ? `<button class="btn btn--mini btn--peligro" data-borrar="${c.id}">${I.basura}Borrar resultado</button>` : ""}
           </div></article>`; }).join("")}</div>
       <div class="cabeza"><div><h1>Inscritos</h1><p>Lista para que los asistentes entren con su DNI. Sube el Excel de inscripción (hoja <b>CONFIRMADOS</b>). Si llegan más inscritos, vuelve a subirlo: se actualiza sin duplicar.</p></div></div>
       <div class="kpis">
@@ -49,6 +51,11 @@ export function crearCharlas(ctx) {
       const url = enlaceCharla(b.dataset.enlace);
       try { await navigator.clipboard.writeText(url); aviso("Enlace copiado"); } catch { aviso(url); }
     }));
+    $$("[data-borrar]", v).forEach((b) => (b.onclick = async () => {
+      const c = charlaPorId(b.dataset.borrar);
+      if (!(await confirmar("¿Borrar el resultado de esta charla?", `Se vacía la sala, se borran las respuestas y, si había podio confirmado, sus delegaciones <b>pierden los puntos</b> de la Charla ${c.num}. Las preguntas se conservan.`, { boton: "Borrar resultado", peligro: true }))) return;
+      try { await api.adminCharla(ctx.codigo(), c.id, "borrar"); aviso("Resultado borrado"); ctx.recargar(true); } catch (e) { aviso(e.message, "error"); }
+    }));
     $("[data-inscritos]", v).onclick = importarInscritos;
   }
 
@@ -59,35 +66,48 @@ export function crearCharlas(ctx) {
     el.className = "proy";
     document.body.append(el);
     ctx.pausar(true);
-    let q = null, desfase = 0, ultima = "", revelado = 0, vivo = true, ocupado = false;
+    let q = null, desfase = 0, ultima = "", vivo = true, ocupado = false;
+    let etapa = 0; // ceremonia: 0 nada · 1 tercer lugar · 2 segundo · 3 suspenso · 4 ganador · 5 podio completo
     const ahora = () => Date.now() + desfase;
-    const cerrar = () => { vivo = false; clearInterval(tic); el.remove(); ctx.pausar(false); ctx.recargar(true); };
+    const segHasta = (t) => Math.max(0, (Date.parse(t) - ahora()) / 1000);
+    const enJuego = () => ["cuenta", "jugando", "pausa"].includes(q?.fase);
+    function cerrar() { vivo = false; clearInterval(tic); document.removeEventListener("keydown", tecla); el.remove(); ctx.pausar(false); ctx.recargar(true); }
+
+    async function salir() {
+      if (!enJuego()) return cerrar();
+      const m = modal(`<h2>La trivia sigue en curso</h2><p style="margin:0;color:var(--niebla)">Si cierras esta pantalla, el juego <b>continúa</b> en los celulares. ¿Qué quieres hacer?</p>
+        <div class="modal__acciones"><button class="btn" data-no>Volver a la pantalla</button><button class="btn" data-seguir>Cerrar y dejarla correr</button><button class="btn btn--peligro" data-parar>${I.alerta}Detener y cerrar</button></div>`);
+      $("[data-no]", m.el).onclick = m.cerrar;
+      $("[data-seguir]", m.el).onclick = () => { m.cerrar(); cerrar(); };
+      $("[data-parar]", m.el).onclick = async () => { m.cerrar(); await accion("detener"); cerrar(); };
+    }
 
     async function leer() {
       try { const t0 = Date.now(); q = await api.adminQuiz(ctx.codigo(), cid); desfase = Date.parse(q.ahora) - (t0 + Date.now()) / 2; }
       catch (e) { aviso(e.message, "error"); }
     }
-    const fase = () => {
-      if (!q || q.fase === "espera") return "espera";
-      const ini = Date.parse(q.inicio), fin = ini + q.preguntas.length * q.seg * 1000;
-      return ahora() < ini ? "cuenta" : ahora() >= fin ? "terminada" : "jugando";
-    };
 
     function cuerpo(html, clave) {
       if (clave === ultima) return false;
       ultima = clave;
       el.innerHTML = `
         <header class="proy__cab"><img class="logo" src="${IMG.logo}" alt="CONCEPMI">
-          <div><div class="proy__tit">Charla Principal ${c.num} · ${esc(c.nombre)}</div><div class="proy__sub">${esc(c.ponente)} · El 1.er lugar gana ${PUNTOS_CHARLA} pts para su delegación</div></div>
-          <div class="der"><button class="btn btn--mini" data-cerrarproy title="Cerrar pantalla">${I.cerrar}<span>Cerrar</span></button></div></header>
+          <div><div class="proy__tit">Charla Principal ${c.num} · ${esc(c.nombre)}</div><div class="proy__sub">${esc(c.ponente)} · Podio: 1.° +${PUNTOS_PODIO[0]} · 2.° +${PUNTOS_PODIO[1]} · 3.° +${PUNTOS_PODIO[2]} pts para su delegación</div></div>
+          <div class="der">${enJuego() ? `<button class="btn btn--mini btn--peligro" data-emergencia title="Parada de emergencia">${I.alerta}<span>Detener trivia</span></button>` : ""}
+            <button class="btn btn--mini" data-cerrarproy title="Cerrar pantalla">${I.cerrar}<span>Cerrar</span></button></div></header>
         <main class="proy__cuerpo">${html}</main>`;
-      $("[data-cerrarproy]", el).onclick = cerrar;
+      $("[data-cerrarproy]", el).onclick = salir;
+      $("[data-emergencia]", el)?.addEventListener("click", async () => {
+        if (await confirmar("¿Detener la trivia?", "Parada de emergencia: se anulan todas las respuestas y los jugadores vuelven a la sala de espera. Luego puedes iniciarla otra vez.", { boton: "Detener trivia", peligro: true })) accion("detener");
+      });
       return true;
     }
 
+    const opciones = (p, marcar) => `<div class="proy__ops">${p.opciones.map((o, k) => `<div class="opcion opcion--${COLORES[k]} ${marcar ? (k === p.correcta ? "opcion--correcta" : "opcion--apagada") : ""}"><span>${marcar && k === p.correcta ? "✓" : FORMAS[k]}</span>${esc(o)}</div>`).join("")}</div>`;
+
     function pintar() {
       if (!q) return;
-      const f = fase();
+      const f = q.fase;
       if (f === "espera") {
         const nombres = q.ranking.map((r) => r.nombre.split(" ")[0]);
         if (cuerpo(`
@@ -105,7 +125,8 @@ export function crearCharlas(ctx) {
               </div>
               ${q.preguntas.length ? "" : `<p class="error">Primero carga las preguntas de esta charla.</p>`}
             </div>
-          </div>`, `espera${q.ranking.length}`)) {
+          </div>
+          <div class="aviso-orden aviso-orden--proy">⚠️ <b>En cada celular las opciones y los colores salen en distinto orden.</b> Lean el texto de la respuesta, no se guíen por el color ni la posición.</div>`, `espera${q.ranking.length}`)) {
           dibujarQR($("[data-qr]", el), enlaceCharla(cid));
           $("[data-iniciar]", el).onclick = () => accion("iniciar");
           $("[data-reiniciar]", el)?.addEventListener("click", reiniciar);
@@ -113,96 +134,135 @@ export function crearCharlas(ctx) {
         return;
       }
       if (f === "cuenta") {
-        const s = Math.max(1, Math.ceil((Date.parse(q.inicio) - ahora()) / 1000));
-        return void cuerpo(`<p class="proy__grande" style="text-align:center">¡Prepárense!</p><div class="proy__cuenta">${s}</div>`, `cuenta${s}`);
+        const s = Math.max(1, Math.ceil(segHasta(q.inicio)));
+        return void cuerpo(`<p class="proy__grande" style="text-align:center">¡Prepárense!</p><div class="proy__cuenta">${s}</div>
+          <div class="aviso-orden aviso-orden--proy">⚠️ <b>En cada celular las opciones y los colores salen en distinto orden.</b> Lean el texto, no el color.</div>`, `cuenta${s}`);
       }
-      if (f === "jugando") {
-        const orden = Math.floor((ahora() - Date.parse(q.inicio)) / (q.seg * 1000));
+      if (f === "jugando" || f === "pausa") {
+        const orden = q.pregunta - (f === "pausa" ? 1 : 0);
         const p = q.preguntas[orden];
-        const fin = Date.parse(q.inicio) + (orden + 1) * q.seg * 1000;
-        const resta = Math.max(0, (fin - ahora()) / 1000);
-        const n = q.respuestas.find((r) => r.orden === orden)?.n || 0;
+        const est = q.respuestas.find((r) => r.orden === orden) || { n: 0, bien: 0 };
+        const resta = f === "jugando" ? segHasta(q.fin) : segHasta(q.inicio);
         const top = q.ranking.slice(0, 5);
         cuerpo(`
           <div class="proy__info"><span>Pregunta ${orden + 1} de ${q.preguntas.length}</span>
-            <div class="proy__reloj" data-reloj style="--p:${(resta / q.seg) * 100}%"><span data-seg>${Math.ceil(resta)}</span></div>
-            <span><b data-n style="color:var(--oro);font-size:1.6rem">${n}</b> de ${q.ranking.length} respondieron</span></div>
+            ${f === "jugando" ? `<div class="proy__reloj" data-reloj style="--p:${(resta / q.seg) * 100}%"><span data-seg>${Math.ceil(resta)}</span></div>`
+              : `<span class="chip chip--verde" style="font-size:1rem;padding:.5em 1em">${q.pregunta >= q.preguntas.length ? "Resultados" : "Siguiente pregunta"} en <b data-seg>${Math.ceil(resta)}</b></span>`}
+            <span>${f === "jugando" ? `<b data-n style="color:var(--oro);font-size:1.6rem">${est.n}</b> de ${q.ranking.length} respondieron` : `<b style="color:#8FF2C0;font-size:1.6rem">${est.bien}</b> de ${q.ranking.length} acertaron`}</span></div>
           <h2 class="proy__pregunta">${esc(p.texto)}</h2>
-          <div class="proy__ops">${p.opciones.map((o, k) => `<div class="opcion opcion--${COLORES[k]}"><span>${FORMAS[k]}</span>${esc(o)}</div>`).join("")}</div>
-          <p class="ayuda" style="text-align:center">En cada celular las opciones salen en otro orden: busquen el texto, no el color.</p>
-          ${top.length ? `<div class="proy__top" data-top>${filasTop(top)}</div>` : ""}`, `q${orden}`);
+          ${opciones(p, f === "pausa")}
+          ${f === "jugando" ? `<div class="aviso-orden aviso-orden--proy">⚠️ <b>En sus celulares las opciones y los colores están en otro orden.</b> Busquen el texto, no el color.</div>` : ""}
+          ${top.length ? `<div class="proy__top" data-top>${filasTop(top)}</div>` : ""}`, `${f}${orden}`);
         const seg = $("[data-seg]", el), reloj = $("[data-reloj]", el), nn = $("[data-n]", el), tp = $("[data-top]", el);
         if (seg) seg.textContent = Math.ceil(resta);
         if (reloj) reloj.style.setProperty("--p", `${(resta / q.seg) * 100}%`);
-        if (nn) nn.textContent = n;
+        if (nn) nn.textContent = est.n;
         if (tp) tp.innerHTML = filasTop(top);
         return;
       }
-      // Terminada: revelación del podio
-      const [g1, g2, g3] = q.ranking;
-      const lugar = (r, k) => r ? `<div class="proy__lugar proy__lugar--${k} ${revelado >= 4 - k ? "visible" : ""}"><span class="medalla medalla--${k}">${k}</span>
-        <h3>${esc(r.nombre)}</h3><p>${esc(nomDel(r.delegacion_id))}</p><p><b style="color:var(--blanco)">${r.aciertos}</b> aciertos · ${(r.tiempo_ms / 1000).toFixed(1)} s</p>
-        ${k === 1 ? `<p style="font-family:var(--neon);color:var(--oro);font-size:1.6rem;margin-top:10px">+${PUNTOS_CHARLA} pts</p>` : ""}</div>` : `<div></div>`;
+      ceremonia();
+    }
+
+    // ---------- Ceremonia de premiación ----------
+    function ceremonia() {
+      const podio = q.confirmado ? (q.podio || []).map((p) => ({ ...p })) : q.ranking.slice(0, 3).map((r, i) => ({ ...r, pts: PUNTOS_PODIO[i] }));
+      const [g1, g2, g3] = podio;
       const conf = q.confirmado;
+      if (!podio.length) {
+        if (cuerpo(`<div class="vacio"><b>Nadie participó en esta trivia</b></div><div class="proy__acc"><button class="btn" data-reiniciar>${I.girar}Reiniciar trivia</button></div>`, "fin-vacio"))
+          $("[data-reiniciar]", el)?.addEventListener("click", reiniciar);
+        return;
+      }
+      const foco = (r, titulo, k) => `<div class="foco foco--${k}"><p class="foco__titulo">${titulo}</p><span class="medalla medalla--${k} foco__medalla">${k}</span>
+        <h2 class="foco__nombre">${esc(r.nombre)}</h2><p class="foco__del">${esc(nomDel(r.delegacion_id))}</p>
+        <p class="foco__dato">${r.aciertos} aciertos · ${(r.tiempo_ms / 1000).toFixed(1)} s</p><p class="foco__pts">+${r.pts} pts</p></div>`;
+      if (etapa === 1 && g3) return void cuerpo(foco(g3, "Tercer lugar", 3), "e1");
+      if (etapa === 2 && g2) return void cuerpo(foco(g2, "Segundo lugar", 2), "e2");
+      if (etapa === 3) return void cuerpo(`<div class="foco"><p class="foco__titulo">Y el primer lugar es…</p><div class="proy__cuenta tambor">🥁</div></div>`, "e3");
+      if (etapa === 4) return void cuerpo(foco(g1, "¡Primer lugar!", 1), "e4");
+      const lugar = (r, k) => r ? `<div class="proy__lugar proy__lugar--${k} ${etapa >= 5 || conf ? "visible" : ""}"><span class="medalla medalla--${k}">${k}</span>
+        <h3>${esc(r.nombre)}</h3><p>${esc(nomDel(r.delegacion_id))}</p><p><b style="color:var(--blanco)">${r.aciertos}</b> aciertos · ${(r.tiempo_ms / 1000).toFixed(1)} s</p>
+        <p style="font-family:var(--neon);color:var(--oro);font-size:1.5rem;margin-top:10px">+${r.pts} pts</p></div>` : `<div></div>`;
+      const listo = etapa >= 5 || conf;
       if (cuerpo(`
-        <p class="proy__grande" style="text-align:center">${revelado >= 3 ? "¡Tenemos ganador!" : "¿Quién ganó?"}</p>
-        ${q.ranking.length ? `<div class="proy__podio">${lugar(g2, 2)}${lugar(g1, 1)}${lugar(g3, 3)}</div>` : `<div class="vacio"><b>Nadie participó en esta trivia</b></div>`}
+        <p class="proy__grande" style="text-align:center">${listo ? "¡Felicitaciones al podio!" : "¡Terminó la trivia!"}</p>
+        ${listo ? `<div class="proy__podio">${lugar(g2, 2)}${lugar(g1, 1)}${lugar(g3, 3)}</div>` : `<p style="text-align:center;font-size:1.3rem;color:var(--niebla)">${q.ranking.length} participantes · ¿Quiénes subirán al podio?</p>`}
         <div class="proy__acc">
-          ${q.ranking.length && revelado < 3 ? `<button class="btn btn--naranja btn--grande" style="width:auto" data-revelar>${I.copa}Revelar resultados</button>` : ""}
-          ${revelado >= 3 && !conf ? `<button class="btn btn--naranja btn--grande" style="width:auto" data-confirmar>${I.check}Confirmar ganador · +${PUNTOS_CHARLA} pts a ${esc(nomDel(g1?.delegacion_id))}</button>` : ""}
-          ${conf ? `<span class="chip chip--verde" style="font-size:1rem;padding:.6em 1.1em">${I.check}Ganador confirmado: ${esc(q.ganador_nombre)} · +${PUNTOS_CHARLA} pts a ${esc(nomDel(q.ganador_delegacion))}</span>
-            <button class="btn" data-anular>Anular ganador</button>` : ""}
+          ${!listo ? `<button class="btn btn--naranja btn--grande" style="width:auto" data-revelar>${I.copa}Iniciar la premiación</button>` : ""}
+          ${listo && !conf ? `<button class="btn btn--naranja btn--grande" style="width:auto" data-confirmar>${I.check}Confirmar podio · ${podio.map((p) => `+${p.pts} ${esc(nomDel(p.delegacion_id))}`).join(" · ")}</button>` : ""}
+          ${conf ? `<span class="chip chip--verde" style="font-size:1rem;padding:.6em 1.1em">${I.check}Podio confirmado y sumado a la Copa</span><button class="btn" data-anular>Anular resultado</button>` : ""}
           ${!conf ? `<button class="btn" data-reiniciar>${I.girar}Reiniciar trivia</button>` : ""}
         </div>
-        ${revelado >= 3 && q.ranking.length > 3 ? `<div class="proy__top">${filasTop(q.ranking.slice(3, 10))}</div>` : ""}`, `fin${revelado}${conf}${q.ranking.length}`)) {
-        $("[data-revelar]", el)?.addEventListener("click", revelar);
+        ${listo && q.ranking.length > 3 ? `<div class="proy__top">${filasTop(q.ranking.slice(3, 10))}</div>` : ""}`, `fin${etapa}${conf}${q.ranking.length}`)) {
+        $("[data-revelar]", el)?.addEventListener("click", premiar);
         $("[data-confirmar]", el)?.addEventListener("click", () => accion("confirmar"));
         $("[data-anular]", el)?.addEventListener("click", async () => {
-          if (await confirmar("¿Anular al ganador?", `Su delegación dejará de recibir los ${PUNTOS_CHARLA} pts de esta charla.`, { boton: "Anular", peligro: true })) accion("anular");
+          if (await confirmar("¿Anular el resultado?", "Las delegaciones del podio dejarán de recibir los puntos de esta charla. Puedes confirmarlo otra vez.", { boton: "Anular", peligro: true })) { etapa = 0; accion("anular"); }
         });
         $("[data-reiniciar]", el)?.addEventListener("click", reiniciar);
+        if (listo) lanzarConfeti();
       }
+    }
+
+    function premiar() {
+      const n = Math.min(3, q.ranking.length);
+      const pasos = [...(n >= 3 ? [[1, 3500]] : []), ...(n >= 2 ? [[2, 3500]] : []), [3, 3000], [4, 4500], [5, 0]];
+      const siguiente = (i) => {
+        const [e, ms] = pasos[i];
+        etapa = e; ultima = ""; pintar();
+        sonido(e === 3 ? "tambor" : e === 4 ? "fanfarria" : e === 5 ? "" : "golpe");
+        if (e === 4) lanzarConfeti();
+        if (ms) setTimeout(() => vivo && siguiente(i + 1), ms);
+      };
+      siguiente(0);
     }
 
     const filasTop = (lista) => lista.map((r) => `<div class="proy__fila"><span class="medalla ${r.puesto <= 3 ? `medalla--${r.puesto}` : ""}">${r.puesto}</span>
       <span><b>${esc(r.nombre)}</b> <small>· ${esc(nomDel(r.delegacion_id))}</small></span><span>${r.aciertos} ✓</span><small>${(r.tiempo_ms / 1000).toFixed(1)} s</small></div>`).join("");
 
-    function revelar() {
-      const pasos = Math.min(3, q.ranking.length);
-      revelado = 3 - pasos; // con menos de 3 jugadores se salta los puestos vacíos
-      const siguiente = () => {
-        revelado++; ultima = ""; pintar();
-        if (revelado < 3) setTimeout(siguiente, 1800);
-        else lanzarConfeti();
-      };
-      siguiente();
-    }
-
     async function accion(a) {
       if (ocupado) return; ocupado = true;
       try {
         await api.adminCharla(ctx.codigo(), cid, a);
-        if (a === "confirmar") { lanzarConfeti(); aviso(`+${PUNTOS_CHARLA} pts sumados a la Copa`); }
-        if (a === "iniciar") revelado = 0;
+        if (a === "confirmar") { lanzarConfeti(); aviso("Puntos del podio sumados a la Copa"); }
+        if (a === "detener") aviso("Trivia detenida. Los jugadores volvieron a la sala.");
+        if (["iniciar", "detener", "reiniciar"].includes(a)) etapa = 0;
         await leer(); ultima = ""; pintar();
       } catch (e) { aviso(e.message, "error"); }
       finally { ocupado = false; }
     }
     async function reiniciar() {
-      if (await confirmar("¿Reiniciar la trivia?", "Se vacía la sala y se borran las respuestas de esta charla. Úsalo solo para pruebas o si hubo un problema.", { boton: "Reiniciar", peligro: true })) { revelado = 0; accion("reiniciar"); }
+      if (await confirmar("¿Reiniciar la trivia?", "Se vacía la sala y se borran las respuestas de esta charla. Úsalo solo para pruebas o si hubo un problema.", { boton: "Reiniciar", peligro: true })) accion("reiniciar");
     }
 
     let ultimaLectura = 0;
     const tic = setInterval(async () => {
       if (!vivo) return;
-      const f = fase();
-      const cada = f === "jugando" ? 1000 : f === "terminada" && q?.confirmado ? 5000 : 2000;
+      const cada = enJuego() ? 1000 : q?.fase === "terminada" ? 4000 : 2000;
       if (Date.now() - ultimaLectura > cada && !ocupado) { ultimaLectura = Date.now(); await leer(); }
       pintar();
     }, 250);
-    const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".velo")) { document.removeEventListener("keydown", tecla); cerrar(); } };
+    const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".velo")) salir(); };
     document.addEventListener("keydown", tecla);
     leer().then(pintar);
+  }
+
+  // Sonidos sencillos para la ceremonia (sin archivos)
+  let audio = null;
+  function sonido(tipo) {
+    if (!tipo) return;
+    try {
+      audio ||= new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audio.currentTime;
+      const tono = (f, ini, dur, vol = 0.2, forma = "triangle") => {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = forma; o.frequency.value = f; g.gain.setValueAtTime(vol, t0 + ini); g.gain.exponentialRampToValueAtTime(0.001, t0 + ini + dur);
+        o.connect(g).connect(audio.destination); o.start(t0 + ini); o.stop(t0 + ini + dur);
+      };
+      if (tipo === "golpe") { tono(110, 0, 0.5, 0.4, "sine"); tono(523, 0.05, 0.6); tono(659, 0.15, 0.7); }
+      if (tipo === "tambor") for (let i = 0; i < 28; i++) tono(90 + Math.random() * 30, i * 0.1, 0.09, 0.15 + i * 0.008, "square");
+      if (tipo === "fanfarria") [[523, 0], [659, 0.15], [784, 0.3], [1047, 0.45], [784, 0.75], [1047, 0.9]].forEach(([f, t]) => tono(f, t, 0.5, 0.22));
+    } catch { /* sin sonido */ }
   }
 
   // ---------------- Preguntas ----------------

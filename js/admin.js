@@ -1,16 +1,16 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202610280251";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202610280251";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202610280251";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202610280251";
-import { exportarExcel } from "./excel.js?v=202610280251";
-import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js?v=202610280251";
-import { crearCharlas } from "./admin-charlas.js?v=202610280251";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202610280251";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202610280251";
-import { salir } from "./app.js?v=202610280251";
+import { api, ES_DEMO } from "./api.js?v=202610280411";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202610280411";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202610280411";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202610280411";
+import { exportarExcel } from "./excel.js?v=202610280411";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202610280411";
+import { crearCharlas } from "./admin-charlas.js?v=202610280411";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202610280411";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202610280411";
+import { salir } from "./app.js?v=202610280411";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -488,7 +488,7 @@ export async function vistaAdmin(app, codigo) {
     const lugar = (f, n) => f ? `<div class="podio__lugar podio__lugar--${n}"><span class="medalla medalla--${n}">${n}</span><div class="podio__nombre">${esc(f.delegacion.nombre)}</div><div class="podio__pts">${f.total}</div><small class="tenue">puntos</small></div>` : `<div></div>`;
     const corto = (c) => c.nombre.replace("Concurso Nacional de ", "").replace("Concurso de ", "");
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Copa CONCEPMI VI</h1><p>Suma de puntos de los ${CONCURSOS.length} concursos (máximo ${maxCopaTotal} pts) de los ${TALLERES.length} talleres (${PUNTOS_TALLER} pts por taller ganado) y de las ${CHARLAS.length} charlas principales (${PUNTOS_CHARLA} pts para la delegación del ganador de cada trivia).</p></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Copa CONCEPMI VI</h1><p>Suma de puntos de los ${CONCURSOS.length} concursos (máximo ${maxCopaTotal} pts), de los ${TALLERES.length} talleres (${PUNTOS_TALLER} pts por taller ganado) y de las ${CHARLAS.length} charlas principales (podio de cada trivia: +${PUNTOS_PODIO.join(", +")} pts).</p></div></div>
       ${top.length ? `<div class="podio">${lugar(top[1], 2)}${lugar(top[0], 1)}${lugar(top[2], 3)}</div>` : ""}
       ${data.delegaciones.length ? `<div class="tabla-envoltura"><table class="tabla">
         <thead><tr><th rowspan="2">Puesto</th><th rowspan="2">Delegación</th><th colspan="${aca.length}" class="grupo-a" style="text-align:center">Académicos</th><th colspan="${cul.length}" class="grupo-c" style="text-align:center">Culturales</th><th colspan="${TALLERES.length}" class="grupo-a" style="text-align:center">Talleres</th><th colspan="${CHARLAS.length}" class="grupo-c" style="text-align:center">Charlas</th><th rowspan="2" class="num">Total</th></tr>
