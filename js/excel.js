@@ -3,6 +3,7 @@ import { CONCURSOS } from "./concursos.js";
 import { resultados, copaGeneral, textoGymkana } from "./calculo.js";
 import { mmss } from "./ui.js";
 import { TALLERES, PUNTOS_TALLER, tallerPorId } from "./talleres.js";
+import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js";
 
 const sancion = (aj) => (aj?.descalificado ? "Descalificado" : aj?.walkover ? "Walkover" : aj?.retraso ? "Entrega tardía (−10 % escrita)" : "");
 const r1 = (x) => (x == null ? "" : Math.round(x * 100) / 100);
@@ -20,6 +21,7 @@ export function exportarExcel(data) {
     const o = { Puesto: f.puesto, Delegación: f.delegacion.nombre, Siglas: f.delegacion.siglas };
     for (const c of CONCURSOS) o[`${c.nombre} (máx ${c.maxCopa})`] = f.pts[c.id] ?? "";
     for (const t of TALLERES) o[`Taller ${t.num} (${PUNTOS_TALLER})`] = f.pts[t.id] ?? "";
+    for (const c of CHARLAS) o[`Charla ${c.num} (${PUNTOS_CHARLA})`] = f.pts[c.id] ?? "";
     o["TOTAL COPA"] = f.total;
     return o;
   });
@@ -81,6 +83,11 @@ export function exportarExcel(data) {
     gan.push({ Taller: `Taller ${t?.num} · ${t?.nombre}`, Integrante: x.nombre, Delegación: del.get(x.delegacion)?.nombre || "", Tallerista: g.tallerista || "", Fecha: new Date(g.actualizado).toLocaleString("es-PE") });
   }
   X.utils.book_append_sheet(wb, X.utils.json_to_sheet(gan.length ? gan : [{ Aviso: "Sin ganadores todavía" }]), "Talleres");
+
+  const ch = CHARLAS.map((c) => { const r = (data.charlas || []).find((x) => x.id === c.id) || {};
+    return { Charla: `Charla ${c.num} · ${c.nombre}`, Ponente: c.ponente, Preguntas: r.preguntas ?? "", Participantes: r.jugadores ?? "",
+      Ganador: r.confirmado ? r.ganador_nombre : "", Delegación: r.confirmado ? del.get(r.ganador_delegacion)?.nombre || "" : "", Puntos: r.confirmado ? PUNTOS_CHARLA : "" }; });
+  X.utils.book_append_sheet(wb, X.utils.json_to_sheet(ch), "Charlas");
 
   const crudo = data.calificaciones.map((x) => ({ Concurso: x.concurso_id, Fase: x.subprueba, Delegación: del.get(x.delegacion_id)?.nombre,
     Jurado: jur.get(x.jurado_id)?.nombre, Total: x.total, Datos: JSON.stringify(x.datos), Comentario: x.comentario || "", Fecha: new Date(x.actualizado).toLocaleString("es-PE") }));

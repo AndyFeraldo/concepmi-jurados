@@ -6,6 +6,8 @@ import { SEGUNDOS_REFRESCO } from "./config.js";
 import { CONCURSOS, porId, SANCIONES } from "./concursos.js";
 import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js";
 import { exportarExcel } from "./excel.js";
+import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js";
+import { crearCharlas } from "./admin-charlas.js";
 import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js";
 import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js";
 import { salir } from "./app.js";
@@ -16,6 +18,7 @@ const PESTANAS = [
   { id: "copa", txt: "Copa CONCEPMI", icono: "copa" },
   { id: "jurados", txt: "Jurados", icono: "personas" },
   { id: "talleristas", txt: "Talleristas", icono: "pizarra" },
+  { id: "charlas", txt: "Charlas", icono: "vivo" },
   { id: "delegaciones", txt: "Delegaciones", icono: "bandera" },
 ];
 const CON_JURADO = CONCURSOS.filter((c) => c.jurados > 0);
@@ -24,13 +27,14 @@ export async function vistaAdmin(app, codigo) {
   let data = null, firma = "";
   let pestana = "vivo", concursoSel = "proyectos";
   const vistos = new Set();
-  let primera = true, temporizador = null;
+  let primera = true, temporizador = null, pausado = false;
 
   app.innerHTML = `<div class="fondo fondo--sobrio"></div><div class="cargando"><div class="giro"></div>Abriendo el panel…</div>`;
   try { data = await api.adminDatos(codigo); firma = JSON.stringify(data); }
   catch (e) { aviso(e.message, "error"); return salir(); }
   data.calificaciones.forEach((x) => vistos.add(x.id + x.actualizado));
 
+  const charlasUI = crearCharlas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), pausar: (p) => { pausado = p; } });
   const jur = (id) => data.jurados.find((j) => j.id === id);
   const tal = (id) => data.talleristas.find((t) => t.id === id);
   const ganador = (tid) => data.ganadores_talleres.find((g) => g.taller_id === tid);
@@ -67,14 +71,14 @@ export async function vistaAdmin(app, codigo) {
   function pintar() {
     const v = $("#vista", app);
     if (!v) return;
-    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, delegaciones })[pestana](v);
+    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, delegaciones })[pestana](v);
   }
 
   async function recargar(forzar = false) {
     try {
       const nuevo = await api.adminDatos(codigo);
       const f = JSON.stringify(nuevo);
-      if (!forzar && f === firma) return;
+      if (pausado || (!forzar && f === firma)) return;
       data = nuevo; firma = f;
       const ocupado = document.querySelector(".velo") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#vista", app)?.contains(document.activeElement));
       if (forzar || !ocupado) pintar();
@@ -484,13 +488,13 @@ export async function vistaAdmin(app, codigo) {
     const lugar = (f, n) => f ? `<div class="podio__lugar podio__lugar--${n}"><span class="medalla medalla--${n}">${n}</span><div class="podio__nombre">${esc(f.delegacion.nombre)}</div><div class="podio__pts">${f.total}</div><small class="tenue">puntos</small></div>` : `<div></div>`;
     const corto = (c) => c.nombre.replace("Concurso Nacional de ", "").replace("Concurso de ", "");
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Copa CONCEPMI VI</h1><p>Suma de puntos de los ${CONCURSOS.length} concursos (máximo ${maxCopaTotal} pts) y de los ${TALLERES.length} talleres (${PUNTOS_TALLER} pts por taller ganado). Las charlas principales aún no están incluidas.</p></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Copa CONCEPMI VI</h1><p>Suma de puntos de los ${CONCURSOS.length} concursos (máximo ${maxCopaTotal} pts) de los ${TALLERES.length} talleres (${PUNTOS_TALLER} pts por taller ganado) y de las ${CHARLAS.length} charlas principales (${PUNTOS_CHARLA} pts para la delegación del ganador de cada trivia).</p></div></div>
       ${top.length ? `<div class="podio">${lugar(top[1], 2)}${lugar(top[0], 1)}${lugar(top[2], 3)}</div>` : ""}
       ${data.delegaciones.length ? `<div class="tabla-envoltura"><table class="tabla">
-        <thead><tr><th rowspan="2">Puesto</th><th rowspan="2">Delegación</th><th colspan="${aca.length}" class="grupo-a" style="text-align:center">Académicos</th><th colspan="${cul.length}" class="grupo-c" style="text-align:center">Culturales</th><th colspan="${TALLERES.length}" class="grupo-a" style="text-align:center">Talleres</th><th rowspan="2" class="num">Total</th></tr>
-          <tr>${[...aca, ...cul].map((c) => `<th class="num">${esc(corto(c))}<br><small>${c.maxCopa}</small></th>`).join("")}${TALLERES.map((t) => `<th class="num" title="${esc(t.nombre)}">Taller ${t.num}<br><small>${PUNTOS_TALLER}</small></th>`).join("")}</tr></thead>
+        <thead><tr><th rowspan="2">Puesto</th><th rowspan="2">Delegación</th><th colspan="${aca.length}" class="grupo-a" style="text-align:center">Académicos</th><th colspan="${cul.length}" class="grupo-c" style="text-align:center">Culturales</th><th colspan="${TALLERES.length}" class="grupo-a" style="text-align:center">Talleres</th><th colspan="${CHARLAS.length}" class="grupo-c" style="text-align:center">Charlas</th><th rowspan="2" class="num">Total</th></tr>
+          <tr>${[...aca, ...cul].map((c) => `<th class="num">${esc(corto(c))}<br><small>${c.maxCopa}</small></th>`).join("")}${TALLERES.map((t) => `<th class="num" title="${esc(t.nombre)}">Taller ${t.num}<br><small>${PUNTOS_TALLER}</small></th>`).join("")}${CHARLAS.map((c) => `<th class="num" title="${esc(c.nombre)}">Charla ${c.num}<br><small>${PUNTOS_CHARLA}</small></th>`).join("")}</tr></thead>
         <tbody>${filas.map((f) => `<tr><td>${medalla(f.total > 0 ? f.puesto : null)}</td><td><b>${esc(f.delegacion.nombre)}</b></td>
-          ${[...aca, ...cul, ...TALLERES].map((c) => `<td class="num ${f.pts[c.id] == null ? "tenue" : ""}">${f.pts[c.id] ?? "—"}</td>`).join("")}
+          ${[...aca, ...cul, ...TALLERES, ...CHARLAS].map((c) => `<td class="num ${f.pts[c.id] == null ? "tenue" : ""}">${f.pts[c.id] ?? "—"}</td>`).join("")}
           <td class="num grande">${f.total}</td></tr>`).join("")}</tbody></table></div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn--naranja" data-excel2>${I.descargar}Exportar todo a Excel</button><button class="btn" data-fiesta>${I.copa}Celebrar al líder</button></div>`
       : `<div class="vacio"><b>Primero registra las delegaciones</b>Ve a la pestaña Delegaciones.</div>`}`;

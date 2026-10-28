@@ -16,6 +16,9 @@ js/calculo.js         Promedios, redondeo, rankings, empates y Copa
 js/jurado.js          Pantallas del jurado
 js/tallerista.js      Pantallas del tallerista (registro de ganadores de talleres)
 js/talleres.js        Los 4 talleres y sus puntos (40 por delegación ganadora)
+js/charlas.js         Las 3 charlas principales y sus puntos (20 al ganador de la trivia)
+js/quiz.js            Trivia en el celular del asistente (se abre con el QR)
+js/admin-charlas.js   Pantalla del auditorio, inscritos y preguntas
 js/admin.js           Pantallas del administrador
 js/excel.js           Exportación a Excel
 js/api.js             Conexión con Supabase

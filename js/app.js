@@ -7,6 +7,7 @@ import { CONCURSOS } from "./concursos.js";
 import { vistaJurado } from "./jurado.js";
 import { vistaAdmin } from "./admin.js";
 import { vistaTallerista } from "./tallerista.js";
+import { vistaQuiz } from "./quiz.js";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -127,6 +128,9 @@ function pedirCodigo(rol) {
 }
 
 function abrir() {
+  // Asistentes que llegan por el QR de una charla
+  const charla = new URLSearchParams(location.search).get("charla");
+  if (charla) return vistaQuiz(app, charla);
   const s = sesion.leer();
   if (s?.rol === "jurado") return vistaJurado(app, s.codigo);
   if (s?.rol === "tallerista") return vistaTallerista(app, s.codigo);

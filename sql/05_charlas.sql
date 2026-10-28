@@ -1,4 +1,3 @@
--- PENDIENTE: aún no aplicado en Supabase (esperando aprobación del usuario).
 -- =========================================================
 -- Charlas principales: trivia tipo Kahoot (migración jur_06_charlas)
 -- Solo agrega tablas y funciones. No borra datos existentes.
