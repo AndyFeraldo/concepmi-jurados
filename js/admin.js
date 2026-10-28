@@ -1,16 +1,16 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js";
-import { SEGUNDOS_REFRESCO } from "./config.js";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js";
-import { exportarExcel } from "./excel.js";
-import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js";
-import { crearCharlas } from "./admin-charlas.js";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js";
-import { salir } from "./app.js";
+import { api, ES_DEMO } from "./api.js?v=202610280251";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202610280251";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202610280251";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202610280251";
+import { exportarExcel } from "./excel.js?v=202610280251";
+import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js?v=202610280251";
+import { crearCharlas } from "./admin-charlas.js?v=202610280251";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202610280251";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202610280251";
+import { salir } from "./app.js?v=202610280251";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },

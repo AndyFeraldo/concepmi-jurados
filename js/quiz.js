@@ -2,9 +2,9 @@
 // Trivia de la charla para los ASISTENTES (entran por el QR)
 // El reloj oficial es el del servidor: cada pregunta dura 20 s.
 // =========================================================
-import { api, ES_DEMO } from "./api.js";
-import { charlaPorId, PUNTOS_CHARLA, barajar } from "./charlas.js";
-import { $, $$, esc, I, IMG, lanzarConfeti } from "./ui.js";
+import { api, ES_DEMO } from "./api.js?v=202610280251";
+import { charlaPorId, PUNTOS_CHARLA, barajar } from "./charlas.js?v=202610280251";
+import { $, $$, esc, I, IMG, lanzarConfeti } from "./ui.js?v=202610280251";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];

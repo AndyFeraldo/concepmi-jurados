@@ -15,6 +15,8 @@ administrador vea resultados en vivo, la Copa CONCEPMI y exporte a Excel.
 1. Hacer los cambios en esta carpeta.
 2. Probar en local (`python -m http.server` o `server.ps1` de la landing) antes de publicar.
 3. `git add`, `commit` con mensaje en español y `push` a `main`. GitHub Pages se actualiza solo en 1 o 2 minutos.
+4. **Antes de cada publicación, cambia la versión** de los archivos para que los navegadores no usen copias viejas (GitHub Pages las guarda hasta 10 min):
+   `V=$(date -u +%Y%m%d%H%M); sed -i -E "s#(from \"\./[a-z-]+\.js)(\?v=[0-9]+)?\"#\1?v=$V\"#g" js/*.js; sed -i -E "s#(js/app\.js|css/estilos\.css)(\?v=[0-9]+)?\"#\1?v=$V\"#" index.html`
 
 ## Estructura
 - `index.html`: entrada; carga `vendor/` (supabase, confetti, xlsx) y `js/app.js` (ES modules, sin build).
