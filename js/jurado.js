@@ -1,11 +1,11 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202610280251";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202610280251";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202610280251";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202610280251";
-import { salir } from "./app.js?v=202610280251";
+import { api, ES_DEMO } from "./api.js?v=202610280411";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202610280411";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202610280411";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202610280411";
+import { salir } from "./app.js?v=202610280411";
 
 export async function vistaJurado(app, codigo) {
   let data = null;

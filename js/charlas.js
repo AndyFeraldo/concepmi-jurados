@@ -1,10 +1,13 @@
 // =========================================================
 // Charlas principales y su trivia tipo Kahoot
-// El ganador de cada trivia (más aciertos; empate: menor tiempo)
-// suma PUNTOS_CHARLA a su delegación cuando el admin lo confirma.
+// Podio de cada trivia (más aciertos; empate: menor tiempo): al confirmar,
+// 1.° +20, 2.° +10 y 3.° +5 para su delegación.
+// Cada pregunta dura SEG_PREGUNTA; si todos responden, pasa a la siguiente.
 // =========================================================
-export const PUNTOS_CHARLA = 20;
-export const SEG_PREGUNTA = 20;
+export const PUNTOS_PODIO = [20, 10, 5];
+export const PUNTOS_CHARLA = PUNTOS_PODIO[0];
+export const SEG_PREGUNTA = 15;
+export const SEG_PAUSA = 3;
 
 export const CHARLAS = [
   { id: "c1", num: "I", color: "celeste", nombre: "Gestión de Proyectos", lema: "Conecta · Inspira · Potencia",
@@ -17,10 +20,14 @@ export const CHARLAS = [
 export const charlaPorId = (id) => CHARLAS.find((c) => c.id === id);
 export const maxCopaCharlas = CHARLAS.length * PUNTOS_CHARLA;
 
-// { [delegacion_id]: { [charla_id]: puntos } } — solo ganadores confirmados
+// { [delegacion_id]: { [charla_id]: puntos } } — solo podios confirmados.
+// Si dos del podio son de la misma delegación, se suman.
 export function puntosCharlas(charlas = []) {
   const r = {};
-  for (const c of charlas) if (c.confirmado && c.ganador_delegacion) (r[c.ganador_delegacion] ||= {})[c.id] = PUNTOS_CHARLA;
+  for (const c of charlas) {
+    if (!c.confirmado) continue;
+    for (const p of c.podio || []) if (p.delegacion_id) { const d = (r[p.delegacion_id] ||= {}); d[c.id] = (d[c.id] || 0) + Number(p.pts || 0); }
+  }
   return r;
 }
 

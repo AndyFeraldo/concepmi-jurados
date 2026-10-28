@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202610280251";
-import { CONCURSOS, porId } from "./concursos.js?v=202610280251";
-import { TALLERES } from "./talleres.js?v=202610280251";
-import { CHARLAS, SEG_PREGUNTA } from "./charlas.js?v=202610280251";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202610280411";
+import { CONCURSOS, porId } from "./concursos.js?v=202610280411";
+import { TALLERES } from "./talleres.js?v=202610280411";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202610280411";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -126,10 +126,25 @@ const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; 
 const talleristaDe = (c) => { const t = db().talleristas.find((x) => x.codigo === norm(c)); if (!t) throw new Error("Código de tallerista incorrecto"); return t; };
 
 const quizC = (id) => (db().charlas[id] ||= {});
+const PAUSA = SEG_PAUSA * 1000, SEG = SEG_PREGUNTA * 1000;
+function quizAvanzar(id) {
+  const d = db(), c = quizC(id), n = d.preguntas[id].length;
+  for (let k = 0; k < 60 && c.estado === "jugando" && (c.pregunta || 0) < n; k++) {
+    const ini = Date.parse(c.pregunta_inicio); if (Date.now() < ini) break;
+    const fin = ini + SEG;
+    if (Date.now() >= fin + 1500) { c.pregunta++; c.pregunta_inicio = new Date(fin + PAUSA).toISOString(); continue; }
+    const jug = d.jugadores.filter((j) => j.charla_id === id).length;
+    const resp = d.respuestas.filter((r) => r.charla_id === id && r.orden === c.pregunta).length;
+    if (!jug || resp < jug) break;
+    c.pregunta++; c.pregunta_inicio = new Date(Date.now() + PAUSA).toISOString();
+  }
+  guardar();
+}
 function quizFase(id) {
   const c = quizC(id); if (c.estado !== "jugando") return "espera";
-  const ini = Date.parse(c.inicio), fin = ini + db().preguntas[id].length * SEG_PREGUNTA * 1000;
-  return Date.now() < ini ? "cuenta" : Date.now() >= fin ? "terminada" : "jugando";
+  if (Date.now() < Date.parse(c.pregunta_inicio)) return c.pregunta ? "pausa" : "cuenta";
+  if ((c.pregunta || 0) >= db().preguntas[id].length) return "terminada";
+  return "jugando";
 }
 function quizJugador(charla, dni, token) {
   const j = db().jugadores.find((x) => x.charla_id === charla && x.dni === norm(dni) && x.token === token);
@@ -140,7 +155,7 @@ function quizRanking(charla) {
   return d.jugadores.filter((j) => j.charla_id === charla).map((j) => {
     const rs = d.respuestas.filter((r) => r.charla_id === charla && r.dni === j.dni);
     return { dni: j.dni, nombre: j.nombre, delegacion_id: j.delegacion_id, unido: j.unido, aciertos: rs.filter((r) => r.correcta).length, respondidas: rs.length,
-      tiempo_ms: rs.reduce((s, r) => s + r.ms, 0) + (n - rs.length) * SEG_PREGUNTA * 1000 };
+      tiempo_ms: rs.reduce((s, r) => s + r.ms, 0) + (n - rs.length) * SEG };
   }).sort((a, b) => b.aciertos - a.aciertos || a.tiempo_ms - b.tiempo_ms || a.unido - b.unido).map((x, i) => ({ ...x, puesto: i + 1 }));
 }
 
@@ -173,7 +188,7 @@ const demo = {
     return { concursos: CONCURSOS.map((c) => ({ id: c.id, abierto: d.abiertos[c.id] })), delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       jurados: d.jurados, calificaciones: [...d.calificaciones].sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)), ajustes: d.ajustes, borrados: d.borrados || [],
       talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: d.talleristas, ganadores_talleres: d.ganadores,
-      charlas: CHARLAS.map((c) => { const x = quizC(c.id); return { id: c.id, fase: quizFase(c.id), confirmado: x.confirmado || null, ganador_nombre: x.ganador_nombre || null,
+      charlas: CHARLAS.map((c) => { const x = quizC(c.id); return { id: c.id, fase: quizFase(c.id), confirmado: x.confirmado || null, ganador_nombre: x.ganador_nombre || null, podio: x.podio || [],
         ganador_delegacion: x.ganador_delegacion || null, preguntas: d.preguntas[c.id].length, jugadores: d.jugadores.filter((j) => j.charla_id === c.id).length }; }),
       asistentes: { total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length } }; },
   async adminDelegacion(codigo, id, nombre, siglas, borrar = false) { await espera(); exigirAdmin(codigo); const d = db();
@@ -273,46 +288,56 @@ const demo = {
   // ---- Trivia (vista previa: el tiempo lo lleva este navegador) ----
   async quizBuscar(dni) { await espera(); const a = db().asistentes.find((x) => x.dni === norm(dni)); if (!a) return null;
     const d = db().delegaciones.find((x) => x.id === a.delegacion_id); return { nombre: a.nombre, codigo: a.codigo, delegacion: d ? { id: d.id, nombre: d.nombre, siglas: d.siglas } : null }; },
-  async quizEstado(charla, dni = null, token = null) { await espera(80); const d = db(); const c = quizC(charla);
-    return { fase: quizFase(charla), inicio: c.inicio, ahora: new Date().toISOString(), seg: SEG_PREGUNTA, preguntas: d.preguntas[charla].length,
-      jugadores: d.jugadores.filter((j) => j.charla_id === charla).length, unido: d.jugadores.some((j) => j.charla_id === charla && j.dni === norm(dni) && j.token === token) }; },
+  async quizEstado(charla, dni = null, token = null) { await espera(80); quizAvanzar(charla); const d = db(); const c = quizC(charla); const f = quizFase(charla);
+    const unido = d.jugadores.some((j) => j.charla_id === charla && j.dni === norm(dni) && j.token === token);
+    const ant = unido && ["pausa", "terminada"].includes(f) && c.pregunta > 0 ? d.respuestas.find((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === c.pregunta - 1) : null;
+    return { fase: f, ahora: new Date().toISOString(), seg: SEG_PREGUNTA, pregunta: c.pregunta || 0, inicio: c.pregunta_inicio || null,
+      fin: c.pregunta_inicio ? new Date(Date.parse(c.pregunta_inicio) + SEG).toISOString() : null, preguntas: d.preguntas[charla].length,
+      jugadores: d.jugadores.filter((j) => j.charla_id === charla).length, unido,
+      respondida: unido && d.respuestas.some((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === (c.pregunta || 0)), anterior: ant ? ant.correcta : null }; },
   async quizUnirse(charla, dni) { await espera(); const d = db();
-    if (quizFase(charla) !== "espera") throw new Error("La trivia ya empezó. Espera la siguiente charla.");
+    if (quizC(charla).estado === "jugando") throw new Error("La trivia ya empezó. Espera la siguiente charla.");
     const a = d.asistentes.find((x) => x.dni === norm(dni)); if (!a) throw new Error("No encontramos ese DNI en la lista de inscritos");
     if (!a.delegacion_id) throw new Error("Tu delegación aún no está registrada. Acércate al equipo organizador.");
     if (d.jugadores.some((j) => j.charla_id === charla && j.dni === a.dni)) throw new Error("Este DNI ya está en la sala desde otro celular");
     const token = uid(); d.jugadores.push({ charla_id: charla, dni: a.dni, token, nombre: a.nombre, delegacion_id: a.delegacion_id, unido: Date.now() }); guardar(); return { token }; },
-  async quizPregunta(charla, dni, token, orden) { await espera(80); const d = db(); quizJugador(charla, dni, token);
-    const c = quizC(charla); const ini = Date.parse(c.inicio) + orden * SEG_PREGUNTA * 1000;
-    if (!c.inicio || Date.now() < ini) throw new Error("Esa pregunta aún no está disponible");
-    const q = d.preguntas[charla][orden]; if (!q) return null;
-    return { orden, texto: q.texto, opciones: q.opciones, fin: new Date(ini + SEG_PREGUNTA * 1000).toISOString(), ahora: new Date().toISOString(),
+  async quizPregunta(charla, dni, token, orden) { await espera(80); quizJugador(charla, dni, token); quizAvanzar(charla); const d = db(); const c = quizC(charla);
+    if (quizFase(charla) !== "jugando" || orden !== c.pregunta) throw new Error("Esa pregunta no está disponible");
+    const q = d.preguntas[charla][orden];
+    return { orden, texto: q.texto, opciones: q.opciones, fin: new Date(Date.parse(c.pregunta_inicio) + SEG).toISOString(), ahora: new Date().toISOString(),
       respondida: d.respuestas.some((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === orden) }; },
-  async quizResponder(charla, dni, token, orden, opcion) { await espera(80); const d = db(); quizJugador(charla, dni, token);
-    const c = quizC(charla); const ms = Date.now() - (Date.parse(c.inicio) + orden * SEG_PREGUNTA * 1000);
-    if (ms < 0 || ms > SEG_PREGUNTA * 1000 + 1500) throw new Error("Se acabó el tiempo de esta pregunta");
-    if (d.respuestas.some((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === orden)) return;
-    d.respuestas.push({ charla_id: charla, dni: norm(dni), orden, opcion, correcta: opcion === d.preguntas[charla][orden].correcta, ms: Math.min(ms, SEG_PREGUNTA * 1000) }); guardar(); },
-  async quizResultado(charla, dni, token) { await espera(); quizJugador(charla, dni, token); const d = db(); const c = quizC(charla);
+  async quizResponder(charla, dni, token, orden, opcion) { await espera(80); quizJugador(charla, dni, token); quizAvanzar(charla); const d = db(); const c = quizC(charla);
+    if (c.estado !== "jugando" || orden !== c.pregunta) throw new Error("Se acabó el tiempo de esta pregunta");
+    const ms = Date.now() - Date.parse(c.pregunta_inicio);
+    if (ms < 0 || ms > SEG + 1500) throw new Error("Se acabó el tiempo de esta pregunta");
+    if (!d.respuestas.some((r) => r.charla_id === charla && r.dni === norm(dni) && r.orden === orden))
+      d.respuestas.push({ charla_id: charla, dni: norm(dni), orden, opcion, correcta: opcion === d.preguntas[charla][orden].correcta, ms: Math.min(ms, SEG) });
+    guardar(); quizAvanzar(charla); },
+  async quizResultado(charla, dni, token) { await espera(); quizJugador(charla, dni, token); quizAvanzar(charla); const d = db(); const c = quizC(charla);
     if (quizFase(charla) !== "terminada") throw new Error("La trivia aún no termina");
-    const r = quizRanking(charla).find((x) => x.dni === norm(dni));
+    const r = quizRanking(charla).find((x) => x.dni === norm(dni)); const mio = (c.podio || []).find((p) => p.dni === norm(dni));
     return { aciertos: r.aciertos, puesto: r.puesto, tiempo_ms: r.tiempo_ms, preguntas: d.preguntas[charla].length, jugadores: d.jugadores.filter((j) => j.charla_id === charla).length,
-      confirmado: !!c.confirmado, ganador: c.ganador_nombre || null }; },
-  async adminQuiz(codigo, charla) { await espera(80); exigirAdmin(codigo); const d = db(); const c = quizC(charla);
+      confirmado: !!c.confirmado, ganador: c.ganador_nombre || null, pts: mio?.pts || 0 }; },
+  async adminQuiz(codigo, charla) { await espera(80); exigirAdmin(codigo); quizAvanzar(charla); const d = db(); const c = quizC(charla);
     const resp = d.respuestas.filter((r) => r.charla_id === charla);
-    return { fase: quizFase(charla), inicio: c.inicio, ahora: new Date().toISOString(), seg: SEG_PREGUNTA, confirmado: c.confirmado || null,
-      ganador_dni: c.ganador_dni || null, ganador_nombre: c.ganador_nombre || null, ganador_delegacion: c.ganador_delegacion || null,
+    return { fase: quizFase(charla), ahora: new Date().toISOString(), seg: SEG_PREGUNTA, pausa: SEG_PAUSA, pregunta: c.pregunta || 0, inicio: c.pregunta_inicio || null,
+      fin: c.pregunta_inicio ? new Date(Date.parse(c.pregunta_inicio) + SEG).toISOString() : null, confirmado: c.confirmado || null,
+      ganador_dni: c.ganador_dni || null, ganador_nombre: c.ganador_nombre || null, ganador_delegacion: c.ganador_delegacion || null, podio: c.podio || [],
       preguntas: d.preguntas[charla].map((q, orden) => ({ orden, ...q })),
       respuestas: [...new Set(resp.map((r) => r.orden))].map((orden) => ({ orden, n: resp.filter((r) => r.orden === orden).length, bien: resp.filter((r) => r.orden === orden && r.correcta).length })),
       ranking: quizRanking(charla) }; },
-  async adminCharla(codigo, charla, accion) { await espera(); exigirAdmin(codigo); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
-    if (accion === "iniciar") { if (fase !== "espera") throw new Error("La trivia ya se inició"); c.estado = "jugando"; c.inicio = new Date(Date.now() + 5000).toISOString(); }
-    else if (accion === "reiniciar") { if (c.confirmado) throw new Error("Primero anula al ganador confirmado");
+  async adminCharla(codigo, charla, accion) { await espera(); exigirAdmin(codigo); quizAvanzar(charla); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
+    if (accion === "iniciar") { if (c.estado === "jugando") throw new Error("La trivia ya se inició");
+      Object.assign(c, { estado: "jugando", pregunta: 0, pregunta_inicio: new Date(Date.now() + 5000).toISOString() }); }
+    else if (accion === "detener") { if (c.confirmado) throw new Error("Primero anula el resultado confirmado");
+      d.respuestas = d.respuestas.filter((r) => r.charla_id !== charla); Object.assign(c, { estado: "espera", pregunta: 0, pregunta_inicio: null }); }
+    else if (accion === "reiniciar" || accion === "borrar") { if (accion === "reiniciar" && c.confirmado) throw new Error("Primero anula el resultado confirmado");
       d.jugadores = d.jugadores.filter((j) => j.charla_id !== charla); d.respuestas = d.respuestas.filter((r) => r.charla_id !== charla); d.charlas[charla] = {}; }
     else if (accion === "confirmar") { if (fase !== "terminada") throw new Error("Espera a que termine la última pregunta");
-      const g = quizRanking(charla)[0]; if (!g) throw new Error("Nadie participó en esta trivia");
-      Object.assign(c, { ganador_dni: g.dni, ganador_nombre: g.nombre, ganador_delegacion: g.delegacion_id, confirmado: new Date().toISOString() }); }
-    else if (accion === "anular") Object.assign(c, { ganador_dni: null, ganador_nombre: null, ganador_delegacion: null, confirmado: null });
+      const pod = quizRanking(charla).slice(0, 3).map((r) => ({ puesto: r.puesto, dni: r.dni, nombre: r.nombre, delegacion_id: r.delegacion_id, aciertos: r.aciertos, tiempo_ms: r.tiempo_ms, pts: PUNTOS_PODIO[r.puesto - 1] }));
+      if (!pod.length) throw new Error("Nadie participó en esta trivia");
+      Object.assign(c, { podio: pod, ganador_dni: pod[0].dni, ganador_nombre: pod[0].nombre, ganador_delegacion: pod[0].delegacion_id, confirmado: new Date().toISOString() }); }
+    else if (accion === "anular") Object.assign(c, { podio: [], ganador_dni: null, ganador_nombre: null, ganador_delegacion: null, confirmado: null });
     guardar(); },
   async adminPreguntas(codigo, charla, preguntas) { await espera(); exigirAdmin(codigo);
     if (quizC(charla).estado === "jugando") throw new Error("Reinicia la trivia antes de cambiar las preguntas");
