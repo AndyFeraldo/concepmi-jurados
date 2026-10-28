@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
-import { CONCURSOS, porId } from "./concursos.js";
-import { TALLERES } from "./talleres.js";
-import { CHARLAS, SEG_PREGUNTA } from "./charlas.js";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202610280251";
+import { CONCURSOS, porId } from "./concursos.js?v=202610280251";
+import { TALLERES } from "./talleres.js?v=202610280251";
+import { CHARLAS, SEG_PREGUNTA } from "./charlas.js?v=202610280251";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 

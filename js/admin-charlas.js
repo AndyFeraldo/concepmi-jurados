@@ -2,9 +2,9 @@
 // Admin · Charlas principales: trivia, pantalla del auditorio,
 // inscritos (Excel de inscripción) y preguntas (Excel)
 // =========================================================
-import { api } from "./api.js";
-import { CHARLAS, charlaPorId, PUNTOS_CHARLA, enlaceCharla } from "./charlas.js";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js";
+import { api } from "./api.js?v=202610280251";
+import { CHARLAS, charlaPorId, PUNTOS_CHARLA, enlaceCharla } from "./charlas.js?v=202610280251";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202610280251";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];
