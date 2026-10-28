@@ -2,6 +2,7 @@
 import { CONCURSOS } from "./concursos.js";
 import { resultados, copaGeneral, textoGymkana } from "./calculo.js";
 import { mmss } from "./ui.js";
+import { TALLERES, PUNTOS_TALLER, tallerPorId } from "./talleres.js";
 
 const sancion = (aj) => (aj?.descalificado ? "Descalificado" : aj?.walkover ? "Walkover" : aj?.retraso ? "Entrega tardía (−10 % escrita)" : "");
 const r1 = (x) => (x == null ? "" : Math.round(x * 100) / 100);
@@ -18,6 +19,7 @@ export function exportarExcel(data) {
   const copa = copaGeneral(data).map((f) => {
     const o = { Puesto: f.puesto, Delegación: f.delegacion.nombre, Siglas: f.delegacion.siglas };
     for (const c of CONCURSOS) o[`${c.nombre} (máx ${c.maxCopa})`] = f.pts[c.id] ?? "";
+    for (const t of TALLERES) o[`Taller ${t.num} (${PUNTOS_TALLER})`] = f.pts[t.id] ?? "";
     o["TOTAL COPA"] = f.total;
     return o;
   });
@@ -73,6 +75,13 @@ export function exportarExcel(data) {
     X.utils.book_append_sheet(wb, X.utils.json_to_sheet(hoja.length ? hoja : [{ Aviso: "Sin resultados todavía" }]), nombreHoja(c.nombre));
   }
 
+  const gan = [];
+  for (const g of data.ganadores_talleres || []) for (const x of g.integrantes) {
+    const t = tallerPorId(g.taller_id);
+    gan.push({ Taller: `Taller ${t?.num} · ${t?.nombre}`, Integrante: x.nombre, Delegación: del.get(x.delegacion)?.nombre || "", Tallerista: g.tallerista || "", Fecha: new Date(g.actualizado).toLocaleString("es-PE") });
+  }
+  X.utils.book_append_sheet(wb, X.utils.json_to_sheet(gan.length ? gan : [{ Aviso: "Sin ganadores todavía" }]), "Talleres");
+
   const crudo = data.calificaciones.map((x) => ({ Concurso: x.concurso_id, Fase: x.subprueba, Delegación: del.get(x.delegacion_id)?.nombre,
     Jurado: jur.get(x.jurado_id)?.nombre, Total: x.total, Datos: JSON.stringify(x.datos), Comentario: x.comentario || "", Fecha: new Date(x.actualizado).toLocaleString("es-PE") }));
   X.utils.book_append_sheet(wb, X.utils.json_to_sheet(crudo.length ? crudo : [{ Aviso: "Sin votos todavía" }]), "Todos los votos");
@@ -81,6 +90,8 @@ export function exportarExcel(data) {
 
   const js = data.jurados.map((j) => ({ Nombre: j.nombre, Código: j.codigo, Concursos: j.concursos.map((c) => CONCURSOS.find((x) => x.id === c)?.nombre || c).join(", "), Descripción: j.descripcion || "" }));
   if (js.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(js), "Jurados y códigos");
+  const ts = (data.talleristas || []).map((t) => ({ Nombre: t.nombre, Código: t.codigo, Talleres: t.talleres.map((id) => `Taller ${tallerPorId(id)?.num || id}`).join(", "), Descripción: t.descripcion || "" }));
+  if (ts.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(ts), "Talleristas y códigos");
   const f = new Date();
   X.writeFile(wb, `CONCEPMI-VI-resultados-${f.toISOString().slice(0, 10)}-${String(f.getHours()).padStart(2, "0")}${String(f.getMinutes()).padStart(2, "0")}.xlsx`);
 }

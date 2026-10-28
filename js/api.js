@@ -5,6 +5,7 @@
 // =========================================================
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 import { CONCURSOS, porId } from "./concursos.js";
+import { TALLERES } from "./talleres.js";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -35,6 +36,11 @@ const real = {
   adminManual: (codigo, concurso, delegacion, datos, noPresento = false, borrar = false) =>
     rpc("jur_admin_manual", { p_codigo: codigo, p_concurso: concurso, p_delegacion: delegacion, p_datos: datos, p_no_presento: noPresento, p_borrar: borrar }),
   adminClave: (codigo, nueva) => rpc("jur_admin_clave", { p_codigo: codigo, p_nueva: nueva }),
+  datosTallerista: (codigo) => rpc("jur_datos_tallerista", { p_codigo: codigo }),
+  registrarTaller: (codigo, taller, integrantes) => rpc("jur_taller_registrar", { p_codigo: codigo, p_taller: taller, p_integrantes: integrantes }),
+  adminTallerista: (codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null }) =>
+    rpc("jur_admin_tallerista", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_talleres: talleres, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
+  adminTaller: (codigo, taller, abierto) => rpc("jur_admin_taller", { p_codigo: codigo, p_taller: taller, p_abierto: abierto }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -71,13 +77,17 @@ function semilla() {
       { concurso_id: "talent", delegacion_id: ds[0].id, valor: 2890, datos: { tiktok: 2100, instagram: 790, desempate: 0 } },
     ].map((a) => ({ retraso: false, walkover: false, descalificado: false, nota: "", actualizado: new Date().toISOString(), ...a })),
     borrados: [],
-    abiertos: Object.fromEntries(CONCURSOS.map((c) => [c.id, true])) };
+    abiertos: Object.fromEntries(CONCURSOS.map((c) => [c.id, true])),
+    talleristas: [{ id: uid(), nombre: "Ana Lucía Paredes", codigo: "TAL001", talleres: ["t1", "t2"], descripcion: "Agile coach y docente de IA aplicada.", foto: "" }],
+    ganadores: [],
+    talleresAbiertos: Object.fromEntries(TALLERES.map((t) => [t.id, true])) };
 }
 let mem = null;
 function db() {
   if (mem) return mem;
   try { const s = localStorage.getItem(CLAVE_DEMO); if (s) mem = JSON.parse(s); } catch { /* sin almacenamiento */ }
   if (!mem) mem = semilla();
+  mem.talleristas ||= []; mem.ganadores ||= []; mem.talleresAbiertos ||= Object.fromEntries(TALLERES.map((t) => [t.id, true]));
   // Recupera jurados registrados en versiones anteriores de la vista previa
   for (const vieja of ["concepmi-jurados-demo-v1", "concepmi-jurados-demo-v2"]) {
     try {
@@ -90,10 +100,13 @@ function db() {
 function guardar() { try { localStorage.setItem(CLAVE_DEMO, JSON.stringify(mem)); } catch { /* sin almacenamiento */ } }
 const exigirAdmin = (c) => { if (norm(c) !== db().admin) throw new Error("Código de administrador incorrecto"); };
 const juradoDe = (c) => { const j = db().jurados.find((x) => x.codigo === norm(c)); if (!j) throw new Error("Código de jurado incorrecto"); return j; };
-const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; do { c = Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); } while (db().jurados.some((j) => j.codigo === c)); return c; };
+const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas].some((x) => x.codigo === c && x.id !== excepto);
+const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; do { c = Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); } while (codigoUsado(c)); return c; };
+const talleristaDe = (c) => { const t = db().talleristas.find((x) => x.codigo === norm(c)); if (!t) throw new Error("Código de tallerista incorrecto"); return t; };
 
 const demo = {
-  async entrar(codigo) { await espera(400); if (norm(codigo) === db().admin) return { rol: "admin" }; const j = db().jurados.find((x) => x.codigo === norm(codigo)); return j ? { rol: "jurado", nombre: j.nombre } : null; },
+  async entrar(codigo) { await espera(400); if (norm(codigo) === db().admin) return { rol: "admin" }; const j = db().jurados.find((x) => x.codigo === norm(codigo)); if (j) return { rol: "jurado", nombre: j.nombre };
+    const t = db().talleristas.find((x) => x.codigo === norm(codigo)); return t ? { rol: "tallerista", nombre: t.nombre } : null; },
   async datosJurado(codigo) { await espera(); const j = juradoDe(codigo); const d = db();
     return { jurado: { ...j }, delegaciones: d.delegaciones, abiertos: d.abiertos, calificaciones: d.calificaciones.filter((x) => x.jurado_id === j.id) }; },
   async calificar(codigo, concurso, subprueba, delegacion, datos, comentario = "") {
@@ -118,7 +131,8 @@ const demo = {
   },
   async adminDatos(codigo) { await espera(150); exigirAdmin(codigo); const d = db();
     return { concursos: CONCURSOS.map((c) => ({ id: c.id, abierto: d.abiertos[c.id] })), delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
-      jurados: d.jurados, calificaciones: [...d.calificaciones].sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)), ajustes: d.ajustes, borrados: d.borrados || [] }; },
+      jurados: d.jurados, calificaciones: [...d.calificaciones].sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)), ajustes: d.ajustes, borrados: d.borrados || [],
+      talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: d.talleristas, ganadores_talleres: d.ganadores }; },
   async adminDelegacion(codigo, id, nombre, siglas, borrar = false) { await espera(); exigirAdmin(codigo); const d = db();
     if (borrar) { d.delegaciones = d.delegaciones.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.delegacion_id !== id); }
     else if (!String(nombre).trim()) throw new Error("Escribe el nombre de la delegación");
@@ -134,7 +148,7 @@ const demo = {
     if (fijo) {
       if (!/^[A-Z0-9-]{4,16}$/.test(fijo)) throw new Error("El código debe tener de 4 a 16 letras o números");
       if (fijo === d.admin) throw new Error("Ese código no se puede usar");
-      if (d.jurados.some((x) => x.codigo === fijo && x.id !== id)) throw new Error("Ese código ya lo tiene otro jurado");
+      if (codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otro jurado o tallerista");
     }
     let j = id ? d.jurados.find((x) => x.id === id) : null;
     if (!j) { j = { id: uid(), codigo: nuevoCodigo(), foto: "" }; d.jurados.push(j); }
@@ -179,6 +193,40 @@ const demo = {
     Object.assign(r, { walkover: !!noPresento, valor, datos: limpio, actualizado: new Date().toISOString() }); guardar();
   },
   async adminClave(codigo, nueva) { await espera(); exigirAdmin(codigo); if (norm(nueva).length < 6) throw new Error("El código debe tener al menos 6 caracteres"); db().admin = norm(nueva); guardar(); },
+  async datosTallerista(codigo) { await espera(); const t = talleristaDe(codigo); const d = db();
+    return { tallerista: { ...t }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)), abiertos: d.talleresAbiertos,
+      ganadores: d.ganadores.filter((g) => t.talleres.includes(g.taller_id)) }; },
+  async registrarTaller(codigo, taller, integrantes) {
+    await espera(450); const t = talleristaDe(codigo); const d = db();
+    if (!t.talleres.includes(taller)) throw new Error("No estás asignado a este taller");
+    if (!d.talleresAbiertos[taller]) throw new Error("El registro de este taller ya está cerrado");
+    if (integrantes.length > 15) throw new Error("Máximo 15 integrantes por equipo");
+    for (const x of integrantes) {
+      if (!String(x.nombre || "").trim()) throw new Error("Escribe el nombre y apellido de cada integrante");
+      if (!d.delegaciones.some((z) => z.id === x.delegacion)) throw new Error("Elige la delegación de cada integrante");
+    }
+    d.ganadores = d.ganadores.filter((g) => g.taller_id !== taller);
+    d.ganadores.push({ taller_id: taller, integrantes: integrantes.map((x) => ({ nombre: x.nombre.trim(), delegacion: x.delegacion })), tallerista: t.nombre, actualizado: new Date().toISOString() });
+    guardar(); },
+  async adminTallerista(codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
+    await espera(); exigirAdmin(codigo); const d = db();
+    if (borrar) { d.talleristas = d.talleristas.filter((x) => x.id !== id); guardar(); return null; }
+    if (!String(nombre).trim()) throw new Error("Escribe el nombre completo del tallerista");
+    if (!talleres.length) throw new Error("Elige al menos un taller");
+    const fijo = norm(codigoFijo);
+    if (fijo) {
+      if (!/^[A-Z0-9-]{4,16}$/.test(fijo)) throw new Error("El código debe tener de 4 a 16 letras o números");
+      if (fijo === d.admin) throw new Error("Ese código no se puede usar");
+      if (codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otro jurado o tallerista");
+    }
+    let t = id ? d.talleristas.find((x) => x.id === id) : null;
+    if (!t) { t = { id: uid(), codigo: nuevoCodigo(), foto: "" }; d.talleristas.push(t); }
+    Object.assign(t, { nombre: nombre.trim(), talleres, descripcion });
+    if (foto != null) t.foto = foto;
+    if (regen) t.codigo = nuevoCodigo();
+    if (fijo) t.codigo = fijo;
+    guardar(); return { id: t.id, codigo: t.codigo }; },
+  async adminTaller(codigo, taller, abierto) { await espera(); exigirAdmin(codigo); db().talleresAbiertos[taller] = abierto; guardar(); },
   reiniciar() { mem = semilla(); guardar(); },
 };
 
