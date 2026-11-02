@@ -758,3 +758,6 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .log-contacto{ display:grid; gap:4px; font-size:.85rem; color:var(--niebla); } .log-contacto span{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 .log-contacto svg{ width:14px; height:14px; } .log-contacto a{ color:#8FE6F6; }
 @media (max-width:640px){ .log-grid{ grid-template-columns:1fr; } .log-cat__tot{ width:100%; justify-content:space-between; } .log-cat__tot span{ text-align:left; } }
+.log-cambios{ margin-top:14px; padding:12px 14px; border-radius:14px; border:1px solid rgba(31,203,234,.4); background:rgba(31,203,234,.08); font-size:.92rem; }
+.log-antes{ display:block; color:var(--tenue); font-size:.72rem; text-decoration:line-through; }
+.log-tag{ font-size:.68rem; padding:.12em .55em; vertical-align:1px; }

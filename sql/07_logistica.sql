@@ -1,4 +1,3 @@
--- PENDIENTE: aún no aplicado en Supabase (esperando aprobación del usuario).
 -- =========================================================
 -- Logística del evento (migración jur_08_logistica). Solo agrega tablas y funciones.
 -- Presupuesto vs real por categoría, proveedores, fondos entregados (caja a rendir) y gastos.
@@ -7,7 +6,8 @@
 create table if not exists public.jur_log_config (
   id int primary key default 1 check (id = 1),
   tc numeric not null default 3.4,           -- tipo de cambio USD → S/
-  contingencia numeric not null default 0.1  -- % de contingencia sobre el subtotal
+  contingencia numeric not null default 0.1, -- % de contingencia sobre el subtotal
+  linea_base numeric                          -- subtotal del presupuesto aprobado original (S/)
 );
 insert into public.jur_log_config (id) values (1) on conflict do nothing;
 
@@ -40,6 +40,7 @@ create table if not exists public.jur_log_items (
   tipo text not null default 'CV' check (tipo in ('CV', 'CF')),
   cantidad numeric not null default 1,
   cu numeric not null default 0,               -- costo unitario presupuestado (S/)
+  pres_original numeric,                       -- total del presupuesto aprobado original; null = ítem agregado después
   acordado numeric,                            -- monto total acordado con el proveedor (S/)
   estado text not null default 'pendiente' check (estado in ('pendiente', 'cotizando', 'aprobado', 'comprado', 'entregado', 'cancelado')),
   proveedor_id uuid references public.jur_log_proveedores(id) on delete set null,
@@ -194,7 +195,7 @@ language plpgsql security definer set search_path = public as $$
 begin
   perform jur_exigir_admin(p_codigo);
   if p_tc is null or p_tc <= 0 then raise exception 'El tipo de cambio debe ser mayor que 0'; end if;
-  if p_contingencia is null or p_contingencia < 0 or p_contingencia > 0.5 then raise exception 'La contingencia va de 0 % a 50 %'; end if;
+  if p_contingencia is null or p_contingencia < 0 or p_contingencia > 0.5 then raise exception 'La contingencia va de 0 %% a 50 %%'; end if;
   update jur_log_config set tc = p_tc, contingencia = p_contingencia where id = 1;
 end $$;
 

@@ -4,8 +4,8 @@
 // gastos y fondos a rendir, y directorio de proveedores.
 // Real de un ítem = monto acordado con el proveedor; si no hay, lo pagado.
 // =========================================================
-import { api } from "./api.js?v=202611022127";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611022127";
+import { api } from "./api.js?v=202611022137";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611022137";
 
 export const ESTADOS = {
   pendiente: ["Pendiente", ""], cotizando: ["Cotizando", "chip--celeste"], aprobado: ["Aprobado", "chip--ambar"],
@@ -21,7 +21,7 @@ const whatsapp = (t) => { const d = telLimpio(t); return d ? `https://wa.me/${d.
 
 // ctx = { codigo(): string }
 export function crearLogistica(ctx) {
-  let L = null, cargando = null, sub = "presupuesto", filtro = "", abiertas = new Set();
+  let L = null, cargando = null, sub = "presupuesto", filtro = "", abiertas = new Set(), soloCambios = false;
 
   async function cargar() {
     cargando ||= api.adminLogistica(ctx.codigo()).then((d) => { L = d; }).finally(() => { cargando = null; });
@@ -42,15 +42,18 @@ export function crearLogistica(ctx) {
   const cat = (id) => L.categorias.find((c) => c.id === id);
   const item = (id) => L.items.find((i) => i.id === id);
   const fondo = (id) => L.fondos.find((f) => f.id === id);
+  // Cambio frente al presupuesto aprobado original: "nuevo" (no estaba) o "modificado" (cambió cantidad o costo)
+  const cambio = (it) => (it.pres_original == null ? "nuevo" : Math.abs(pres(it) - Number(it.pres_original)) > 0.005 ? "modificado" : "");
   function totales(items) {
-    let p = 0, r = 0, pg = 0, porPagar = 0, listos = 0;
+    let p = 0, r = 0, pg = 0, porPagar = 0, listos = 0, orig = 0;
     for (const it of items) {
       p += pres(it); const re = real(it); const pa = pagado(it);
+      if (it.pres_original != null) orig += Number(it.pres_original);
       if (re != null) r += re;
       pg += pa; porPagar += Math.max(0, (re ?? 0) - pa);
       if (["comprado", "entregado", "cancelado"].includes(it.estado)) listos++;
     }
-    return { pres: p, real: r, pagado: pg, porPagar, listos, n: items.length };
+    return { pres: p, real: r, pagado: pg, porPagar, listos, n: items.length, orig };
   }
   const gastadoFondo = (id) => L.gastos.filter((g) => g.fondo_id === id).reduce((s, g) => s + Number(g.monto_pen), 0);
 
@@ -71,15 +74,28 @@ export function crearLogistica(ctx) {
     const especiales = L.items.filter((i) => i.estado !== "cancelado" && Math.max(pres(i), real(i) ?? 0) > LIMITE_ESPECIAL);
     const proximas = L.items.filter((i) => i.entrega_fecha && i.entrega_fecha >= hoy && i.entrega_fecha <= en7 && i.estado !== "entregado");
     const adelantos = L.items.filter((i) => i.adelanto && i.adelanto_monto && pagado(i) < Number(i.adelanto_monto) && i.estado !== "cancelado");
+    const base = L.config.linea_base == null ? null : Number(L.config.linea_base);
+    const nuevos = L.items.filter((i) => cambio(i) === "nuevo"), modif = L.items.filter((i) => cambio(i) === "modificado");
+    const montoNuevos = nuevos.reduce((s, i) => s + pres(i), 0), montoModif = modif.reduce((s, i) => s + pres(i) - Number(i.pres_original), 0);
+    const montoElim = base == null ? 0 : base - T.orig; // lo que estaba aprobado y se eliminó
+    const varTotal = base == null ? 0 : T.pres - base;
+    const firma = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${soles(Math.abs(n))}`;
     v.innerHTML = `
       <div class="cabeza" style="margin-top:0"><div><h1>Logística</h1><p>Presupuesto vs gasto real del VI CONCEPMI. Haz clic en cualquier ítem para registrar el proveedor, el adelanto, la entrega y los pagos.</p></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn--mini" data-ajustes>${I.lapiz}Ajustes (TC y contingencia)</button><button class="btn btn--mini btn--naranja" data-xls>${I.descargar}Exportar logística</button></div></div>
       <div class="kpis">
-        <div class="kpi"><b>${soles(T.pres * (1 + cont))}</b><span>Presupuesto total (incluye ${Math.round(cont * 100)} % de contingencia)</span></div>
+        <div class="kpi"><b>${soles(T.pres * (1 + cont))}</b><span>Presupuesto actual (incluye ${Math.round(cont * 100)} % de contingencia)${base != null ? ` · aprobado: ${soles(base * (1 + cont))}` : ""}</span></div>
         <div class="kpi"><b>${soles(T.real)}</b><span>Real comprometido · ${soles(T.pres - T.real)} libres del subtotal</span></div>
         <div class="kpi"><b>${soles(T.pagado)}</b><span>Pagado · ${soles(T.porPagar)} por pagar</span></div>
         <div class="kpi"><b>${T.listos}/${T.n}</b><span>Ítems resueltos (comprado, entregado o cancelado)</span></div>
       </div>
+      ${base != null && (nuevos.length || modif.length || Math.abs(montoElim) > 0.005) ? `<div class="log-cambios">
+        <div><b>Cambios frente al presupuesto aprobado</b> (subtotal aprobado ${soles(base)} → actual ${soles(T.pres)}: <b class="${varTotal > 0 ? "log-mal" : "log-bien"}">${firma(varTotal)}</b>)</div>
+        <div class="reparto" style="margin:6px 0 0">
+          ${nuevos.length ? `<span class="chip chip--celeste">${nuevos.length} ítem${nuevos.length === 1 ? "" : "s"} nuevo${nuevos.length === 1 ? "" : "s"} · ${firma(montoNuevos)}</span>` : ""}
+          ${modif.length ? `<span class="chip chip--ambar">${modif.length} modificado${modif.length === 1 ? "" : "s"} · ${firma(montoModif)}</span>` : ""}
+          ${Math.abs(montoElim) > 0.005 ? `<span class="chip chip--rojo">Eliminados del aprobado · ${firma(-montoElim)}</span>` : ""}
+        </div></div>` : ""}
       ${especiales.length || proximas.length || adelantos.length ? `<div class="log-alertas">
         ${proximas.length ? `<div class="cerrado" style="background:rgba(31,203,234,.1);border-color:rgba(31,203,234,.45);color:#8FE6F6">${I.reloj}<span><b>Entregas en los próximos 7 días:</b> ${proximas.map((i) => `${esc(i.descripcion)} (${fecha(i.entrega_fecha)})`).join(" · ")}</span></div>` : ""}
         ${adelantos.length ? `<div class="cerrado" style="background:rgba(255,194,61,.1);border-color:rgba(255,194,61,.45);color:#FFE3A6">${I.alerta}<span><b>Adelantos por pagar:</b> ${adelantos.map((i) => `${esc(i.descripcion)} (${soles(i.adelanto_monto)}${i.adelanto_fecha ? ` hasta ${fecha(i.adelanto_fecha)}` : ""})`).join(" · ")}</span></div>` : ""}
@@ -99,32 +115,34 @@ export function crearLogistica(ctx) {
 
   // ---------- Presupuesto vs real ----------
   function presupuesto(c, v) {
-    const T = totales(L.items), cont = Number(L.config.contingencia);
+    const T = totales(L.items), cont = Number(L.config.contingencia), base = L.config.linea_base == null ? null : Number(L.config.linea_base);
     const f = filtro.trim().toLowerCase();
-    const coincide = (it) => !f || `${it.descripcion} ${it.para} ${prov(it.proveedor_id)?.nombre || ""}`.toLowerCase().includes(f);
+    const coincide = (it) => (!soloCambios || cambio(it)) && (!f || `${it.descripcion} ${it.para} ${prov(it.proveedor_id)?.nombre || ""}`.toLowerCase().includes(f));
     c.innerHTML = `
       <div class="log-barra"><input class="log-buscar" data-buscar placeholder="Buscar ítem, para qué es o proveedor…" value="${esc(filtro)}">
+        <label class="check" style="padding:.45em .8em"><input type="checkbox" data-cambios ${soloCambios ? "checked" : ""}><span>Solo cambios</span></label>
         <button class="btn btn--mini" data-todas>${abiertas.size ? "Contraer todo" : "Expandir todo"}</button>
         <button class="btn btn--mini btn--naranja" data-nuevacat>${I.mas}Nueva categoría</button></div>
       ${L.categorias.map((ct) => {
         const its = itemsDe(ct.id), vis = its.filter(coincide), t = totales(its);
-        if (f && !vis.length) return "";
-        const abierta = f || abiertas.has(ct.id);
+        if ((f || soloCambios) && !vis.length) return "";
+        const abierta = f || soloCambios || abiertas.has(ct.id);
+        const cambioCat = Math.abs(t.pres - t.orig) > 0.005;
         const dif = t.real - t.pres;
         return `<section class="log-cat ${abierta ? "log-cat--abierta" : ""}">
           <header class="log-cat__cab" data-abrir="${ct.id}">
             <span class="log-cat__flecha">${I.flecha}</span>
             <h3>${esc(ct.nombre)} <small>${t.n} ítem${t.n === 1 ? "" : "s"} · ${t.listos} resuelto${t.listos === 1 ? "" : "s"}</small></h3>
-            <div class="log-cat__tot"><span><small>Presupuestado</small><b>${soles(t.pres)}</b></span><span><small>Real</small><b>${t.real ? soles(t.real) : "—"}</b></span>
+            <div class="log-cat__tot"><span><small>Presupuestado</small><b>${soles(t.pres)}</b>${cambioCat ? `<small class="log-antes">aprobado ${soles(t.orig)}</small>` : ""}</span><span><small>Real</small><b>${t.real ? soles(t.real) : "—"}</b></span>
               <span><small>Diferencia</small><b class="${t.real ? (dif > 0 ? "log-mal" : "log-bien") : ""}">${t.real ? `${dif > 0 ? "+" : ""}${soles(dif)}` : "—"}</b></span></div>
           </header>
           ${abierta ? `<div class="tabla-envoltura"><table class="tabla log-tabla"><thead><tr><th>Descripción</th><th>Tipo</th><th class="num">Cant.</th><th class="num">C/U</th><th class="num">Presupuestado</th><th class="num">Real</th><th class="num">Diferencia</th><th>Estado</th><th>Proveedor</th></tr></thead>
             <tbody>${vis.map((it) => {
               const re = real(it), d = re == null ? null : re - pres(it), pa = pagado(it), [et, ec] = ESTADOS[it.estado] || ESTADOS.pendiente;
               return `<tr class="log-fila ${it.estado === "cancelado" ? "log-fila--cancelado" : ""}" data-item="${it.id}" tabindex="0">
-                <td><b>${esc(it.descripcion)}</b>${it.para ? `<br><small class="tenue">${esc(it.para)}</small>` : ""}${it.notas ? `<br><small class="log-nota">${esc(it.notas)}</small>` : ""}</td>
+                <td><b>${esc(it.descripcion)}</b>${cambio(it) === "nuevo" ? ` <span class="chip chip--celeste log-tag">Nuevo</span>` : cambio(it) === "modificado" ? ` <span class="chip chip--ambar log-tag">Modificado</span>` : ""}${it.para ? `<br><small class="tenue">${esc(it.para)}</small>` : ""}${it.notas ? `<br><small class="log-nota">${esc(it.notas)}</small>` : ""}</td>
                 <td>${esc(it.tipo)}</td><td class="num">${Number(it.cantidad).toLocaleString("es-PE")}</td><td class="num">${soles(it.cu)}</td>
-                <td class="num">${soles(pres(it))}</td>
+                <td class="num">${soles(pres(it))}${cambio(it) === "modificado" ? `<br><small class="log-antes">antes ${soles(it.pres_original)}</small>` : ""}</td>
                 <td class="num">${re == null ? `<span class="tenue">—</span>` : `<b>${soles(re)}</b>`}${pa > 0 && it.acordado != null ? `<br><small class="tenue">pagado ${soles(pa)}</small>` : ""}</td>
                 <td class="num ${d == null ? "" : d > 0 ? "log-mal" : "log-bien"}">${d == null ? "—" : `${d > 0 ? "+" : ""}${soles(d)}`}</td>
                 <td><span class="chip ${ec}">${et}</span>${it.adelanto ? `<br><small class="tenue">pide adelanto</small>` : ""}</td>
@@ -136,10 +154,11 @@ export function crearLogistica(ctx) {
               ${its.length ? "" : `<button class="btn btn--mini btn--peligro" data-borcat="${ct.id}">${I.basura}Eliminar categoría</button>`}</div>` : ""}
         </section>`; }).join("")}
       <div class="tabla-envoltura" style="margin-top:16px"><table class="tabla log-resumen"><tbody>
-        <tr><td>Subtotal general</td><td class="num">${soles(T.pres)}</td><td class="num">${soles(T.real)}</td></tr>
-        <tr><td>Contingencia ${Math.round(cont * 100)} %</td><td class="num">${soles(T.pres * cont)}</td><td class="num tenue">—</td></tr>
-        <tr class="log-total"><td>TOTAL ESTIMADO</td><td class="num">${soles(T.pres * (1 + cont))}</td><td class="num">${soles(T.real)}</td></tr>
-      </tbody><thead><tr><th></th><th class="num">Presupuestado</th><th class="num">Real</th></tr></thead></table></div>`;
+        <tr><td>Subtotal general</td><td class="num tenue">${soles(base)}</td><td class="num">${soles(T.pres)}</td><td class="num">${soles(T.real)}</td></tr>
+        <tr><td>Contingencia ${Math.round(cont * 100)} %</td><td class="num tenue">${base == null ? "—" : soles(base * cont)}</td><td class="num">${soles(T.pres * cont)}</td><td class="num tenue">—</td></tr>
+        <tr class="log-total"><td>TOTAL ESTIMADO</td><td class="num">${base == null ? "—" : soles(base * (1 + cont))}</td><td class="num">${soles(T.pres * (1 + cont))}</td><td class="num">${soles(T.real)}</td></tr>
+      </tbody><thead><tr><th></th><th class="num">Aprobado (original)</th><th class="num">Presupuesto actual</th><th class="num">Real</th></tr></thead></table></div>`;
+    $("[data-cambios]", c).onchange = (e) => { soloCambios = e.target.checked; presupuesto(c, v); };
     const bus = $("[data-buscar]", c);
     bus.oninput = () => { filtro = bus.value; const pos = bus.selectionStart; presupuesto(c, v); const b2 = $("[data-buscar]", c); b2.focus(); b2.setSelectionRange(pos, pos); };
     $("[data-todas]", c).onclick = () => { abiertas = abiertas.size ? new Set() : new Set(L.categorias.map((x) => x.id)); presupuesto(c, v); };
@@ -243,7 +262,7 @@ export function crearLogistica(ctx) {
       catch (ex) { $(".error", m.el).textContent = ex.message; }
     });
     $("[data-borrar]", m.el)?.addEventListener("click", async () => {
-      if (!(await confirmar("¿Eliminar este ítem?", `Se eliminará <b>${esc(it.descripcion)}</b> del presupuesto. Sus pagos registrados se conservan en Gastos.`, { boton: "Eliminar ítem", peligro: true }))) return;
+      if (!(await confirmar("¿Eliminar este ítem?", `Se eliminará <b>${esc(it.descripcion)}</b> del presupuesto. Sus pagos registrados se conservan en Gastos.<br><br>Si solo ya no se va a comprar, es mejor ponerlo en estado <b>Cancelado</b>: así queda registrado en el historial.`, { boton: "Eliminar ítem", peligro: true }))) return;
       try { await api.adminLogBorrar(ctx.codigo(), "item", it.id); m.cerrar(); aviso("Ítem eliminado"); repintar(v); } catch (ex) { aviso(ex.message, "error"); }
     });
     f.onsubmit = async (e) => {
@@ -435,7 +454,7 @@ export function crearLogistica(ctx) {
       for (const it of its) {
         const re = real(it), p = prov(it.proveedor_id);
         filas.push({ Categoría: ct.nombre, Descripción: it.descripcion, "Para": it.para, Tipo: it.tipo, Cantidad: Number(it.cantidad), "C/U (S/)": Number(it.cu),
-          "Presupuestado (S/)": pres(it), "Real (S/)": re ?? "", "Pagado (S/)": pagado(it), "Diferencia (S/)": re == null ? "" : re - pres(it),
+          "Aprobado original (S/)": it.pres_original ?? "Nuevo", "Presupuestado (S/)": pres(it), "Real (S/)": re ?? "", "Pagado (S/)": pagado(it), "Diferencia (S/)": re == null ? "" : re - pres(it),
           Estado: ESTADOS[it.estado]?.[0] || it.estado, Proveedor: p?.nombre || "", Teléfono: p?.telefono || "", "Pide adelanto": it.adelanto ? "Sí" : "",
           "Monto adelanto": it.adelanto_monto ?? "", "Fecha adelanto": it.adelanto_fecha || "", "Fecha entrega": it.entrega_fecha || "", "Lugar entrega": it.entrega_lugar,
           "Medio de pago": it.medio_pago, Responsable: it.responsable, Documento: it.enlace, Notas: it.notas });

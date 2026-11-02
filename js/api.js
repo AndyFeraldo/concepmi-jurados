@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611022127";
-import { CONCURSOS, porId } from "./concursos.js?v=202611022127";
-import { TALLERES } from "./talleres.js?v=202611022127";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611022127";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611022137";
+import { CONCURSOS, porId } from "./concursos.js?v=202611022137";
+import { TALLERES } from "./talleres.js?v=202611022137";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611022137";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -110,13 +110,13 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611022127");
-    const L = { config: { tc: 3.4, contingencia: 0.1 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611022137");
+    const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
       const cid = uid(); L.categorias.push({ id: cid, nombre: c.nombre, orden: ci + 1 });
       c.items.forEach((it, ii) => {
-        const x = { id: uid(), categoria_id: cid, ...it, acordado: null, estado: "pendiente", proveedor_id: null, adelanto: false, orden: ii + 1 };
+        const x = { id: uid(), categoria_id: cid, ...it, pres_original: it.descripcion.startsWith("Pago de Claude") ? null : it.cantidad * it.cu, acordado: null, estado: "pendiente", proveedor_id: null, adelanto: false, orden: ii + 1 };
         L.items.push(x);
         if (it.descripcion.startsWith("Impresion de flyers")) flyer = x.id;
         if (it.descripcion.startsWith("Pago de Claude")) claude = x.id;
