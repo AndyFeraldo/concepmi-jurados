@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202610280411";
-import { CONCURSOS, porId } from "./concursos.js?v=202610280411";
-import { TALLERES } from "./talleres.js?v=202610280411";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202610280411";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611022127";
+import { CONCURSOS, porId } from "./concursos.js?v=202611022127";
+import { TALLERES } from "./talleres.js?v=202611022127";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611022127";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -53,6 +53,11 @@ const real = {
   adminCharla: (codigo, charla, accion) => rpc("jur_admin_charla", { p_codigo: codigo, p_charla: charla, p_accion: accion }),
   adminPreguntas: (codigo, charla, preguntas) => rpc("jur_admin_preguntas", { p_codigo: codigo, p_charla: charla, p_preguntas: preguntas }),
   adminAsistentes: (codigo, filas) => rpc("jur_admin_asistentes", { p_codigo: codigo, p_filas: filas }),
+  // Logística
+  adminLogistica: (codigo) => rpc("jur_admin_logistica", { p_codigo: codigo }),
+  adminLogGuardar: (codigo, tabla, datos) => rpc("jur_admin_log_guardar", { p_codigo: codigo, p_tabla: tabla, p_datos: datos }),
+  adminLogBorrar: (codigo, tabla, id) => rpc("jur_admin_log_borrar", { p_codigo: codigo, p_tabla: tabla, p_id: id }),
+  adminLogConfig: (codigo, tc, contingencia) => rpc("jur_admin_log_config", { p_codigo: codigo, p_tc: tc, p_contingencia: contingencia }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -101,6 +106,30 @@ function preguntasDemo() {
     ["En Scrum, ¿quién maximiza el valor del producto?", ["El Scrum Master", "El Product Owner", "El cliente", "El equipo de QA"], 1],
     ["¿Cuál es la triple restricción?", ["Personas, procesos y tecnología", "Calidad, riesgo y moral", "Alcance, tiempo y costo", "Ventas y marketing"], 2]];
   return Object.fromEntries(CHARLAS.map((c) => [c.id, base.map(([texto, opciones, correcta]) => ({ texto, opciones, correcta }))]));
+}
+async function logDemo() {
+  const d = db();
+  if (!d.log) {
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611022127");
+    const L = { config: { tc: 3.4, contingencia: 0.1 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
+    let flyer = null, claude = null;
+    SEMILLA_LOGISTICA.forEach((c, ci) => {
+      const cid = uid(); L.categorias.push({ id: cid, nombre: c.nombre, orden: ci + 1 });
+      c.items.forEach((it, ii) => {
+        const x = { id: uid(), categoria_id: cid, ...it, acordado: null, estado: "pendiente", proveedor_id: null, adelanto: false, orden: ii + 1 };
+        L.items.push(x);
+        if (it.descripcion.startsWith("Impresion de flyers")) flyer = x.id;
+        if (it.descripcion.startsWith("Pago de Claude")) claude = x.id;
+      });
+    });
+    const f = uid();
+    L.fondos.push({ id: f, nombre: "Fondo de transporte y marketing", responsable: "[retirado]", monto: 440, fecha: null,
+      notas: "[retirado]" });
+    L.gastos.push({ id: uid(), item_id: flyer, fondo_id: f, fecha: null, concepto: "Copias e impresiones", monto: 15, moneda: "PEN", tc: null, monto_pen: 15, comprobante: "", a_nombre_pmi: false, notas: "" });
+    L.gastos.push({ id: uid(), item_id: claude, fondo_id: f, fecha: null, concepto: "Claude Pro (1 mes)", monto: 23.6, moneda: "USD", tc: 3.4, monto_pen: 80.24, comprobante: "", a_nombre_pmi: false, notas: "" });
+    d.log = L; guardar();
+  }
+  return d.log;
 }
 let mem = null;
 function db() {
@@ -347,6 +376,34 @@ const demo = {
       d.asistentes = d.asistentes.filter((a) => a.dni !== dni);
       d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "" }); n++; }
     guardar(); return { importados: n, total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length }; },
+  // ---- Logística (vista previa) ----
+  async adminLogistica(codigo) { await espera(); exigirAdmin(codigo); return structuredClone(await logDemo()); },
+  async adminLogGuardar(codigo, tabla, datos) {
+    await espera(); exigirAdmin(codigo); const L = await logDemo();
+    const lista = { categoria: L.categorias, item: L.items, proveedor: L.proveedores, fondo: L.fondos, gasto: L.gastos }[tabla];
+    if (!lista) throw new Error("Tabla no válida");
+    const req = { categoria: "nombre", item: "descripcion", proveedor: "nombre", fondo: "nombre" }[tabla];
+    if (req && !String(datos[req] || "").trim()) throw new Error("Completa el nombre o la descripción");
+    const d = { ...datos };
+    for (const k of Object.keys(d)) if (d[k] === "") d[k] = ["proveedor_id", "item_id", "fondo_id", "adelanto_fecha", "entrega_fecha", "fecha"].includes(k) ? null : "";
+    if (tabla === "gasto") {
+      if (!(Number(d.monto) > 0)) throw new Error("Escribe el monto del gasto");
+      d.tc = d.moneda === "USD" ? Number(d.tc || L.config.tc) : null;
+      d.monto_pen = Math.round(Number(d.monto) * (d.moneda === "USD" ? d.tc : 1) * 100) / 100;
+    }
+    let r = d.id && lista.find((x) => x.id === d.id);
+    if (!r) { r = { id: uid(), creado: new Date().toISOString() }; lista.push(r); if (tabla === "categoria" && d.orden == null) d.orden = L.categorias.length; }
+    Object.assign(r, d, { id: r.id }); guardar(); return r.id; },
+  async adminLogBorrar(codigo, tabla, id) {
+    await espera(); exigirAdmin(codigo); const L = await logDemo();
+    if (tabla === "categoria" && L.items.some((i) => i.categoria_id === id)) throw new Error("Primero mueve o elimina los ítems de esta categoría");
+    const k = { categoria: "categorias", item: "items", proveedor: "proveedores", fondo: "fondos", gasto: "gastos" }[tabla];
+    L[k] = L[k].filter((x) => x.id !== id);
+    if (tabla === "item") L.gastos.forEach((g) => { if (g.item_id === id) g.item_id = null; });
+    if (tabla === "fondo") L.gastos.forEach((g) => { if (g.fondo_id === id) g.fondo_id = null; });
+    if (tabla === "proveedor") L.items.forEach((i) => { if (i.proveedor_id === id) i.proveedor_id = null; });
+    guardar(); },
+  async adminLogConfig(codigo, tc, contingencia) { await espera(); exigirAdmin(codigo); const L = await logDemo(); Object.assign(L.config, { tc, contingencia }); guardar(); },
   reiniciar() { mem = semilla(); guardar(); },
 };
 
