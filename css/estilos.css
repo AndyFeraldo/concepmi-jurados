@@ -761,3 +761,49 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .log-cambios{ margin-top:14px; padding:12px 14px; border-radius:14px; border:1px solid rgba(31,203,234,.4); background:rgba(31,203,234,.08); font-size:.92rem; }
 .log-antes{ display:block; color:var(--tenue); font-size:.72rem; text-decoration:line-through; }
 .log-tag{ font-size:.68rem; padding:.12em .55em; vertical-align:1px; }
+
+/* Logística v2: dashboard, casilla comprado, orden, adjuntos */
+.log-kpis{ grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); }
+.log-dash{ display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px; margin-top:14px; }
+.log-panel{ padding:16px; display:grid; gap:10px; align-content:start; } .log-panel h3{ margin:0; font-size:1.05rem; } .log-panel--ancho{ grid-column:1 / -1; }
+.log-sub{ margin:6px 0 0; font-size:.85rem; color:var(--niebla); }
+.log-leyenda{ display:flex; gap:16px; flex-wrap:wrap; font-size:.8rem; color:var(--niebla); } .log-leyenda i{ display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-2px; }
+.lg-pres, .lb-pres{ background:rgba(255,255,255,.16); } .lg-real, .lb-real{ background:#3987e5; } .lg-exc, .lb-exc{ background:#d03b3b; }
+.log-barras{ display:grid; gap:8px; }
+.log-barra-fila{ display:grid; grid-template-columns:minmax(120px, 220px) 1fr auto; gap:12px; align-items:center; font-size:.85rem; }
+.log-barra-nom{ color:var(--niebla); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.log-barra-pista{ position:relative; height:14px; }
+.log-barra-pista i{ position:absolute; top:0; bottom:0; left:0; border-radius:0 4px 4px 0; } .log-barra-pista .lb-exc{ border-left:2px solid var(--panel-solido, #1d1360); }
+.log-barra-val{ white-space:nowrap; color:var(--niebla); font-size:.8rem; } .log-barra-val b{ color:var(--blanco); }
+.log-apilada{ display:flex; gap:2px; height:18px; border-radius:6px; overflow:hidden; } .log-apilada i{ min-width:4px; }
+.est-ok{ background:#0ca30c; } .est-cot{ background:#fab219; } .est-pen{ background:#8a8984; } .est-can{ background:#4b4a47; } .est-mal{ background:#d03b3b; }
+.log-lista{ list-style:none; margin:0; padding:0; display:grid; gap:6px; font-size:.86rem; }
+.log-lista li{ display:flex; gap:8px; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:10px; background:rgba(255,255,255,.04); }
+.log-lista li > span{ flex:1; } .log-lista--estados li small{ color:var(--tenue); width:38px; text-align:right; }
+.log-punto{ width:10px; height:10px; border-radius:50%; flex:none; }
+.log-clic{ cursor:pointer; } .log-clic:hover{ background:rgba(255,106,31,.12) !important; } .log-sangria{ margin-left:18px; }
+.log-comp{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; } .log-comp span{ display:grid; } .log-comp small{ color:var(--tenue); font-size:.74rem; } .log-comp b{ font-size:1.05rem; }
+.log-comp--col{ grid-template-columns:1fr 1fr; }
+.log-2col{ display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:16px; align-items:start; }
+.log-lado{ position:sticky; top:80px; }
+@media (max-width:1100px){ .log-2col{ grid-template-columns:1fr; } .log-lado{ position:static; } }
+.log-orden{ display:inline-flex; gap:4px; white-space:nowrap; } .log-orden .btn{ padding:.2em .45em; min-width:0; font-size:.7rem; line-height:1.2; }
+.log-orden .btn:disabled{ opacity:.25; }
+.log-check-celda{ width:34px; }
+.log-check{ display:inline-grid; cursor:pointer; } .log-check input{ position:absolute; opacity:0; width:0; height:0; }
+.log-check span{ width:24px; height:24px; border-radius:7px; border:2px solid var(--borde); display:grid; place-items:center; transition:all .15s; background:rgba(10,5,40,.55); }
+.log-check:hover span{ border-color:#0ca30c; }
+.log-check input:checked + span{ background:#0ca30c; border-color:#0ca30c; }
+.log-check input:checked + span::after{ content:"✓"; color:#fff; font-weight:800; font-size:.9rem; }
+.log-check input:focus-visible + span{ box-shadow:0 0 0 3px rgba(31,203,234,.4); }
+.log-check input:disabled + span{ opacity:.3; cursor:not-allowed; }
+.log-fila--ok td{ background:rgba(12,163,12,.06); }
+.log-adj{ font-size:.78rem; color:#8FE6F6; } .log-adjbtn{ font-size:.72rem; padding:.25em .6em; margin:2px 0; }
+.log-adjuntos{ display:grid; gap:6px; } .log-adjunto{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:6px 8px; border-radius:10px; background:rgba(255,255,255,.05); } .log-adjunto > span{ flex:1; min-width:140px; font-size:.86rem; }
+.log-estados{ display:flex; flex-wrap:wrap; gap:8px; }
+.log-estado input{ position:absolute; opacity:0; }
+.log-estado span{ display:inline-block; padding:.5em 1em; border-radius:99px; border:1px solid var(--borde); cursor:pointer; font-weight:600; font-size:.85rem; }
+.log-estado input:checked + span{ background:var(--naranja); border-color:var(--naranja); color:#fff; }
+.log-estado input:focus-visible + span{ box-shadow:0 0 0 3px rgba(31,203,234,.4); }
+@media (max-width:640px){ .log-barra-fila{ grid-template-columns:1fr; gap:4px; } .log-comp{ grid-template-columns:1fr 1fr; } }
+.log-tabla td.num, .log-tabla th.num{ white-space:nowrap; }

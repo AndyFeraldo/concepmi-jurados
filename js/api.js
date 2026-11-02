@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611022137";
-import { CONCURSOS, porId } from "./concursos.js?v=202611022137";
-import { TALLERES } from "./talleres.js?v=202611022137";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611022137";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611022233";
+import { CONCURSOS, porId } from "./concursos.js?v=202611022233";
+import { TALLERES } from "./talleres.js?v=202611022233";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611022233";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -58,6 +58,11 @@ const real = {
   adminLogGuardar: (codigo, tabla, datos) => rpc("jur_admin_log_guardar", { p_codigo: codigo, p_tabla: tabla, p_datos: datos }),
   adminLogBorrar: (codigo, tabla, id) => rpc("jur_admin_log_borrar", { p_codigo: codigo, p_tabla: tabla, p_id: id }),
   adminLogConfig: (codigo, tc, contingencia) => rpc("jur_admin_log_config", { p_codigo: codigo, p_tc: tc, p_contingencia: contingencia }),
+  adminLogOrden: (codigo, tabla, ids) => rpc("jur_admin_log_orden", { p_codigo: codigo, p_tabla: tabla, p_ids: ids }),
+  adminLogArchivoSubir: (codigo, { gasto = null, item = null, nombre, tipo, datos }) =>
+    rpc("jur_admin_log_archivo_subir", { p_codigo: codigo, p_gasto: gasto, p_item: item, p_nombre: nombre, p_tipo: tipo, p_datos: datos }),
+  adminLogArchivo: (codigo, id) => rpc("jur_admin_log_archivo", { p_codigo: codigo, p_id: id }),
+  adminLogArchivoBorrar: (codigo, id) => rpc("jur_admin_log_archivo_borrar", { p_codigo: codigo, p_id: id }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -110,7 +115,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611022137");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611022233");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -127,8 +132,11 @@ async function logDemo() {
       notas: "[retirado]" });
     L.gastos.push({ id: uid(), item_id: flyer, fondo_id: f, fecha: null, concepto: "Copias e impresiones", monto: 15, moneda: "PEN", tc: null, monto_pen: 15, comprobante: "", a_nombre_pmi: false, notas: "" });
     L.gastos.push({ id: uid(), item_id: claude, fondo_id: f, fecha: null, concepto: "Claude Pro (1 mes)", monto: 23.6, moneda: "USD", tc: 3.4, monto_pen: 80.24, comprobante: "", a_nombre_pmi: false, notas: "" });
+    L.historial = [{ id: uid(), fecha: new Date().toISOString(), accion: "eliminado", categoria: "Sede del evento", descripcion: "[retirado]", antes: 2000, despues: null, detalle: "Ya no se usará" }];
+    L.items = L.items.filter((i) => !i.descripcion.startsWith("[retirado]"));
     d.log = L; guardar();
   }
+  d.log.archivos ||= []; d.log.historial ||= [];
   return d.log;
 }
 let mem = null;
@@ -377,7 +385,15 @@ const demo = {
       d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "" }); n++; }
     guardar(); return { importados: n, total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length }; },
   // ---- Logística (vista previa) ----
-  async adminLogistica(codigo) { await espera(); exigirAdmin(codigo); return structuredClone(await logDemo()); },
+  async adminLogistica(codigo) { await espera(); exigirAdmin(codigo); const L = structuredClone(await logDemo()); L.archivos = L.archivos.map(({ datos, ...a }) => a); return L; },
+  async adminLogOrden(codigo, tabla, ids) { await espera(80); exigirAdmin(codigo); const L = await logDemo(); const f = tabla === "categoria" ? L.categorias : L.items;
+    ids.forEach((id, n) => { const r = f.find((x) => x.id === id); if (r) r.orden = n + 1; }); guardar(); },
+  async adminLogArchivoSubir(codigo, { gasto = null, item = null, nombre, tipo, datos }) { await espera(); exigirAdmin(codigo); const L = await logDemo();
+    if (datos.length > 7000000) throw new Error("El archivo pesa más de 5 MB. Comprime la imagen o el PDF.");
+    const a = { id: uid(), gasto_id: gasto, item_id: item, nombre, tipo, tamano: Math.floor(datos.length * 3 / 4), datos, creado: new Date().toISOString() };
+    L.archivos.push(a); guardar(); return a.id; },
+  async adminLogArchivo(codigo, id) { await espera(); exigirAdmin(codigo); const a = (await logDemo()).archivos.find((x) => x.id === id); return a ? { id: a.id, nombre: a.nombre, tipo: a.tipo, datos: a.datos } : null; },
+  async adminLogArchivoBorrar(codigo, id) { await espera(); exigirAdmin(codigo); const L = await logDemo(); L.archivos = L.archivos.filter((x) => x.id !== id); guardar(); },
   async adminLogGuardar(codigo, tabla, datos) {
     await espera(); exigirAdmin(codigo); const L = await logDemo();
     const lista = { categoria: L.categorias, item: L.items, proveedor: L.proveedores, fondo: L.fondos, gasto: L.gastos }[tabla];
@@ -392,12 +408,24 @@ const demo = {
       d.monto_pen = Math.round(Number(d.monto) * (d.moneda === "USD" ? d.tc : 1) * 100) / 100;
     }
     let r = d.id && lista.find((x) => x.id === d.id);
-    if (!r) { r = { id: uid(), creado: new Date().toISOString() }; lista.push(r); if (tabla === "categoria" && d.orden == null) d.orden = L.categorias.length; }
+    const hist = (accion, categoria, descripcion, antes, despues, detalle = "") => L.historial.unshift({ id: uid(), fecha: new Date().toISOString(), accion, categoria, descripcion, antes, despues, detalle });
+    const catNom = (id) => L.categorias.find((c) => c.id === id)?.nombre || "";
+    if (tabla === "item") {
+      const nuevo = Number(d.cantidad) * Number(d.cu);
+      if (!r) hist("agregado", catNom(d.categoria_id), d.descripcion, null, nuevo);
+      else if (Number(r.cantidad) * Number(r.cu) !== nuevo || r.categoria_id !== d.categoria_id) hist("modificado", catNom(d.categoria_id), d.descripcion, Number(r.cantidad) * Number(r.cu), nuevo, `Cantidad ${r.cantidad} → ${d.cantidad}`);
+    }
+    if (tabla === "categoria" && !r) hist("categoria_agregada", d.nombre, "", null, null);
+    if (!r) { r = { id: uid(), creado: new Date().toISOString(), ...(tabla === "item" ? { pres_original: null, orden: L.items.filter((i) => i.categoria_id === d.categoria_id).length + 1 } : {}) }; lista.push(r); if (tabla === "categoria" && d.orden == null) d.orden = L.categorias.length; }
+    if (tabla === "item" && d.orden == null) delete d.orden;
     Object.assign(r, d, { id: r.id }); guardar(); return r.id; },
   async adminLogBorrar(codigo, tabla, id) {
     await espera(); exigirAdmin(codigo); const L = await logDemo();
     if (tabla === "categoria" && L.items.some((i) => i.categoria_id === id)) throw new Error("Primero mueve o elimina los ítems de esta categoría");
     const k = { categoria: "categorias", item: "items", proveedor: "proveedores", fondo: "fondos", gasto: "gastos" }[tabla];
+    const x = L[k].find((y) => y.id === id);
+    if (tabla === "item" && x) L.historial.unshift({ id: uid(), fecha: new Date().toISOString(), accion: "eliminado", categoria: L.categorias.find((c) => c.id === x.categoria_id)?.nombre || "", descripcion: x.descripcion, antes: Number(x.cantidad) * Number(x.cu), despues: null, detalle: x.para || "" });
+    if (tabla === "gasto") L.archivos = L.archivos.filter((a) => a.gasto_id !== id);
     L[k] = L[k].filter((x) => x.id !== id);
     if (tabla === "item") L.gastos.forEach((g) => { if (g.item_id === id) g.item_id = null; });
     if (tabla === "fondo") L.gastos.forEach((g) => { if (g.fondo_id === id) g.fondo_id = null; });
