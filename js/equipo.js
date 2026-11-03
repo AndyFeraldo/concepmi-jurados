@@ -3,12 +3,13 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611032031";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611032031";
-import { FORMAS } from "./formas.js?v=202611032031";
-import { porId } from "./concursos.js?v=202611032031";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611032031";
-import { salir } from "./app.js?v=202611032031";
+import { api, ES_DEMO } from "./api.js?v=202611032102";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611032102";
+import { FORMAS } from "./formas.js?v=202611032102";
+import { vistaPresentacion } from "./presentacion.js?v=202611032102";
+import { porId } from "./concursos.js?v=202611032102";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611032102";
+import { salir } from "./app.js?v=202611032102";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
@@ -19,6 +20,8 @@ export async function vistaEquipo(app, codigo) {
   app.innerHTML = `<div class="fondo fondo--sobrio"></div><div class="cargando"><div class="giro"></div>Abriendo tu entregable…</div>`;
   try { await cargar(); }
   catch (e) { aviso(e.message, "error"); return salir(); }
+  // Concurso de Proyectos: el equipo SUBE su PPT + PDF (otra pantalla)
+  if (ENTREGABLES[data.entrega.concurso_id]?.tipo === "presentacion") return vistaPresentacion(app, codigo, salir);
 
   async function cargar() {
     const t0 = Date.now();

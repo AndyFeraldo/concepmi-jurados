@@ -3,11 +3,11 @@
 // pantalla completa para el proyector y versión imprimible.
 // Lo usan el admin (pestaña Entregas) y los jurados.
 // =========================================================
-import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611032031";
-import { $, $$, esc, I, IMG } from "./ui.js?v=202611032031";
-import { porId } from "./concursos.js?v=202611032031";
-import { resultados } from "./calculo.js?v=202611032031";
-import { formaDe } from "./formas.js?v=202611032031";
+import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611032102";
+import { $, $$, esc, I, IMG } from "./ui.js?v=202611032102";
+import { porId } from "./concursos.js?v=202611032102";
+import { resultados } from "./calculo.js?v=202611032102";
+import { formaDe } from "./formas.js?v=202611032102";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "");
 export const tieneDatos = (e) => Object.keys(e?.datos || {}).length > 0;
@@ -124,7 +124,7 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
   }
 
   function hoja(e) {
-    const acta = esActa(concurso), F = formaDe(concurso), r = resumenMatriz(e.datos), ra = acta ? F.resumen(e.datos) : null, [est] = estadoEntrega(e);
+    const pres = def?.tipo === "presentacion", acta = esActa(concurso), F = formaDe(concurso), r = resumenMatriz(e.datos), ra = acta ? F.resumen(e.datos) : null, [est] = estadoEntrega(e);
     const fila = notas ? res.find((f) => f.delegacion.id === e.delegacion_id) : null;
     const total = sp ? sp.criterios.reduce((s, k) => s + k.max, 0) : 0;
     return `<section class="hoja">
@@ -132,12 +132,12 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
       <div class="datos">
         <div class="dato grande"><span>Delegación</span><b>${esc(nombre(e))}</b></div>
         <div class="dato"><span>Líder</span><b>${esc(e.datos?.lider || e.lider || "—")}</b></div>
-        <div class="dato"><span>Hora de envío</span><b>${e.enviado ? fecha(e.enviado) : "No enviada"}</b></div>
-        <div class="dato ${e.tarde ? "mal" : e.estado === "enviado" ? "bien" : ""}"><span>Estado</span><b>${e.estado === "enviado" ? (e.tarde ? "Entrega tardía" : "A tiempo") : esc(est)}</b></div>
-        ${acta ? `<div class="dato"><span>Secciones</span><b>${F.resumenPdf(ra)}</b></div>` : `<div class="dato"><span>Riesgos</span><b>${r.total} · ${r.amenazas} A / ${r.oportunidades} O</b></div>`}
+        ${pres ? "" : `<div class="dato"><span>Hora de envío</span><b>${e.enviado ? fecha(e.enviado) : "No enviada"}</b></div>
+        <div class="dato ${e.tarde ? "mal" : e.estado === "enviado" ? "bien" : ""}"><span>Estado</span><b>${e.estado === "enviado" ? (e.tarde ? "Entrega tardía" : "A tiempo") : esc(est)}</b></div>`}
+        ${pres ? `<div class="dato"><span>Proyecto</span><b>${esc(e.datos?.proyecto || "—")}</b></div>` : acta ? `<div class="dato"><span>Secciones</span><b>${F.resumenPdf(ra)}</b></div>` : `<div class="dato"><span>Riesgos</span><b>${r.total} · ${r.amenazas} A / ${r.oportunidades} O</b></div>`}
         ${fila ? `<div class="dato final"><span>Puntaje final</span><b>${fila.rubrica} <small>/ ${total}</small></b>${fila.puesto ? `<em>${fila.puesto}.° lugar${fila.empate ? " (empate)" : ""}</em>` : ""}</div>` : ""}
       </div>
-      ${acta ? `<h2>${esc(def?.titulo || "")}${ra.proyecto ? ` · <small>${esc(ra.proyecto)}</small>` : ""}</h2>${F.vista(e.datos)}` : `<h2>Matriz de riesgos y oportunidades${orden === "sev" ? " <small>(ordenada por severidad)</small>" : ""}</h2>
+      ${pres ? "" : acta ? `<h2>${esc(def?.titulo || "")}${ra.proyecto ? ` · <small>${esc(ra.proyecto)}</small>` : ""}</h2>${F.vista(e.datos)}` : `<h2>Matriz de riesgos y oportunidades${orden === "sev" ? " <small>(ordenada por severidad)</small>" : ""}</h2>
       <table class="mat"><thead><tr><th>ID</th><th>Riesgo (causa, evento y efecto)</th><th>Tipo</th><th class="n">P</th><th class="n">I</th><th class="n">P×I</th><th>Estrategia</th><th>Plan / acción concreta</th><th>Dueño</th><th>Disparador</th></tr></thead>
       <tbody>${ordenar(r.filas, orden).map((f) => { const n = nivel(f.sev); return `<tr><td><b>${esc(f.id)}</b></td><td>${esc(f.riesgo)}</td><td>${esc(f.tipo)}</td><td class="n">${esc(f.p)}</td><td class="n">${esc(f.i)}</td>
         <td class="n">${f.sev == null ? "—" : `<span class="sev ${n?.[3] || ""}">${f.sev}</span>`}</td><td>${esc(f.estrategia)}</td><td>${esc(f.plan)}</td><td>${esc(f.dueno)}</td><td>${esc(f.trigger)}</td></tr>`; }).join("") || `<tr><td colspan="10">Sin riesgos registrados</td></tr>`}</tbody></table>

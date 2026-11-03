@@ -5,17 +5,18 @@
 //    de 2 min (exposición o preguntas) que SOLO empieza cuando se pulsa Iniciar.
 // Los botones aparecen al mover el mouse (solo los ve quien maneja la laptop).
 // =========================================================
-import { ENTREGABLES } from "./entregables.js?v=202611032031";
-import { formaDe } from "./formas.js?v=202611032031";
-import { porId } from "./concursos.js?v=202611032031";
-import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611032031";
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611032031";
+import { ENTREGABLES } from "./entregables.js?v=202611032102";
+import { formaDe } from "./formas.js?v=202611032102";
+import { htmlExpoPres, conectarExpoPres, ordenarPorSorteo, horaTurno } from "./presentacion.js?v=202611032102";
+import { porId } from "./concursos.js?v=202611032102";
+import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611032102";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611032102";
 
 const hora = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 // Tiempos de la fase oral (bases: 2 min de exposición + 2 min de preguntas)
-const CORTOS = {
+const CORTOS_BASE = {
   exp: { min: 2, txt: "Exposición", ayuda: "Tiempo para exponer", fin: "Terminó el tiempo de exposición" },
   preg: { min: 2, txt: "Ronda de preguntas", ayuda: "Preguntas del jurado", fin: "Terminó la ronda de preguntas" },
 };
@@ -35,10 +36,16 @@ function pitido(frec = 988, dur = 0.16, cuando = 0) {
 const alarma = () => { for (let k = 0; k < 3; k++) pitido(988, 0.16, k * 0.28); pitido(1318, 0.5, 0.9); };
 
 // cargar() → { tiempo:{inicio, fin, ahora}, entregas:[...] } · accion(a, min) → promesa · nombre(e) → delegación
-export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
+export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar, pres = null }) {
   const def = ENTREGABLES[concurso], c = porId(concurso), nm = def?.nombre || "entregable", pl = def?.plural || "entregas";
+  // Tiempos de la fase oral de ESTE concurso (Proyectos: 5 + 3; los demás: 2 + 2)
+  const CORTOS = { exp: { ...CORTOS_BASE.exp, min: def?.cortos?.exp ?? CORTOS_BASE.exp.min }, preg: { ...CORTOS_BASE.preg, min: def?.cortos?.preg ?? CORTOS_BASE.preg.min } };
+  const esPres = def?.tipo === "presentacion";
+  const titulo = /^concurso/i.test(c?.nombre || "") ? c.nombre : `Concurso ${c?.nombre || ""}`;
+  const sigla = (e) => (esPres && pres?.delegacion ? pres.delegacion(e.delegacion_id)?.siglas : "") || nombre(e);
+  let PRES = null; // { config, equipos } del Concurso de Proyectos
   const el = document.createElement("div");
-  el.className = "escenario";
+  el.className = `escenario ${esPres ? "escenario--pres" : ""}`;
   let T = { fin: null }, lista = [], desfase = 0, vivo = true, ocultar = null, ultimoSeg = null, previoLlenado = null;
   let modo = "llenado", actual = null, corto = null, orden = "id", claveCuerpo = "";
   preparar(); // el clic en «Proyectar pantalla» permite activar el sonido
@@ -47,23 +54,23 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
     <header class="portada__barra escenario__barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI">
       <span class="sep"></span>
-      <div><div class="barra__titulo">VI CONCEPMI 2026</div><div class="barra__sub">Concurso ${esc(c?.nombre || "")}</div></div>
+      <div><div class="barra__titulo">VI CONCEPMI 2026</div><div class="barra__sub">${esc(titulo)}</div></div>
       <div class="der"><span class="en-vivo"><span class="punto punto--vivo"></span>EN VIVO</span><img class="club" src="${IMG.club}" alt="PMI Lima Perú Chapter Student Club"></div>
     </header>
     <main class="escena escenario__escena" data-portada>
       <div>
         <p class="escena__pre">PMI LIMA STUDENT CLUB PRESENTA</p>
         <img class="escena__logo escenario__logo" src="${IMG.logo}" alt="CONCEPMI VI" style="margin:0 auto">
-        <h1 class="escena__titulo">Concurso ${esc(c?.nombre || "")}</h1>
+        <h1 class="escena__titulo">${esc(titulo)}</h1>
         <p class="escena__sub">${esc(def?.titulo || c?.apodo || "")}</p>
         <div class="pildoras">
-          <span class="pildora pildora--lila">${I.reloj}${def?.minutos || 35} min de ${def?.tipo === "mvp" ? "desarrollo" : "llenado"}</span>
+          ${esPres ? `<span class="pildora pildora--lila">${I.bandera}Gran final presencial</span>` : `<span class="pildora pildora--lila">${I.reloj}${def?.minutos || 35} min de ${def?.tipo === "mvp" ? "desarrollo" : "llenado"}</span>`}
           ${def?.exposicion ? `<span class="pildora pildora--celeste">${I.personas}${esc(def.exposicion)}</span>` : ""}
           ${def?.exposicion ? `<span class="pildora pildora--celeste" data-pild-expo hidden></span>` : ""}
           <span class="pildora pildora--oro">${I.copa}Hasta ${c?.maxCopa ?? 60} pts para la Copa</span>
         </div>
-        <div class="escenario__reloj" data-reloj aria-live="polite"></div>
-        <div class="escenario__avance" data-avance></div>
+        ${esPres ? `<div class="pres-orden" data-orden-board></div>` : `<div class="escenario__reloj" data-reloj aria-live="polite"></div>
+        <div class="escenario__avance" data-avance></div>`}
       </div>
     </main>
     <main class="escenario__expo" data-expo hidden>
@@ -77,20 +84,20 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
     <img class="wolfito" data-wolfito src="${IMG.wolfito}" alt="" aria-hidden="true">
     <div class="escenario__ctrl" data-ctrl>
       <span class="escenario__ctrl-t">Solo tú ves estos botones al mover el mouse · Atajos: Espacio = Iniciar/Pausar · ◀ ▶ = delegación</span>
-      <div class="escenario__grupo" data-g-llenado><b>Llenado</b>
+      <div class="escenario__grupo" data-g-llenado><b>${esPres ? "Portada" : "Llenado"}</b>
         <label>Min <input data-min inputmode="numeric" value="${def?.minutos || 35}"></label>
         <button class="btn btn--mini btn--naranja" data-iniciar>${I.flecha}<span>Iniciar</span></button>
         <button class="btn btn--mini" data-mas5>+5 min</button>
         <button class="btn btn--mini btn--peligro" data-detener>Terminar</button>
-        <button class="btn btn--mini" data-llenado hidden>Volver a la portada del llenado</button></div>
+        <button class="btn btn--mini" data-llenado hidden>${esPres ? "Volver a la portada (orden)" : "Volver a la portada del llenado"}</button></div>
       <div class="escenario__grupo"><b>Exposiciones</b>
         <select class="visor-sel" data-sel aria-label="Delegación que expone"></select>
         <button class="btn btn--mini" data-ant title="Delegación anterior" aria-label="Delegación anterior">◀</button><button class="btn btn--mini" data-sig title="Delegación siguiente" aria-label="Delegación siguiente">▶</button>
         <button class="btn btn--mini" data-corto="exp">${I.personas}<span>Exposición ${CORTOS.exp.min} min</span></button>
         <button class="btn btn--mini" data-corto="preg">${I.info}<span>Preguntas ${CORTOS.preg.min} min</span></button>
         <button class="btn btn--mini btn--naranja" data-arranca hidden>${I.flecha}<span>Iniciar</span></button>
-        <button class="btn btn--mini" data-reset hidden title="Volver a 2:00">↺ 2:00</button>
-        ${esActa(concurso) ? "" : `<button class="btn btn--mini" data-orden hidden>Orden: ID</button>`}</div>
+        <button class="btn btn--mini" data-reset hidden title="Volver a empezar este cronómetro">↺ ${CORTOS.exp.min}:00</button>
+        ${esActa(concurso) || esPres ? "" : `<button class="btn btn--mini" data-orden hidden>Orden: ID</button>`}</div>
       <div class="escenario__grupo">
         <button class="btn btn--mini" data-full>Pantalla completa</button>
         <button class="btn btn--mini" data-cerrar>${I.cerrar}<span>Salir</span></button></div>
@@ -102,6 +109,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
 
   // ---------------- Momento 1: llenado ----------------
   function pintarLlenado() {
+    if (esPres) return;
     const r = $("[data-reloj]", el);
     const fin = T.fin ? Date.parse(T.fin) : null;
     const s = fin ? Math.max(0, Math.round((fin - (Date.now() + desfase)) / 1000)) : null;
@@ -124,6 +132,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
     }
   }
   function pintarAvance() {
+    if (esPres) return pintarOrden();
     const env = lista.filter((e) => e.estado === "enviado").length, n = lista.length;
     // Estimado de la fase oral: cada equipo = exposición + preguntas + cambio de equipo
     const pe = $("[data-pild-expo]", el);
@@ -152,15 +161,24 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
   }
   function pintarSelector() {
     const sel = $("[data-sel]", el);
-    const html = lista.map((x) => `<option value="${x.equipo_id}" ${x.equipo_id === actual ? "selected" : ""}>${esc(nombre(x))}${x.estado === "enviado" ? "" : " · sin enviar"}</option>`).join("");
+    const html = lista.map((x, i) => `<option value="${x.equipo_id}" ${x.equipo_id === actual ? "selected" : ""}>${esPres && PRES?.config?.orden?.length ? `${i + 1}. ` : ""}${esc(nombre(x))}${esPres ? "" : x.estado === "enviado" ? "" : " · sin enviar"}</option>`).join("");
     if (sel.dataset.html !== html) { sel.innerHTML = html || `<option>Sin equipos</option>`; sel.dataset.html = html; }
   }
   function pintarExpo() {
     if (modo !== "expo") return;
     const e = lista.find((x) => x.equipo_id === actual);
-    const clave = JSON.stringify([actual, orden, e?.actualizado, e?.estado]);
+    const presE = esPres && e ? PRES?.equipos?.find((x) => x.id === e.equipo_id)?.pres : null;
+    const clave = JSON.stringify([actual, orden, e?.actualizado, e?.estado, presE, lista.map((x) => x.equipo_id)]);
     if (clave === claveCuerpo) return; claveCuerpo = clave;
     $("[data-expo-nombre]", el).textContent = e ? nombre(e) : "—";
+    if (esPres) {
+      const i = lista.indexOf(e);
+      $("[data-expo-sub]", el).innerHTML = e ? `Presentación final${e.datos?.proyecto ? ` · <b>${esc(e.datos.proyecto)}</b>` : ""}${PRES?.config?.orden?.length ? ` · turno ${i + 1} de ${lista.length}` : ""}` : "";
+      const cuerpo = $("[data-expo-cuerpo]", el);
+      cuerpo.innerHTML = e ? htmlExpoPres(lista, i, { nombre: sigla, info: (x) => ({ pres: PRES?.equipos?.find((y) => y.id === x.equipo_id)?.pres, delegacion: pres?.delegacion(x.delegacion_id) }) }) : `<div class="vacio"><b>Aún no hay equipos</b></div>`;
+      if (pres?.abrir) conectarExpoPres(cuerpo, pres.abrir);
+      return;
+    }
     const F = formaDe(concurso), proyecto = F && F.proyecto(e?.datos) ? `${F.etiquetaProyecto}: ${F.proyecto(e.datos)}` : "";
     $("[data-expo-sub]", el).innerHTML = e ? `${esc(def?.titulo || "")}${proyecto ? ` · <b>${esc(proyecto)}</b>` : ""}${e.estado === "enviado" ? "" : ` · <span class="chip chip--ambar">Aún no la envían</span>`}` : "";
     $("[data-expo-cuerpo]", el).innerHTML = e ? `<div class="reparto" style="margin:0 0 10px">${chipsEntrega(concurso, e.datos)}</div>${contenidoEntrega(concurso, e.datos, { orden, embed: true })}` : `<div class="vacio"><b>Aún no hay equipos</b></div>`;
@@ -179,6 +197,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
       m.className = `escenario__mini ${s === 0 ? "escenario__mini--fin" : s <= 30 ? "escenario__mini--alerta" : ""} ${listo ? "escenario__mini--listo" : ""}`;
       m.innerHTML = `<small>${k.txt}</small><b>${s === 0 ? "¡Tiempo!" : mmss(s)}</b><span>${s === 0 ? k.fin : listo ? "Listos para empezar" : corto.corriendo ? k.ayuda : "En pausa"}</span>`;
     }
+    $("[data-reset]", el).textContent = `↺ ${CORTOS[corto.tipo].min}:00`;
     const b = $("[data-arranca] span", el);
     b.textContent = corto.corriendo ? "Pausar" : restante() === CORTOS[corto.tipo].min * 60 ? "Iniciar" : restante() === 0 ? "Iniciar" : "Reanudar";
     $("[data-arranca]", el).classList.toggle("btn--naranja", !corto.corriendo);
@@ -197,10 +216,23 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
     prepararCorto("exp"); aplicarModo(); pintarSelector(); pintarExpo(); $("[data-mini]", el).dataset.clave = ""; pintarMini();
   }
 
+  // Portada del Concurso de Proyectos: orden oficial de exposición
+  function pintarOrden() {
+    const b = $("[data-orden-board]", el); if (!b) return;
+    const sorteado = PRES?.config?.orden?.length;
+    const html = !lista.length ? `<p class="pres-orden__vacio">Aún no hay equipos registrados</p>`
+      : `<h3>${sorteado ? "Orden oficial de exposición" : "El orden de exposición se anunciará en breve"}</h3>
+        <ol class="${sorteado ? "" : "pres-orden--sin"}">${lista.map((e, i) => `<li style="--i:${i}"><b>${sorteado ? i + 1 : "?"}</b><span>${esc(sigla(e))}</span>${sorteado ? `<em>${horaTurno(i)}</em>` : ""}</li>`).join("")}</ol>`;
+    if (b.dataset.html !== html) { b.innerHTML = html; b.dataset.html = html; }
+    const pe = $("[data-pild-expo]", el);
+    if (pe) { const porEq = CORTOS.exp.min + CORTOS.preg.min + (def?.cambioMin ?? 1); pe.hidden = !lista.length; pe.innerHTML = `${I.reloj}${lista.length} equipos × ${porEq} min ≈ ${lista.length * porEq} min`; }
+  }
+
   async function leer() {
     try {
       const t0 = Date.now(); const r = await cargar(); const t1 = Date.now();
       T = r.tiempo || { fin: null }; lista = r.entregas || [];
+      if (esPres) { PRES = r.pres || PRES; lista = ordenarPorSorteo(lista, PRES?.config?.orden || []); }
       if (T.ahora) desfase = Date.parse(T.ahora) - (t0 + t1) / 2;
       if (!actual && lista.length) actual = lista[0].equipo_id;
       ultimoSeg = null; pintarLlenado(); pintarAvance(); pintarSelector(); pintarExpo();

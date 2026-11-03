@@ -6,6 +6,16 @@
 // El ID (A1, A2… / O1, O2…) y la severidad (P × I) se calculan, no se escriben.
 // =========================================================
 export const ENTREGABLES = {
+  "proyectos": {
+    // Gran final presencial (bases 3.4 y tabla 3.2): el equipo SUBE su PPT + PDF de respaldo antes del 23/11 23:59;
+    // en el auditorio se proyecta desde la laptop del proyector (PowerPoint) y los jurados la ven en sus laptops.
+    tipo: "presentacion",
+    titulo: "Presentación final · PPT + PDF de respaldo",
+    corto: "Presentación final", nombre: "presentación", plural: "presentaciones",
+    exposicion: "5 min de pitch + 3 min de preguntas",
+    cortos: { exp: 5, preg: 3 }, cambioMin: 1,
+    ayuda: "Suban su presentación final en PowerPoint (.pptx) y una copia en PDF de respaldo. Se proyectará desde la laptop del auditorio y los jurados la revisarán en sus laptops durante su pitch.",
+  },
   "iathon": {
     tipo: "mvp",
     titulo: "Ficha del MVP · prompt maestro y link",

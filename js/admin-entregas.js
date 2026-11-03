@@ -3,12 +3,13 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611032031";
-import { ENTREGABLES } from "./entregables.js?v=202611032031";
-import { porId } from "./concursos.js?v=202611032031";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611032031";
-import { abrirEscenario } from "./escenario.js?v=202611032031";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611032031";
+import { api } from "./api.js?v=202611032102";
+import { ENTREGABLES } from "./entregables.js?v=202611032102";
+import { porId } from "./concursos.js?v=202611032102";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611032102";
+import { abrirEscenario } from "./escenario.js?v=202611032102";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611032102";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611032102";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -16,7 +17,7 @@ const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-d
 export function crearEntregas(ctx) {
   const lista = () => (ctx.concursos || Object.keys(ENTREGABLES)).filter((k) => ENTREGABLES[k]);
   const esAdmin = !ctx.coordinador;
-  let concurso = lista()[0], E = null, coords = null, desfase = 0, temporizador = null, reloj = null;
+  let concurso = lista()[0], E = null, P = null, coords = null, desfase = 0, temporizador = null, reloj = null;
   const del = (id) => ctx.data().delegaciones.find((d) => d.id === id);
   const nomDel = (id) => { const d = del(id); return d ? (d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre) : "Delegación eliminada"; };
   const ahora = () => Date.now() + desfase;
@@ -24,6 +25,7 @@ export function crearEntregas(ctx) {
   async function cargar() {
     const t0 = Date.now();
     E = await api.adminEntregas(ctx.codigo(), concurso);
+    P = ENTREGABLES[concurso]?.tipo === "presentacion" ? await api.adminPresentaciones(ctx.codigo(), concurso) : null;
     desfase = Date.parse(E.tiempo.ahora) - (t0 + Date.now()) / 2;
   }
 
@@ -35,7 +37,7 @@ export function crearEntregas(ctx) {
     temporizador = setInterval(async () => {
       if (!document.body.contains(v) || !$("[data-entregas]", v)) { clearInterval(temporizador); clearInterval(reloj); return; }
       if (document.hidden || document.querySelector(".velo, .proy, .escenario")) return;
-      try { const antes = JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin; await cargar(); if (antes !== JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin) pintar(v); } catch { /* se reintenta */ }
+      try { const firma = () => JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin + JSON.stringify(P?.equipos || "") + JSON.stringify(P?.config ? { ...P.config, ahora: 0 } : ""); const antes = firma(); await cargar(); if (antes !== firma()) pintar(v); } catch { /* se reintenta */ }
     }, 4000);
     reloj = setInterval(() => pintarReloj(v), 1000);
   }
@@ -49,14 +51,21 @@ export function crearEntregas(ctx) {
     el.className = `en-crono ${s <= 0 ? "en-crono--fin" : s <= 300 ? "en-crono--alerta" : ""}`;
   }
 
+  // Pestañas de concurso (Proyectos, IATHON, Amateur I, Amateur II…)
+  const selectorConcurso = () => lista().length > 1
+    ? `<div class="pestanas pestanas--sub" role="tablist" aria-label="Concurso">${lista().map((k) => `<button class="pestana" role="tab" data-concurso="${k}" aria-selected="${k === concurso}">${esc(porId(k)?.nombre.replace("Concurso Nacional de ", "") || k)}<small>${esc(ENTREGABLES[k].corto)}</small></button>`).join("")}</div>`
+    : `<span class="chip chip--celeste">${esc(porId(concurso)?.nombre || concurso)}</span>`;
+  const conectarSelector = (v) => $$("[data-concurso]", v).forEach((b) => (b.onclick = () => { if (b.dataset.concurso === concurso) return; concurso = b.dataset.concurso; E = null; P = null; vista(v); }));
+
   function pintar(v) {
     const def = ENTREGABLES[concurso], c = porId(concurso), pl = def.plural, Pl = pl[0].toUpperCase() + pl.slice(1), nm = def.nombre;
+    if (def.tipo === "presentacion") return pintarPres(v);
     const eqs = E.equipos, enviados = eqs.filter((x) => x.entrega.estado === "enviado").length;
     const sinEquipo = ctx.data().delegaciones.filter((d) => !eqs.some((x) => x.entrega.delegacion_id === d.id));
     const ajuste = (did) => ctx.data().ajustes.find((a) => a.concurso_id === concurso && a.delegacion_id === did) || {};
     v.innerHTML = `
       <div class="cabeza" style="margin-top:0"><div><h1>Entregas en línea</h1><p>Cada equipo entra con su código por el botón <b>Equipo</b> de la portada, llena su ${esc(def.corto.toLowerCase())} y la envía. Tú y los jurados la ven en vivo y la puedes proyectar.</p></div>
-        ${lista().length > 1 ? `<select data-concurso aria-label="Concurso">${lista().map((k) => `<option value="${k}" ${k === concurso ? "selected" : ""}>${esc(porId(k)?.nombre || k)}</option>`).join("")}</select>` : `<span class="chip chip--celeste">${esc(c?.nombre || concurso)}</span>`}</div>
+        </div>${selectorConcurso()}
       <div class="en-top">
         <section class="tarjeta en-panel">
           <h3>Tiempo oficial de llenado</h3>
@@ -101,7 +110,7 @@ export function crearEntregas(ctx) {
     pintarReloj(v);
     if (esAdmin && !coords) cargarCoords(v);
     const accion = async (a, min) => { try { await api.adminTiempo(ctx.codigo(), concurso, a, min); await cargar(); pintar(v); aviso(a === "iniciar" ? "¡Tiempo iniciado!" : a === "extender" ? "+5 minutos" : a === "detener" ? "Tiempo terminado" : "Tiempo quitado"); } catch (e) { aviso(e.message, "error"); } };
-    $("[data-concurso]", v)?.addEventListener("change", async (e) => { concurso = e.target.value; E = null; vista(v); });
+    conectarSelector(v);
     $("[data-iniciar]", v).onclick = async () => {
       const min = Math.max(1, Math.min(240, Number($("[data-min]", v).value) || def.minutos));
       if (E.tiempo.fin && !(await confirmar("¿Reiniciar el tiempo?", `El cronómetro vuelve a empezar con ${min} minutos para todos los equipos.`, { boton: "Reiniciar" }))) return;
@@ -140,6 +149,79 @@ export function crearEntregas(ctx) {
       for (const d of sinEquipo) { try { await api.adminEquipo(ctx.codigo(), { concurso, delegacion: d.id }); n++; } catch (ex) { aviso(`${d.nombre}: ${ex.message}`, "error"); } }
       await cargar(); pintar(v); lanzarConfeti(); aviso(`${n} equipos creados con su código`);
     });
+  }
+
+  // ---------------- Concurso de Proyectos: presentaciones (PPT + PDF), sorteo y ZIP ----------------
+  function pintarPres(v) {
+    const def = ENTREGABLES[concurso], c = porId(concurso), cfg = P.config;
+    const presDe = (eid) => P.equipos.find((x) => x.id === eid)?.pres || null;
+    const eqs = ordenarPorSorteo(E.equipos, cfg.orden, (x) => x.entrega.delegacion_id);
+    const sinEquipo = ctx.data().delegaciones.filter((d) => !E.equipos.some((x) => x.entrega.delegacion_id === d.id));
+    const nPpt = eqs.filter((x) => presDe(x.id)?.ppt).length, nPdf = eqs.filter((x) => presDe(x.id)?.pdf).length;
+    const turno = (did) => cfg.orden.indexOf(did);
+    v.innerHTML = `
+      <div class="cabeza" style="margin-top:0"><div><h1>Entregas en línea</h1><p><b>${esc(c?.nombre || "")}</b>: cada equipo entra con su código por el botón <b>Equipo</b> y sube su <b>PowerPoint</b> y un <b>PDF de respaldo</b>. Los jurados del concurso los ven en sus laptops; tú los proyectas y los descargas todos en un ZIP numerado por el sorteo.</p></div></div>
+      ${selectorConcurso()}
+      <div class="en-top">
+        ${panelPlazo(cfg)}
+        <section class="tarjeta en-panel">
+          <h3>Avance y sorteo</h3>
+          <div class="kpis" style="margin:0"><div class="kpi"><b>${nPpt}/${eqs.length}</b><span>PowerPoint subidos</span></div><div class="kpi"><b>${nPdf}/${eqs.length}</b><span>PDF de respaldo</span></div>
+            <div class="kpi"><b>${cfg.orden.length ? "✓" : "—"}</b><span>${cfg.orden.length ? `Sorteo ${fechaLima(cfg.sorteado)}` : "Orden sin sortear"}</span></div></div>
+          <div class="en-proyectar">
+            <div class="en-opcion"><button class="btn btn--naranja" data-sorteo ${eqs.length > 1 ? "" : "disabled"}>${I.girar}${cfg.orden.length ? "Ver / repetir sorteo" : "Sorteo del orden"}</button>
+              <p><b>Un día antes del concurso.</b> Sortea el orden de exposición con animación, guárdalo y descarga la <b>imagen para WhatsApp</b>.</p></div>
+            <div class="en-opcion"><button class="btn btn--naranja" data-escenario>${I.pizarra}Proyectar pantalla del concurso</button>
+              <p><b>En la laptop del proyector.</b> Portada con el orden, «Expone ahora / Sigue» y cronómetro de <b>5 min de pitch + 3 min de preguntas</b> que empieza al pulsar <b>Iniciar</b>.</p></div>
+          </div>
+          <div class="en-acc">
+            <button class="btn btn--mini" data-zip ${nPpt + nPdf ? "" : "disabled"}>${I.descargar}Descargar todas (ZIP)</button>
+            ${cfg.orden.length ? `<button class="btn btn--mini" data-img-orden>${I.descargar}Imagen del orden (WhatsApp)</button>` : ""}
+            <button class="btn btn--mini" data-imprimir ${eqs.length ? "" : "disabled"}>${I.descargar}Reportes de calificación / PDF</button>
+          </div>
+        </section>
+      </div>
+      <div class="cabeza"><div><h1 style="font-size:1.4rem">Equipos, códigos y archivos</h1><p>Un equipo por delegación (bases: de 2 a 5 integrantes). ${cfg.orden.length ? "Ordenados según el sorteo." : "Cuando sortees, se ordenan por turno."}</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${sinEquipo.length ? `<button class="btn" data-todos>${I.mas}Crear equipos para las ${sinEquipo.length} delegaciones sin equipo</button>` : ""}<button class="btn btn--naranja" data-nuevo>${I.mas}Nuevo equipo</button></div></div>
+      <div class="tabla-envoltura" data-entregas><table class="tabla"><thead><tr><th class="num">Turno</th><th>Delegación</th><th>Código</th><th>Archivos</th><th>Estado</th><th></th></tr></thead><tbody>
+        ${eqs.map((x) => { const e = x.entrega, pr = presDe(x.id), [t, cl] = estadoPres(pr), tu = turno(e.delegacion_id);
+          return `<tr><td class="num">${tu >= 0 ? `<b class="pres-turno">${tu + 1}</b><br><small class="tenue">${horaTurno(tu)}</small>` : '<span class="tenue">—</span>'}</td>
+            <td><b>${esc(nomDel(e.delegacion_id))}</b>${e.datos?.proyecto ? `<br><small>${I.copa} ${esc(e.datos.proyecto)}</small>` : ""}${e.datos?.lider ? `<br><small class="tenue">Líder: ${esc(e.datos.lider)}</small>` : ""}</td>
+            <td><code class="en-codigo">${esc(x.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar="${esc(x.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
+            <td>${celdaArchivos(pr, cfg.puede)}</td>
+            <td><span class="chip ${cl}">${t}</span></td>
+            <td><button class="btn btn--mini btn--icono" data-editar="${x.id}" title="Editar equipo" aria-label="Editar equipo">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="6"><div class="vacio"><b>Aún no hay equipos</b>Usa «Crear equipos para las delegaciones» o «Nuevo equipo».</div></td></tr>`}
+      </tbody></table></div>
+      ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Accesos limitados</h1><p>Coordinadores de sala y líder de logística con su propio código (entran por el botón <b>Admin</b>).</p></div>
+        <button class="btn btn--naranja" data-coord-nuevo>${I.mas}Nuevo acceso</button></div><div data-coords>${pintarCoords()}</div>` : ""}`;
+    if (esAdmin && !coords) cargarCoords(v);
+    conectarSelector(v); enlazarCoords(v);
+    conectarPlazo(v, { codigo: ctx.codigo(), concurso, cfg, recargar: async () => { await cargar(); pintar(v); } });
+    const nombreE = (e) => nomDel(e.delegacion_id);
+    const abrir = (eq, tipo) => abrirArchivo(ctx.codigo(), eq, tipo);
+    $$("[data-pres-ver]", v).forEach((b) => (b.onclick = () => abrir(b.dataset.eq, b.dataset.presVer)));
+    $$("[data-copiar]", v).forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copiar); aviso("Código copiado"); } catch { aviso(`Código: ${b.dataset.copiar}`); } }));
+    $("[data-nuevo]", v).onclick = () => formEquipo(null, v);
+    $$("[data-editar]", v).forEach((b) => (b.onclick = () => formEquipo(E.equipos.find((x) => x.id === b.dataset.editar), v)));
+    $("[data-todos]", v)?.addEventListener("click", async (ev) => {
+      ev.currentTarget.disabled = true; let n = 0;
+      for (const d of sinEquipo) { try { await api.adminEquipo(ctx.codigo(), { concurso, delegacion: d.id }); n++; } catch (ex) { aviso(`${d.nombre}: ${ex.message}`, "error"); } }
+      await cargar(); pintar(v); lanzarConfeti(); aviso(`${n} equipos creados con su código`);
+    });
+    const delegs = () => E.equipos.map((x) => del(x.entrega.delegacion_id)).filter(Boolean);
+    $("[data-sorteo]", v).onclick = () => abrirSorteo({ delegaciones: delegs(), previo: cfg.orden.filter((id) => delegs().some((d) => d.id === id)), concurso: c?.nombre,
+      guardar: async (orden) => { await api.adminSorteo(ctx.codigo(), concurso, orden); await cargar(); pintar(v); } });
+    $("[data-img-orden]", v)?.addEventListener("click", () => descargarImagen(cfg.orden.map((id, i) => ({ ...(del(id) || { nombre: "—" }), hora: horaTurno(i) })), { concurso: c?.nombre }));
+    $("[data-zip]", v).onclick = () => descargarZip(eqs.map((x, i) => ({ pos: turno(x.entrega.delegacion_id) >= 0 ? turno(x.entrega.delegacion_id) + 1 : i + 1, delegacion: del(x.entrega.delegacion_id), pres: presDe(x.id) })),
+      (eq, tipo) => api.presUrl(ctx.codigo(), eq, tipo, true));
+    const notas = async () => { try { await ctx.recargar(true); } catch { /* usa lo cargado */ } return ctx.data(); };
+    $("[data-imprimir]", v).onclick = async () => { const d = await notas(); imprimir(concurso, eqs.map((x) => x.entrega), nombreE, { notas: d }); };
+    // Pantalla del concurso: el orden y los archivos se leen cada pocos segundos
+    const cargarVisor = async () => { const [r, pp] = await Promise.all([api.adminEntregas(ctx.codigo(), concurso), api.adminPresentaciones(ctx.codigo(), concurso)]);
+      return { tiempo: r.tiempo, entregas: r.equipos.map((x) => x.entrega), pres: pp }; };
+    $("[data-escenario]", v).onclick = () => abrirEscenario({ concurso, cargar: cargarVisor, nombre: nombreE, accion: async () => {},
+      pres: { abrir, delegacion: (did) => del(did) },
+      alCerrar: async () => { try { await cargar(); pintar(v); } catch { /* sigue */ } } });
   }
 
   // ---------------- Borrar la respuesta de un equipo (para pruebas) ----------------
