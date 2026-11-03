@@ -5,10 +5,11 @@
 //    de 2 min (exposición o preguntas) que SOLO empieza cuando se pulsa Iniciar.
 // Los botones aparecen al mover el mouse (solo los ve quien maneja la laptop).
 // =========================================================
-import { ENTREGABLES } from "./entregables.js?v=202611031922";
-import { porId } from "./concursos.js?v=202611031922";
-import { contenidoEntrega, chipsEntrega, esActa } from "./entrega-visor.js?v=202611031922";
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611031922";
+import { ENTREGABLES } from "./entregables.js?v=202611031946";
+import { formaDe } from "./formas.js?v=202611031946";
+import { porId } from "./concursos.js?v=202611031946";
+import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611031946";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611031946";
 
 const hora = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -56,7 +57,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
         <h1 class="escena__titulo">Concurso ${esc(c?.nombre || "")}</h1>
         <p class="escena__sub">${esc(def?.titulo || c?.apodo || "")}</p>
         <div class="pildoras">
-          <span class="pildora pildora--lila">${I.reloj}${def?.minutos || 35} min de llenado</span>
+          <span class="pildora pildora--lila">${I.reloj}${def?.minutos || 35} min de ${def?.tipo === "mvp" ? "desarrollo" : "llenado"}</span>
           ${def?.exposicion ? `<span class="pildora pildora--celeste">${I.personas}${esc(def.exposicion)}</span>` : ""}
           <span class="pildora pildora--oro">${I.copa}Hasta ${c?.maxCopa ?? 60} pts para la Copa</span>
         </div>
@@ -115,7 +116,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
       r.innerHTML = `<small>Prepárense</small><b>${def?.minutos || 35}:00</b><span>El tiempo de llenado empezará en un momento</span>`;
     } else if (s > 0) {
       r.className = `escenario__reloj ${s <= 60 ? "escenario__reloj--fin" : s <= 300 ? "escenario__reloj--alerta" : ""}`;
-      r.innerHTML = `<small>Tiempo para llenar ${def?.tipo === "acta" ? "el acta" : "la matriz"}</small><b>${mmss(s)}</b><span>Termina a las ${hora(fin)}</span>`;
+      r.innerHTML = `<small>Tiempo para ${def?.tipo === "mvp" ? "construir el MVP" : def?.tipo === "acta" ? "llenar el acta" : "llenar la matriz"}</small><b>${mmss(s)}</b><span>Termina a las ${hora(fin)}</span>`;
     } else {
       r.className = "escenario__reloj escenario__reloj--fin";
       r.innerHTML = `<small>Se acabó el tiempo</small><b>¡Tiempo!</b><span>Envíen su ${nm} ahora: después del minuto de gracia queda como entrega tardía</span>`;
@@ -156,9 +157,10 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
     const clave = JSON.stringify([actual, orden, e?.actualizado, e?.estado]);
     if (clave === claveCuerpo) return; claveCuerpo = clave;
     $("[data-expo-nombre]", el).textContent = e ? nombre(e) : "—";
-    const proyecto = esActa(concurso) && e?.datos?.general?.nombre ? `Proyecto: ${e.datos.general.nombre}` : "";
+    const F = formaDe(concurso), proyecto = F && F.proyecto(e?.datos) ? `${F.etiquetaProyecto}: ${F.proyecto(e.datos)}` : "";
     $("[data-expo-sub]", el).innerHTML = e ? `${esc(def?.titulo || "")}${proyecto ? ` · <b>${esc(proyecto)}</b>` : ""}${e.estado === "enviado" ? "" : ` · <span class="chip chip--ambar">Aún no la envían</span>`}` : "";
-    $("[data-expo-cuerpo]", el).innerHTML = e ? `<div class="reparto" style="margin:0 0 10px">${chipsEntrega(concurso, e.datos)}</div>${contenidoEntrega(concurso, e.datos, { orden })}` : `<div class="vacio"><b>Aún no hay equipos</b></div>`;
+    $("[data-expo-cuerpo]", el).innerHTML = e ? `<div class="reparto" style="margin:0 0 10px">${chipsEntrega(concurso, e.datos)}</div>${contenidoEntrega(concurso, e.datos, { orden, embed: true })}` : `<div class="vacio"><b>Aún no hay equipos</b></div>`;
+    if (e) conectarEntrega(concurso, $("[data-expo-cuerpo]", el));
     const o = $("[data-orden]", el); if (o) o.textContent = orden === "id" ? "Orden: ID" : "Orden: severidad ▼";
   }
   function pintarMini() {

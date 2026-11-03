@@ -3,12 +3,12 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031922";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611031922";
-import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa } from "./acta.js?v=202611031922";
-import { porId } from "./concursos.js?v=202611031922";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611031922";
-import { salir } from "./app.js?v=202611031922";
+import { api, ES_DEMO } from "./api.js?v=202611031946";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611031946";
+import { FORMAS } from "./formas.js?v=202611031946";
+import { porId } from "./concursos.js?v=202611031946";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611031946";
+import { salir } from "./app.js?v=202611031946";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
@@ -30,7 +30,7 @@ export async function vistaEquipo(app, codigo) {
     // Si en este navegador quedó algo más nuevo sin guardar (se cayó internet), se recupera
     const usarLocal = local && data.entrega.estado !== "enviado" && (!data.entrega.actualizado || local.t > Date.parse(data.entrega.actualizado));
     datos = structuredClone(usarLocal ? local.datos : servidor);
-    if (def?.tipo === "acta") datos = normalizarActa(datos);
+    if (FORMAS[def?.tipo]) datos = FORMAS[def.tipo].normalizar(datos);
     else { datos.filas ||= []; while (datos.filas.length < (def?.filasIniciales || 8)) datos.filas.push(filaVacia()); }
     if (usarLocal) { pendiente = true; setTimeout(guardar, 300); }
   }
@@ -59,18 +59,19 @@ export async function vistaEquipo(app, codigo) {
       else setTimeout(guardar, 4000);
     } finally { guardando = false; if (pendiente) { clearTimeout(temporizador); temporizador = setTimeout(guardar, 1500); } }
   }
-  const esActa = () => def()?.tipo === "acta";
+  const F = () => FORMAS[def()?.tipo];
+  const esActa = () => !!F(); // entregable tipo formulario (acta, ficha MVP)
   const nom = () => def()?.nombre || "entregable"; // «matriz», «acta»
   const Nom = () => nom()[0].toUpperCase() + nom().slice(1);
-  const limpio = () => (esActa() ? limpiarActa(datos) : { lider: datos.lider || "", filas: datos.filas.map((f) => ({ ...filaVacia(), ...f })) });
+  const limpio = () => (esActa() ? F().limpiar(datos) : { lider: datos.lider || "", filas: datos.filas.map((f) => ({ ...filaVacia(), ...f })) });
   function pintarEstado(t, tipo = "") { const el = $("[data-guardado]", app); if (el) { el.textContent = t; el.className = `eq-guardado eq-guardado--${tipo}`; } estadoGuardado = t; }
 
   async function refrescar() {
     try { const t0 = Date.now(); const d = await api.equipoDatos(codigo); desfase = Date.parse(d.tiempo.ahora) - (t0 + Date.now()) / 2; const cambioEstado = d.entrega.estado !== data.entrega.estado;
       const vaciada = !Object.keys(d.entrega.datos || {}).length && d.entrega.actualizado && d.entrega.actualizado !== data.entrega.actualizado && !pendiente && !guardando;
-      if (vaciada) { try { localStorage.removeItem(CLAVE); } catch { /* sin almacenamiento */ } data.entrega.actualizado = d.entrega.actualizado; datos = structuredClone(d.entrega.datos); if (esActa()) datos = normalizarActa(datos); else { datos.filas = []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } }
+      if (vaciada) { try { localStorage.removeItem(CLAVE); } catch { /* sin almacenamiento */ } data.entrega.actualizado = d.entrega.actualizado; datos = structuredClone(d.entrega.datos); if (esActa()) datos = F().normalizar(datos); else { datos.filas = []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } }
       data.tiempo = d.tiempo; data.entrega.estado = d.entrega.estado; data.entrega.enviado = d.entrega.enviado; data.entrega.tarde = d.entrega.tarde;
-      if (cambioEstado || vaciada) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); if (esActa()) datos = normalizarActa(datos); else { datos.filas ||= []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } } pintar(); }
+      if (cambioEstado || vaciada) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); if (esActa()) datos = F().normalizar(datos); else { datos.filas ||= []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } } pintar(); }
     } catch { /* se reintenta */ }
   }
 
@@ -95,10 +96,10 @@ export async function vistaEquipo(app, codigo) {
         <label class="campo"><span>Delegación</span><input value="${esc(data.delegacion?.nombre || "")}" disabled></label>
         <label class="campo"><span>Líder de equipo</span><input data-lider maxlength="120" value="${esc(datos.lider || "")}" placeholder="Nombre y apellido" ${bl ? "disabled" : ""}></label>
       </section>
-      ${esActa() ? `<details class="eq-guia" open><summary>${I.info} Guía rápida (cómo llenar el acta)</summary>
+      ${esActa() ? `<details class="eq-guia" open><summary>${I.info} Guía rápida (cómo llenar ${d?.tipo === "mvp" ? "la ficha" : "el acta"})</summary>
         <p>${esc(d?.ayuda || "")}</p>
-        <p>Cada sección muestra si está <b>Completa</b>, <b>Incompleta</b> o <b>Sin llenar</b>. Usen <b>Agregar</b> para sumar filas en las tablas.</p>
-      </details>${editorActa(datos, bl)}` : `<details class="eq-guia"><summary>${I.info} Guía rápida (cómo llenar la matriz)</summary>
+        <p>${F().guia}</p>
+      </details>${F().editor(datos, bl)}` : `<details class="eq-guia"><summary>${I.info} Guía rápida (cómo llenar la matriz)</summary>
         <p>${esc(d?.ayuda || "")}</p>
         <p><b>Estrategias</b> · Amenazas: ${ESTRATEGIAS.Amenaza.join(", ")} · Oportunidades: ${ESTRATEGIAS.Oportunidad.join(", ")}.</p>
         <p><b>Niveles de severidad:</b> ${NIVELES.map(([n, a, b, cl]) => `<span class="sev ${cl}">${n} ${a}–${b}</span>`).join(" ")}</p>
@@ -114,7 +115,7 @@ export async function vistaEquipo(app, codigo) {
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
     $("[data-salir]", app).onclick = async () => { if (pendiente) await guardar(); limpiarTimers(); salir(); };
     const lid = $("[data-lider]", app); if (lid) lid.oninput = () => { datos.lider = lid.value; marcarCambio(); };
-    if (esActa()) enlazarActa($(".acta-ed", app), datos, { bl, cambio: () => { marcarCambio(); resumen(); }, repintar: (sel) => { pintar(); $(sel, app)?.scrollIntoView({ block: "center" }); } });
+    if (esActa()) F().enlazar($(F().raiz, app), datos, { bl, cambio: () => { marcarCambio(); resumen(); }, repintar: (sel) => { pintar(); $(sel, app)?.scrollIntoView({ block: "center" }); } });
     $$("[data-f]", app).forEach((el) => {
       const ev = el.tagName === "SELECT" ? "onchange" : "oninput";
       el[ev] = () => {
@@ -167,8 +168,8 @@ export async function vistaEquipo(app, codigo) {
   }
   function resumen() {
     if (esActa()) {
-      const r = resumenActa(datos), el = $("[data-resumen]", app);
-      if (el) el.innerHTML = `${r.completas} de ${r.total} secciones completas${r.firmas < 2 ? ` · <b style="color:#FFD98A">faltan ${2 - r.firmas} firma${2 - r.firmas === 1 ? "" : "s"}</b>` : " · firmas listas"}`;
+      const r = F().resumen(datos), el = $("[data-resumen]", app);
+      if (el) el.innerHTML = F().textoResumen(r);
       return;
     }
     const usadas = datos.filas.filter(filaUsada), inc = usadas.filter((f) => faltantes(f).length).length;
@@ -188,10 +189,10 @@ export async function vistaEquipo(app, codigo) {
   async function enviar() {
     if (pendiente && !bloqueado()) await guardar();
     if (esActa()) {
-      const r = resumenActa(datos);
-      if (r.vacia) return aviso("Llenen el acta antes de enviarla", "error");
+      const r = F().resumen(datos);
+      if (r.vacia) return aviso(`Llenen ${nom() === "acta" ? "el acta" : "la " + nom()} antes de enviarla`, "error");
       const extra = r.faltan.length ? `<br><br>⚠️ Aún falta completar: <b>${r.faltan.map(esc).join(" · ")}</b>.` : "";
-      if (!(await confirmar("¿Enviar el acta al jurado?", `Después de enviarla ya no podrán cambiarla.${extra}`, { boton: "Enviar acta" }))) return;
+      if (!(await confirmar(`¿Enviar ${nom() === "acta" ? "el acta" : "la " + nom()} al jurado?`, `Después de enviarla ya no podrán cambiarla.${extra}`, { boton: `Enviar ${nom()}` }))) return;
       return mandar();
     }
     const usadas = datos.filas.filter(filaUsada);

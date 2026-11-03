@@ -5,12 +5,12 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031922";
-import { crearEntregas } from "./admin-entregas.js?v=202611031922";
-import { crearLogistica } from "./admin-logistica.js?v=202611031922";
-import { ENTREGABLES } from "./entregables.js?v=202611031922";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611031922";
-import { salir } from "./app.js?v=202611031922";
+import { api, ES_DEMO } from "./api.js?v=202611031946";
+import { crearEntregas } from "./admin-entregas.js?v=202611031946";
+import { crearLogistica } from "./admin-logistica.js?v=202611031946";
+import { ENTREGABLES } from "./entregables.js?v=202611031946";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611031946";
+import { salir } from "./app.js?v=202611031946";
 
 export async function vistaCoordinador(app, codigo) {
   let data = null;

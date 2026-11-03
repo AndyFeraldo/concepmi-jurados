@@ -1017,3 +1017,27 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .conoc-estado > .chip{ justify-self:start; }
 .conoc-hist summary{ cursor:pointer; font-weight:700; font-size:.85rem; color:var(--celeste); }
 .conoc-hist ol{ margin:8px 0 0; padding-left:20px; display:grid; gap:8px; font-size:.85rem; }
+
+/* ---------- IATHON · ficha del MVP ---------- */
+.mvp-ed{ display:grid; gap:14px; }
+.mvp-link{ display:flex; gap:8px; align-items:center; }
+.mvp-link input{ flex:1; }
+.mvp-link .btn.deshabilitado{ opacity:.45; pointer-events:none; }
+.mvp-aviso{ display:block; min-height:1em; font-size:.78rem; margin-top:2px; }
+.mvp-v{ display:grid; gap:12px; }
+.mvp-v__link{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding:14px 18px; border-radius:18px; border:1px solid rgba(31,203,234,.5);
+  background:linear-gradient(120deg, rgba(31,203,234,.14), rgba(110,43,230,.24)); }
+.mvp-v__qr{ background:#fff; border-radius:12px; padding:6px; line-height:0; }
+.mvp-v__qr:empty{ display:none; }
+.mvp-v__qr svg{ width:clamp(96px, 9vw, 150px); height:auto; }
+.mvp-v__dato{ display:grid; gap:4px; flex:1; min-width:240px; }
+.mvp-v__dato small{ font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; color:var(--celeste); font-weight:700; }
+.mvp-v__dato > b{ font-family:var(--neon); font-weight:400; font-size:clamp(1.3rem, 2.2vw, 2rem); line-height:1.1; }
+.mvp-v__url{ color:#8FE6F6; word-break:break-all; font-weight:600; }
+.mvp-v__acceso{ color:var(--niebla); font-size:.9rem; }
+.mvp-v__acc{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.mvp-v__marco{ border-radius:16px; overflow:hidden; border:1px solid var(--borde); background:#fff; }
+.mvp-v__marco iframe{ display:block; width:100%; height:min(72vh, 820px); border:0; background:#fff; }
+.mvp-v__nota{ margin:0; padding:8px 12px; background:rgba(14,8,56,.92); color:var(--niebla); font-size:.82rem; }
+.mvp-v__prompt{ white-space:pre-wrap; font-family:inherit; font-size:.85em; margin:0; max-height:280px; overflow:auto; padding:8px 10px; border-radius:10px; background:rgba(6,3,30,.5); border:1px solid var(--borde); }
+.mvp-v__ia{ margin:0 0 6px; color:var(--niebla); }

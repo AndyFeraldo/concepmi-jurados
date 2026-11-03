@@ -6,6 +6,14 @@
 // El ID (A1, A2… / O1, O2…) y la severidad (P × I) se calculan, no se escriben.
 // =========================================================
 export const ENTREGABLES = {
+  "iathon": {
+    tipo: "mvp",
+    titulo: "Ficha del MVP · prompt maestro y link",
+    corto: "Ficha del MVP", nombre: "ficha", plural: "fichas",
+    minutos: 60,
+    exposicion: "2 min de pitch + 2 min de preguntas",
+    ayuda: "Analicen el caso, elijan UNA solución por consenso, pidan a la IA de su preferencia un PROMPT MAESTRO y construyan su MVP con la herramienta que quieran. Aquí registran la solución, el prompt y el link público del MVP, que se proyectará en su exposición.",
+  },
   "amateur-1": {
     tipo: "acta",
     titulo: "Acta de constitución del proyecto",

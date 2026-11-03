@@ -3,11 +3,11 @@
 // pantalla completa para el proyector y versión imprimible.
 // Lo usan el admin (pestaña Entregas) y los jurados.
 // =========================================================
-import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611031922";
-import { $, $$, esc, I, IMG } from "./ui.js?v=202611031922";
-import { porId } from "./concursos.js?v=202611031922";
-import { resultados } from "./calculo.js?v=202611031922";
-import { vistaActa, chipsActa, resumenActa } from "./acta.js?v=202611031922";
+import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611031946";
+import { $, $$, esc, I, IMG } from "./ui.js?v=202611031946";
+import { porId } from "./concursos.js?v=202611031946";
+import { resultados } from "./calculo.js?v=202611031946";
+import { formaDe } from "./formas.js?v=202611031946";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "");
 export const tieneDatos = (e) => Object.keys(e?.datos || {}).length > 0;
@@ -43,10 +43,11 @@ export function resumenChips(datos) {
 }
 
 // ---- Funciones comunes a todos los tipos de entregable (matriz, acta) ----
-export const esActa = (concurso) => ENTREGABLES[concurso]?.tipo === "acta";
+export const esActa = (concurso) => !!formaDe(concurso); // formulario por secciones (acta, ficha MVP)
 export const leyendaSev = () => `<p class="visor__ley">${NIVELES.map(([n, a, b, c]) => `<span class="sev ${c}">${n} ${a}–${b}</span>`).join(" ")}</p>`;
-export const contenidoEntrega = (concurso, datos, { orden = "id" } = {}) => (esActa(concurso) ? vistaActa(datos) : tablaMatriz(datos, { orden }) + leyendaSev());
-export const chipsEntrega = (concurso, datos) => (esActa(concurso) ? chipsActa(datos) : resumenChips(datos));
+export const contenidoEntrega = (concurso, datos, { orden = "id", embed = false } = {}) => (esActa(concurso) ? formaDe(concurso).vista(datos, { embed }) : tablaMatriz(datos, { orden }) + leyendaSev());
+export const chipsEntrega = (concurso, datos) => (esActa(concurso) ? formaDe(concurso).chips(datos) : resumenChips(datos));
+export const conectarEntrega = (concurso, raiz) => formaDe(concurso)?.conectar(raiz);
 
 // Pantalla completa con selector de equipos. cargar() → { tiempo, entregas: [...] }; nombre(e) → texto de la delegación
 // notas() (opcional, solo admin) → data con calificaciones y jurados, para incluir los puntajes al imprimir
@@ -66,7 +67,7 @@ export function abrirVisor({ concurso, cargar, nombre, inicial = null, cadaMs = 
     el.innerHTML = `
       <header class="proy__cab"><img class="logo" src="${IMG.logo}" alt="CONCEPMI">
         <div><div class="proy__tit">${esc(def?.titulo || "Entregable")}${e ? ` · ${esc(nombre(e))}` : ""}</div>
-          ${e && esActa(concurso) && e.datos?.general?.nombre ? `<div class="proy__sub">Proyecto: <b>${esc(e.datos.general.nombre)}</b></div>` : ""}
+          ${e && esActa(concurso) && formaDe(concurso).proyecto(e.datos) ? `<div class="proy__sub">${formaDe(concurso).etiquetaProyecto}: <b>${esc(formaDe(concurso).proyecto(e.datos))}</b></div>` : ""}
           <div class="proy__sub">${e ? `${(e.datos?.lider || e.lider) ? `Líder: ${esc(e.datos?.lider || e.lider)} · ` : ""}<span class="chip ${cls}">${txt}</span>${e.enviado ? ` a las ${hora(e.enviado)}` : e.actualizado ? ` · guardado ${hora(e.actualizado)}` : ""}` : "Sin equipos"}</div></div>
         <div class="der">
           <select class="visor-sel" data-sel aria-label="Equipo">${lista.map((x) => `<option value="${x.equipo_id}" ${x.equipo_id === e?.equipo_id ? "selected" : ""}>${esc(nombre(x))} · ${estadoEntrega(x)[0]}</option>`).join("")}</select>
@@ -74,8 +75,9 @@ export function abrirVisor({ concurso, cargar, nombre, inicial = null, cadaMs = 
           ${esActa(concurso) ? "" : `<div class="segm" role="group" aria-label="Orden de la matriz"><span>Orden</span><button class="${orden === "id" ? "activo" : ""}" data-orden="id" aria-pressed="${orden === "id"}">ID</button><button class="${orden === "sev" ? "activo" : ""}" data-orden="sev" aria-pressed="${orden === "sev"}">Severidad ▼</button></div>`}
           <button class="btn btn--mini" data-imp>${I.descargar}<span>Imprimir / PDF</span></button>
           <button class="btn btn--mini" data-cerrar>${I.cerrar}<span>Cerrar</span></button></div></header>
-      <main class="visor__cuerpo">${e ? `<div class="reparto" style="margin:0 0 10px">${chipsEntrega(concurso, e.datos)}${orden === "sev" && !esActa(concurso) ? `<span class="chip chip--celeste">Ordenado por severidad: de mayor a menor</span>` : ""}</div>${contenidoEntrega(concurso, e.datos, { orden })}` : `<div class="vacio"><b>Aún no hay equipos en este concurso</b></div>`}</main>`;
+      <main class="visor__cuerpo">${e ? `<div class="reparto" style="margin:0 0 10px">${chipsEntrega(concurso, e.datos)}${orden === "sev" && !esActa(concurso) ? `<span class="chip chip--celeste">Ordenado por severidad: de mayor a menor</span>` : ""}</div>${contenidoEntrega(concurso, e.datos, { orden, embed: true })}` : `<div class="vacio"><b>Aún no hay equipos en este concurso</b></div>`}</main>`;
     $("[data-cerrar]", el).onclick = cerrar;
+    if (e) conectarEntrega(concurso, el);
     $("[data-sel]", el)?.addEventListener("change", (ev) => { actual = ev.target.value; pintar(); });
     $("[data-ant]", el).onclick = () => mover(-1); $("[data-sig]", el).onclick = () => mover(1);
     $$("[data-orden]", el).forEach((b) => (b.onclick = () => { orden = b.dataset.orden; pintar(); }));
@@ -122,7 +124,7 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
   }
 
   function hoja(e) {
-    const acta = esActa(concurso), r = resumenMatriz(e.datos), ra = acta ? resumenActa(e.datos) : null, [est] = estadoEntrega(e);
+    const acta = esActa(concurso), F = formaDe(concurso), r = resumenMatriz(e.datos), ra = acta ? F.resumen(e.datos) : null, [est] = estadoEntrega(e);
     const fila = notas ? res.find((f) => f.delegacion.id === e.delegacion_id) : null;
     const total = sp ? sp.criterios.reduce((s, k) => s + k.max, 0) : 0;
     return `<section class="hoja">
@@ -132,10 +134,10 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
         <div class="dato"><span>Líder</span><b>${esc(e.datos?.lider || e.lider || "—")}</b></div>
         <div class="dato"><span>Hora de envío</span><b>${e.enviado ? fecha(e.enviado) : "No enviada"}</b></div>
         <div class="dato ${e.tarde ? "mal" : e.estado === "enviado" ? "bien" : ""}"><span>Estado</span><b>${e.estado === "enviado" ? (e.tarde ? "Entrega tardía" : "A tiempo") : esc(est)}</b></div>
-        ${acta ? `<div class="dato"><span>Secciones</span><b>${ra.completas}/${ra.total} completas · firmas ${ra.firmas}/2</b></div>` : `<div class="dato"><span>Riesgos</span><b>${r.total} · ${r.amenazas} A / ${r.oportunidades} O</b></div>`}
+        ${acta ? `<div class="dato"><span>Secciones</span><b>${F.resumenPdf(ra)}</b></div>` : `<div class="dato"><span>Riesgos</span><b>${r.total} · ${r.amenazas} A / ${r.oportunidades} O</b></div>`}
         ${fila ? `<div class="dato final"><span>Puntaje final</span><b>${fila.rubrica} <small>/ ${total}</small></b>${fila.puesto ? `<em>${fila.puesto}.° lugar${fila.empate ? " (empate)" : ""}</em>` : ""}</div>` : ""}
       </div>
-      ${acta ? `<h2>Acta de constitución${ra.proyecto ? ` · <small>${esc(ra.proyecto)}</small>` : ""}</h2>${vistaActa(e.datos)}` : `<h2>Matriz de riesgos y oportunidades${orden === "sev" ? " <small>(ordenada por severidad)</small>" : ""}</h2>
+      ${acta ? `<h2>${esc(def?.titulo || "")}${ra.proyecto ? ` · <small>${esc(ra.proyecto)}</small>` : ""}</h2>${F.vista(e.datos)}` : `<h2>Matriz de riesgos y oportunidades${orden === "sev" ? " <small>(ordenada por severidad)</small>" : ""}</h2>
       <table class="mat"><thead><tr><th>ID</th><th>Riesgo (causa, evento y efecto)</th><th>Tipo</th><th class="n">P</th><th class="n">I</th><th class="n">P×I</th><th>Estrategia</th><th>Plan / acción concreta</th><th>Dueño</th><th>Disparador</th></tr></thead>
       <tbody>${ordenar(r.filas, orden).map((f) => { const n = nivel(f.sev); return `<tr><td><b>${esc(f.id)}</b></td><td>${esc(f.riesgo)}</td><td>${esc(f.tipo)}</td><td class="n">${esc(f.p)}</td><td class="n">${esc(f.i)}</td>
         <td class="n">${f.sev == null ? "—" : `<span class="sev ${n?.[3] || ""}">${f.sev}</span>`}</td><td>${esc(f.estrategia)}</td><td>${esc(f.plan)}</td><td>${esc(f.dueno)}</td><td>${esc(f.trigger)}</td></tr>`; }).join("") || `<tr><td colspan="10">Sin riesgos registrados</td></tr>`}</tbody></table>
@@ -171,6 +173,9 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
     .acta-v dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:3px 10px}.acta-v dt{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:#6b6585;font-weight:600}.acta-v dd{margin:0}
     .acta-v table td,.acta-v table th{padding:2px 4px}.acta-v__tot td{font-weight:700;background:#f6f4fc}
     .acta-v__firmas{display:flex;gap:30px;justify-content:center}.acta-v__firmas figure{margin:0;text-align:center}.acta-v__firmas img{height:56px;border-bottom:1px solid #1d1b29}
+    .mvp-v{display:grid;gap:6px}.mvp-v__link{display:flex;gap:12px;align-items:center;border:1px solid #ddd8ee;border-radius:7px;padding:6px 10px}.mvp-v__qr svg{width:84px;height:84px}
+    .mvp-v__dato{display:grid;gap:2px}.mvp-v__dato small{font-size:8px;text-transform:uppercase;color:#6b6585;font-weight:600}.mvp-v__dato b{font-size:13px}.mvp-v__url{color:#3A1AA8;word-break:break-all;font-weight:600}
+    .mvp-v__acc,.mvp-v__marco{display:none}.mvp-v__prompt{white-space:pre-wrap;font-family:inherit;font-size:8.5px;margin:0;background:#faf9fd;padding:4px 6px;border-radius:4px}.mvp-v__ia{margin:0 0 3px}
     .acta-v__firmas figcaption{display:grid;font-size:9px}.acta-v__sinfirma{height:56px;width:170px;border-bottom:1px solid #1d1b29;color:#a09bb5;display:grid;place-items:end center}.vacio{color:#6b6585;font-style:italic}
     .pie{margin-top:10px;padding-top:5px;border-top:1px solid #e3dff0;color:#8a84a3;font-size:8px;text-align:center}
     tr,.datos,.coms{page-break-inside:avoid}
