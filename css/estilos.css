@@ -1041,3 +1041,145 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .mvp-v__nota{ margin:0; padding:8px 12px; background:rgba(14,8,56,.92); color:var(--niebla); font-size:.82rem; }
 .mvp-v__prompt{ white-space:pre-wrap; font-family:inherit; font-size:.85em; margin:0; max-height:280px; overflow:auto; padding:8px 10px; border-radius:10px; background:rgba(6,3,30,.5); border:1px solid var(--borde); }
 .mvp-v__ia{ margin:0 0 6px; color:var(--niebla); }
+
+/* =========================================================
+   CEREMONIA DE PREMIACIÓN (Copa CONCEPMI VI)
+   ========================================================= */
+.gala{ position:fixed; inset:0; z-index:75; overflow:hidden; display:grid; grid-template-rows:auto 1fr; isolation:isolate; cursor:none;
+  background:radial-gradient(circle at 50% 10%, #3A1AA8, #170D56 55%, #070320); color:#fff; }
+.gala--ctrl{ cursor:auto; }
+.gala .fondo, .gala .deco{ position:absolute; }
+.gala [hidden]{ display:none !important; }
+.gala__cab{ position:relative; z-index:3; display:flex; align-items:center; gap:16px; padding:18px clamp(18px,3vw,44px); }
+.gala__cab img{ height:34px; } .gala__cab .gala__club{ height:42px; margin-left:auto; }
+.gala__cab div{ display:grid; } .gala__cab b{ font-family:var(--neon); font-weight:400; font-size:1.05rem; } .gala__cab span{ font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; color:var(--celeste); }
+.gala__escena{ position:relative; z-index:2; display:grid; place-items:center; padding:0 clamp(18px,3vw,44px) 4vh; min-height:0; }
+
+/* Reflectores que barren el escenario */
+.gala__luces{ position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+.gala__luces i{ position:absolute; top:-20vh; width:28vw; height:140vh; transform-origin:top center; opacity:.18; filter:blur(8px);
+  background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 75%); clip-path:polygon(45% 0, 55% 0, 100% 100%, 0 100%); animation:barrer 7s ease-in-out infinite alternate; }
+.gala__luces i:nth-child(1){ left:5vw; animation-delay:-1s; } .gala__luces i:nth-child(2){ left:36vw; animation-delay:-3s; opacity:.12; } .gala__luces i:nth-child(3){ right:5vw; animation-delay:-5s; }
+@keyframes barrer{ from{ transform:rotate(-24deg); } to{ transform:rotate(24deg); } }
+.gala[data-metal="oro"] .gala__luces i{ background:linear-gradient(180deg, rgba(255,214,102,.95), rgba(255,194,61,0) 75%); opacity:.3; }
+.gala[data-metal="plata"] .gala__luces i{ background:linear-gradient(180deg, rgba(230,232,236,.95), rgba(230,232,236,0) 75%); opacity:.24; }
+.gala[data-metal="bronce"] .gala__luces i{ background:linear-gradient(180deg, rgba(232,169,107,.95), rgba(205,127,50,0) 75%); opacity:.24; }
+
+/* Portada */
+.gala__portada, .gala__intro-top, .gala__cuenta, .gala__final{ display:grid; justify-items:center; text-align:center; gap:1.4vh; }
+.gala__pre{ font-family:var(--neon); letter-spacing:.34em; color:var(--celeste); margin:0; font-size:clamp(.75rem,1.2vw,1rem); animation:subir .8s both; }
+.gala__logo{ width:min(52vw, 520px); filter:drop-shadow(0 10px 40px rgba(110,43,230,.7)); animation:logoEntra 1.1s cubic-bezier(.2,.8,.2,1) both; }
+.gala__titulo{ font-family:var(--neon); font-weight:400; margin:0; font-size:clamp(2.4rem,6.4vw,6rem); line-height:1;
+  background:linear-gradient(180deg,#fff 30%,#FFD98A 100%); -webkit-background-clip:text; background-clip:text; color:transparent; animation:subir .9s .3s both; }
+.gala__titulo--chico{ font-size:clamp(1.6rem,3.6vw,3.2rem); }
+.gala__sub{ margin:0; color:#E6DDFF; font-size:clamp(1rem,1.6vw,1.4rem); animation:subir .9s .45s both; }
+.gala__trio{ display:flex; gap:clamp(12px,3vw,40px); align-items:flex-end; margin-top:1vh; animation:subir 1s .6s both; }
+.gala__empezar{ font-size:1.1rem; padding:.9em 1.6em; margin-top:1vh; }
+
+/* Cuenta regresiva */
+.gala__cuenta small{ font-family:var(--neon); letter-spacing:.3em; text-transform:uppercase; color:var(--celeste); font-size:clamp(.9rem,1.6vw,1.3rem); }
+.gala__cuenta b{ font-family:var(--neon); font-weight:400; font-size:clamp(9rem,26vw,22rem); line-height:1; color:#fff; text-shadow:0 0 60px rgba(31,203,234,.7); }
+.gala__pulso{ animation:pulsoNum 1s ease-out; }
+@keyframes pulsoNum{ from{ transform:scale(1.6); opacity:0; } 40%{ opacity:1; } to{ transform:scale(1); } }
+
+/* Tabla del último al 4.º */
+.gala__tabla{ width:min(1100px, 100%); display:grid; gap:1.6vh; max-height:100%; }
+.gala__h2{ margin:0; text-align:center; font-family:var(--neon); font-weight:400; letter-spacing:.06em; font-size:clamp(1.2rem,2.4vw,2rem); color:#E6DDFF; }
+.gala__tablero{ display:grid; gap:clamp(6px,1vh,12px); overflow:auto; max-height:72vh; padding:4px; }
+.gala__fila{ display:grid; grid-template-columns:clamp(60px,7vw,110px) 1fr auto; align-items:center; gap:16px; padding:clamp(8px,1.4vh,16px) clamp(14px,2vw,26px);
+  border-radius:18px; background:rgba(14,8,56,.55); border:1px dashed rgba(169,139,255,.3); }
+.gala__fila--ok{ border:1px solid rgba(169,139,255,.55); background:linear-gradient(90deg, rgba(110,43,230,.35), rgba(14,8,56,.6)); }
+.gala__fila--nueva{ animation:filaEntra .9s cubic-bezier(.2,.9,.2,1.2) both; border-color:var(--celeste); box-shadow:0 0 40px rgba(31,203,234,.45); }
+@keyframes filaEntra{ from{ transform:translateX(-60px) scale(.96); opacity:0; filter:blur(6px); } }
+.gala__puesto{ font-family:var(--neon); font-size:clamp(1.4rem,2.6vw,2.4rem); color:var(--celeste); }
+.gala__del{ display:grid; min-width:0; } .gala__del b{ font-size:clamp(1.2rem,2.2vw,2rem); line-height:1.1; } .gala__del small{ color:var(--niebla); font-size:clamp(.75rem,1vw,.95rem); }
+.gala__oculto{ color:rgba(255,255,255,.25); letter-spacing:.3em; }
+.gala__pts{ display:flex; align-items:baseline; gap:6px; } .gala__pts b{ font-family:var(--neon); font-weight:400; font-size:clamp(1.6rem,3vw,2.8rem); color:var(--oro); } .gala__pts small{ color:var(--niebla); }
+
+/* Intro TOP 3 */
+.gala__intro-top small{ font-family:var(--neon); letter-spacing:.34em; text-transform:uppercase; color:var(--celeste); font-size:clamp(.9rem,1.5vw,1.2rem); animation:subir .7s both; }
+.gala__intro-top h1{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(5rem,16vw,14rem); line-height:.9;
+  background:linear-gradient(180deg,#FFE08A,#FFC23D 50%,#FF9F1C); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 40px rgba(255,194,61,.55)); animation:zoomTop 1.1s cubic-bezier(.2,.8,.2,1.3) both; }
+.gala__intro-top p{ margin:0; color:#E6DDFF; font-size:clamp(1rem,1.6vw,1.4rem); }
+@keyframes zoomTop{ from{ transform:scale(3); opacity:0; filter:blur(12px); } }
+
+/* Lugar del podio */
+.gala__lugar{ width:100%; display:grid; place-items:center; }
+.gala__suspenso{ display:grid; justify-items:center; gap:2vh; text-align:center; }
+.gala__suspenso small{ font-family:var(--neon); font-size:clamp(2rem,5vw,4.6rem); letter-spacing:.08em; }
+.gala__suspenso b{ font-size:clamp(5rem,12vw,10rem); animation:tambor .18s ease-in-out infinite alternate; }
+.gala__suspenso span{ color:var(--niebla); letter-spacing:.3em; text-transform:uppercase; }
+@keyframes tambor{ from{ transform:rotate(-8deg) scale(1); } to{ transform:rotate(8deg) scale(1.08); } }
+.gala__lugar--bronce .gala__suspenso small{ color:#E8A96B; } .gala__lugar--plata .gala__suspenso small{ color:#E6E8EC; } .gala__lugar--oro .gala__suspenso small{ color:#FFD166; }
+.gala__revela{ display:flex; align-items:center; justify-content:center; gap:clamp(20px,5vw,80px); flex-wrap:wrap; width:100%; }
+.gala__ganador{ display:grid; gap:1vh; max-width:min(52vw, 760px); animation:subir .9s .4s both; }
+.gala__ganador small{ font-family:var(--neon); letter-spacing:.24em; text-transform:uppercase; font-size:clamp(.9rem,1.5vw,1.3rem); }
+.gala__ganador h1{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(3rem,8vw,7.5rem); line-height:.95; }
+.gala__ganador p{ margin:0; color:#E6DDFF; font-size:clamp(1rem,1.6vw,1.4rem); }
+.gala__puntos{ display:flex; align-items:baseline; gap:10px; } .gala__puntos b{ font-family:var(--neon); font-weight:400; font-size:clamp(3rem,7vw,6rem); line-height:1; } .gala__puntos span{ color:var(--niebla); font-size:1.2rem; }
+.gala__empate{ color:var(--oro) !important; font-weight:700; }
+.gala__campeona{ font-family:var(--neon); font-size:clamp(1.1rem,2.2vw,2rem) !important; color:#FFE08A !important; letter-spacing:.05em; animation:latido 1.4s ease-in-out infinite; }
+.gala__lugar--bronce .gala__ganador small, .gala__lugar--bronce .gala__puntos b{ color:#E8A96B; }
+.gala__lugar--plata .gala__ganador small, .gala__lugar--plata .gala__puntos b{ color:#E6E8EC; }
+.gala__lugar--oro .gala__ganador small, .gala__lugar--oro .gala__puntos b{ color:#FFD166; }
+.gala__lugar--oro .gala__ganador h1{ background:linear-gradient(180deg,#FFF3C4,#FFC23D 55%,#FF9F1C); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 30px rgba(255,194,61,.6)); }
+
+/* ---------- Wolfito metálico (bronce / plata / oro) ---------- */
+.wolf-metal{ position:relative; display:grid; justify-items:center; width:clamp(110px,13vw,190px); }
+.wolf-metal img{ position:relative; z-index:1; width:100%; height:auto; }
+.wolf-metal--oro img{ filter:sepia(1) saturate(5) hue-rotate(-8deg) brightness(1.08) contrast(1.15) drop-shadow(0 0 22px rgba(255,194,61,.8)); }
+.wolf-metal--plata img{ filter:grayscale(1) brightness(1.35) contrast(1.25) drop-shadow(0 0 18px rgba(230,232,236,.7)); }
+.wolf-metal--bronce img{ filter:sepia(1) saturate(3.2) hue-rotate(-40deg) brightness(.74) contrast(1.2) drop-shadow(0 0 18px rgba(205,127,50,.7)); }
+/* Brillo metálico que recorre la silueta del Wolfito (máscara con la misma imagen) */
+.wolf-metal__brillo{ position:absolute; z-index:2; inset:0 0 auto 0; aspect-ratio:537 / 800; pointer-events:none;
+  -webkit-mask:var(--img) top center / 100% auto no-repeat; mask:var(--img) top center / 100% auto no-repeat;
+  background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 47%, transparent 58%) 0 0 / 300% 100%; animation:brillo 2.6s ease-in-out infinite; mix-blend-mode:screen; }
+@keyframes brillo{ from{ background-position:120% 0; } to{ background-position:-120% 0; } }
+.wolf-metal__halo{ position:absolute; z-index:0; width:140%; aspect-ratio:1; top:-10%; border-radius:50%; filter:blur(30px); opacity:.6; animation:latido 2.4s ease-in-out infinite; }
+.wolf-metal--oro .wolf-metal__halo{ background:radial-gradient(circle, rgba(255,194,61,.9), transparent 65%); }
+.wolf-metal--plata .wolf-metal__halo{ background:radial-gradient(circle, rgba(230,232,236,.8), transparent 65%); }
+.wolf-metal--bronce .wolf-metal__halo{ background:radial-gradient(circle, rgba(205,127,50,.8), transparent 65%); }
+.wolf-metal__base{ position:relative; z-index:2; width:78%; margin-top:-6%; padding:.35em 0; border-radius:10px 10px 4px 4px; text-align:center;
+  font-family:var(--neon); font-size:clamp(1.1rem,1.8vw,1.6rem); color:#1d1b29; box-shadow:0 10px 30px rgba(0,0,0,.45); }
+.wolf-metal--oro .wolf-metal__base{ background:linear-gradient(180deg,#FFE08A,#E0A21E); }
+.wolf-metal--plata .wolf-metal__base{ background:linear-gradient(180deg,#F4F5F7,#A9B0BB); }
+.wolf-metal--bronce .wolf-metal__base{ background:linear-gradient(180deg,#F0B47A,#9C5A26); }
+.wolf-metal--mini{ width:clamp(70px,8vw,120px); }
+.wolf-metal--grande{ width:clamp(200px,24vw,380px); animation:trofeoEntra 1.3s cubic-bezier(.2,.9,.25,1.25) both; }
+.wolf-metal--grande img{ animation:flotar 3.2s ease-in-out 1.3s infinite alternate; }
+@keyframes trofeoEntra{ 0%{ transform:translateY(-70vh) rotate(-25deg) scale(.4); opacity:0; } 60%{ transform:translateY(4vh) rotate(6deg) scale(1.08); opacity:1; } 100%{ transform:none; } }
+
+/* Wolfitos bailando por el escenario (campeona y final) */
+.gala__bailarines{ position:absolute; inset:auto 0 0 0; height:30vh; z-index:1; pointer-events:none; opacity:0; transition:opacity .6s; }
+.gala__bailarines--on{ opacity:1; }
+.gala__bailarines img{ position:absolute; bottom:var(--y); left:-15vw; height:clamp(90px,14vh,170px);
+  filter:sepia(1) saturate(5) hue-rotate(-8deg) brightness(1.05) drop-shadow(0 0 14px rgba(255,194,61,.7));
+  animation:desfile var(--d) linear infinite, baile .5s ease-in-out infinite alternate; }
+.gala__bailarines img:nth-child(even){ filter:drop-shadow(0 0 12px rgba(169,139,255,.7)); animation-direction:normal, alternate-reverse; }
+@keyframes desfile{ from{ left:-15vw; } to{ left:110vw; } }
+@keyframes baile{ from{ transform:translateY(0) rotate(-10deg); } to{ transform:translateY(-4vh) rotate(10deg); } }
+
+/* Podio final */
+.gala__final{ width:100%; gap:2vh; }
+.gala__podio{ display:grid; grid-template-columns:repeat(3, minmax(0, 300px)); gap:clamp(10px,2vw,30px); align-items:end; justify-content:center; width:100%; }
+.gala__pod{ display:grid; justify-items:center; gap:6px; text-align:center; animation:subir 1s both; }
+.gala__pod--1{ animation-delay:.5s; } .gala__pod--2{ animation-delay:.25s; } .gala__pod--3{ animation-delay:.1s; }
+.gala__pod b{ font-family:var(--neon); font-weight:400; font-size:clamp(1rem,2vw,1.8rem); line-height:1.1; } .gala__pod span{ color:var(--niebla); }
+.gala__escalon{ width:100%; border-radius:16px 16px 0 0; display:grid; place-items:center; font-family:var(--neon); font-size:clamp(2rem,4vw,3.6rem); color:rgba(0,0,0,.55); }
+.gala__pod--1 .gala__escalon{ height:20vh; background:linear-gradient(180deg,#FFE08A,#C98A12); }
+.gala__pod--2 .gala__escalon{ height:14vh; background:linear-gradient(180deg,#F4F5F7,#8E96A3); }
+.gala__pod--3 .gala__escalon{ height:10vh; background:linear-gradient(180deg,#F0B47A,#8C4A1E); }
+.gala__pod--1 .wolf-metal{ width:clamp(130px,15vw,220px); }
+.gala__lista{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:1100px; }
+.gala__lista span{ padding:.35em .9em; border-radius:99px; background:rgba(14,8,56,.6); border:1px solid var(--borde); font-size:clamp(.8rem,1vw,.95rem); }
+.gala__chip--oro{ border-color:#FFC23D !important; color:#FFE08A; } .gala__chip--plata{ border-color:#E6E8EC !important; } .gala__chip--bronce{ border-color:#CD7F32 !important; color:#F0B47A; }
+
+/* Controles (aparecen al mover el mouse) */
+.gala__ctrl{ position:absolute; z-index:5; left:50%; bottom:14px; transform:translate(-50%, 150%); opacity:0; transition:transform .25s, opacity .25s;
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; padding:8px 12px; border-radius:16px; background:rgba(10,5,40,.92); border:1px solid var(--borde); max-width:94vw; }
+.gala--ctrl .gala__ctrl, .gala__ctrl:focus-within{ transform:translate(-50%, 0); opacity:1; }
+.gala__ctrl small{ width:100%; text-align:center; color:var(--tenue); font-size:.7rem; }
+.gala__paso{ font-size:.75rem; color:var(--niebla); margin-right:4px; }
+@media (max-width:760px){ .gala__podio{ grid-template-columns:repeat(3, 1fr); } .gala__revela{ flex-direction:column; } .gala__ganador{ max-width:none; text-align:center; } .gala__puntos{ justify-content:center; } }
+.gala__pod .wolf-metal__base{ display:none; }
+.gala__pod .wolf-metal{ margin-bottom:-2vh; }

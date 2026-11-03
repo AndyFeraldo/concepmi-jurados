@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031946";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031946";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031946";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031946";
-import { exportarExcel } from "./excel.js?v=202611031946";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031946";
-import { crearLogistica } from "./admin-logistica.js?v=202611031946";
-import { crearEntregas } from "./admin-entregas.js?v=202611031946";
-import { crearCharlas } from "./admin-charlas.js?v=202611031946";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031946";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031946";
-import { salir } from "./app.js?v=202611031946";
+import { api, ES_DEMO } from "./api.js?v=202611031953";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031953";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031953";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031953";
+import { exportarExcel } from "./excel.js?v=202611031953";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031953";
+import { crearLogistica } from "./admin-logistica.js?v=202611031953";
+import { crearEntregas } from "./admin-entregas.js?v=202611031953";
+import { crearCharlas } from "./admin-charlas.js?v=202611031953";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031953";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031953";
+import { salir } from "./app.js?v=202611031953";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -637,10 +637,12 @@ export async function vistaAdmin(app, codigo) {
         <tbody>${filas.map((f) => `<tr><td>${medalla(f.total > 0 ? f.puesto : null)}</td><td><b>${esc(f.delegacion.nombre)}</b></td>
           ${[...aca, ...cul, ...TALLERES, ...CHARLAS].map((c) => `<td class="num ${f.pts[c.id] == null ? "tenue" : ""}">${f.pts[c.id] ?? "—"}</td>`).join("")}
           <td class="num grande">${f.total}</td></tr>`).join("")}</tbody></table></div>
-        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn--naranja" data-excel2>${I.descargar}Exportar todo a Excel</button><button class="btn" data-fiesta>${I.copa}Celebrar al líder</button></div>`
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn--naranja" data-excel2>${I.descargar}Exportar todo a Excel</button><button class="btn btn--naranja" data-premiacion>${I.copa}Ceremonia de premiación (proyector)</button><button class="btn" data-fiesta>${I.copa}Celebrar al líder</button></div>
+        <p class="ayuda" style="margin-top:8px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>.</p>`
       : `<div class="vacio"><b>Primero registra las delegaciones</b>Ve a la pestaña Delegaciones.</div>`}`;
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
     $("[data-fiesta]", v)?.addEventListener("click", lanzarConfeti);
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611031953"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------

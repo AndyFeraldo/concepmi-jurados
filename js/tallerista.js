@@ -1,10 +1,10 @@
 // =========================================================
 // Vista del TALLERISTA: registra al equipo ganador de su taller
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031946";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611031946";
-import { $, $$, esc, avatar, hace, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611031946";
-import { salir } from "./app.js?v=202611031946";
+import { api, ES_DEMO } from "./api.js?v=202611031953";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611031953";
+import { $, $$, esc, avatar, hace, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611031953";
+import { salir } from "./app.js?v=202611031953";
 
 const INICIALES = 4;
 
