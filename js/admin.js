@@ -1,17 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611022233";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611022233";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611022233";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611022233";
-import { exportarExcel } from "./excel.js?v=202611022233";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611022233";
-import { crearLogistica } from "./admin-logistica.js?v=202611022233";
-import { crearCharlas } from "./admin-charlas.js?v=202611022233";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611022233";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611022233";
-import { salir } from "./app.js?v=202611022233";
+import { api, ES_DEMO } from "./api.js?v=202611030621";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611030621";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611030621";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611030621";
+import { exportarExcel } from "./excel.js?v=202611030621";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611030621";
+import { crearLogistica } from "./admin-logistica.js?v=202611030621";
+import { crearEntregas } from "./admin-entregas.js?v=202611030621";
+import { crearCharlas } from "./admin-charlas.js?v=202611030621";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611030621";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030621";
+import { salir } from "./app.js?v=202611030621";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -20,6 +21,7 @@ const PESTANAS = [
   { id: "jurados", txt: "Jurados", icono: "personas" },
   { id: "talleristas", txt: "Talleristas", icono: "pizarra" },
   { id: "charlas", txt: "Charlas", icono: "vivo" },
+  { id: "entregas", txt: "Entregas", icono: "lapiz" },
   { id: "logistica", txt: "Logística", icono: "caja" },
   { id: "delegaciones", txt: "Delegaciones", icono: "bandera" },
 ];
@@ -38,6 +40,7 @@ export async function vistaAdmin(app, codigo) {
 
   const charlasUI = crearCharlas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), pausar: (p) => { pausado = p; } });
   const logisticaUI = crearLogistica({ codigo: () => codigo });
+  const entregasUI = crearEntregas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f) });
   const jur = (id) => data.jurados.find((j) => j.id === id);
   const tal = (id) => data.talleristas.find((t) => t.id === id);
   const ganador = (tid) => data.ganadores_talleres.find((g) => g.taller_id === tid);
@@ -74,7 +77,7 @@ export async function vistaAdmin(app, codigo) {
   function pintar() {
     const v = $("#vista", app);
     if (!v) return;
-    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, delegaciones })[pestana](v);
+    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones })[pestana](v);
   }
 
   async function recargar(forzar = false) {
@@ -85,7 +88,7 @@ export async function vistaAdmin(app, codigo) {
       data = nuevo; firma = f;
       const ocupado = document.querySelector(".velo") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#vista", app)?.contains(document.activeElement));
       // La logística no depende de estos datos: no se repinta sola para no perder lo que estás viendo
-      if ((forzar || !ocupado) && pestana !== "logistica") pintar();
+      if ((forzar || !ocupado) && !["logistica", "entregas"].includes(pestana)) pintar();
     } catch { /* se reintenta en el siguiente ciclo */ }
   }
   temporizador = setInterval(() => { if (!document.body.contains($("#vista", app))) return clearInterval(temporizador); recargar(); }, SEGUNDOS_REFRESCO * 1000);

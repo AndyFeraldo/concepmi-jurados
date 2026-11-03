@@ -1,13 +1,14 @@
 // =========================================================
 // Panel de Jurados · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611022233";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611022233";
-import { CONCURSOS } from "./concursos.js?v=202611022233";
-import { vistaJurado } from "./jurado.js?v=202611022233";
-import { vistaAdmin } from "./admin.js?v=202611022233";
-import { vistaTallerista } from "./tallerista.js?v=202611022233";
-import { vistaQuiz } from "./quiz.js?v=202611022233";
+import { api, ES_DEMO } from "./api.js?v=202611030621";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611030621";
+import { CONCURSOS } from "./concursos.js?v=202611030621";
+import { vistaJurado } from "./jurado.js?v=202611030621";
+import { vistaAdmin } from "./admin.js?v=202611030621";
+import { vistaTallerista } from "./tallerista.js?v=202611030621";
+import { vistaQuiz } from "./quiz.js?v=202611030621";
+import { vistaEquipo } from "./equipo.js?v=202611030621";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -60,6 +61,12 @@ function portada() {
             <span class="puerta__txt">Registra al equipo ganador de tu taller y suma puntos a sus delegaciones.</span>
             <span class="puerta__ir">Registrar ganadores ${I.flecha}</span>
           </button>
+          <button class="puerta puerta--equipo" data-rol="equipo">
+            <span class="puerta__icono">${I.tabla}</span>
+            <span class="puerta__nombre">Equipo</span>
+            <span class="puerta__txt">Concursos: llena y envía el entregable de tu equipo (matriz de riesgos).</span>
+            <span class="puerta__ir">Entrar a mi concurso ${I.flecha}</span>
+          </button>
           <button class="puerta puerta--admin" data-rol="admin">
             <span class="puerta__icono">${I.escudo}</span>
             <span class="puerta__nombre">Admin</span>
@@ -78,6 +85,7 @@ function portada() {
 
 const ROLES = {
   jurado: { titulo: "Acceso de jurado", icono: "mazo", fondo: "linear-gradient(135deg,#FF6A1F,#FF9A55)", btn: "btn--naranja", demo: "JUR001, JUR002 o JUR003", boton: "Jurado" },
+  equipo: { titulo: "Acceso de equipo", icono: "tabla", fondo: "linear-gradient(135deg,#20D4D9,#1368CE)", btn: "btn--naranja", demo: "EQ0001", boton: "Equipo" },
   tallerista: { titulo: "Acceso de tallerista", icono: "pizarra", fondo: "linear-gradient(135deg,#A98BFF,#6E2BE6)", btn: "btn--naranja", demo: "TAL001", boton: "Tallerista" },
   admin: { titulo: "Acceso de administrador", icono: "escudo", fondo: "linear-gradient(135deg,#1FCBEA,#6E2BE6)", btn: "btn--primario", demo: "ADMIN1", boton: "Admin" },
 };
@@ -134,6 +142,7 @@ function abrir() {
   const s = sesion.leer();
   if (s?.rol === "jurado") return vistaJurado(app, s.codigo);
   if (s?.rol === "tallerista") return vistaTallerista(app, s.codigo);
+  if (s?.rol === "equipo") return vistaEquipo(app, s.codigo);
   if (s?.rol === "admin") return vistaAdmin(app, s.codigo);
   portada();
 }

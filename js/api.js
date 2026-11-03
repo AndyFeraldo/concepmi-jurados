@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611022233";
-import { CONCURSOS, porId } from "./concursos.js?v=202611022233";
-import { TALLERES } from "./talleres.js?v=202611022233";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611022233";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611030621";
+import { CONCURSOS, porId } from "./concursos.js?v=202611030621";
+import { TALLERES } from "./talleres.js?v=202611030621";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611030621";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -63,6 +63,16 @@ const real = {
     rpc("jur_admin_log_archivo_subir", { p_codigo: codigo, p_gasto: gasto, p_item: item, p_nombre: nombre, p_tipo: tipo, p_datos: datos }),
   adminLogArchivo: (codigo, id) => rpc("jur_admin_log_archivo", { p_codigo: codigo, p_id: id }),
   adminLogArchivoBorrar: (codigo, id) => rpc("jur_admin_log_archivo_borrar", { p_codigo: codigo, p_id: id }),
+  // Entregas en línea de los concursos
+  equipoDatos: (codigo) => rpc("jur_equipo_datos", { p_codigo: codigo }),
+  equipoGuardar: (codigo, datos) => rpc("jur_equipo_guardar", { p_codigo: codigo, p_datos: datos }),
+  equipoEnviar: (codigo, datos) => rpc("jur_equipo_enviar", { p_codigo: codigo, p_datos: datos }),
+  juradoEntregas: (codigo, concurso) => rpc("jur_jurado_entregas", { p_codigo: codigo, p_concurso: concurso }),
+  adminEntregas: (codigo, concurso) => rpc("jur_admin_entregas", { p_codigo: codigo, p_concurso: concurso }),
+  adminEquipo: (codigo, { id = null, concurso, delegacion, nombre = "", lider = "", borrar = false, nuevoCodigo = false, codigoFijo = null }) =>
+    rpc("jur_admin_equipo", { p_codigo: codigo, p_id: id, p_concurso: concurso, p_delegacion: delegacion, p_nombre: nombre, p_lider: lider, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
+  adminTiempo: (codigo, concurso, accion, minutos = 35) => rpc("jur_admin_tiempo", { p_codigo: codigo, p_concurso: concurso, p_accion: accion, p_minutos: minutos }),
+  adminEntregaReabrir: (codigo, equipo) => rpc("jur_admin_entrega_reabrir", { p_codigo: codigo, p_equipo: equipo }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -115,7 +125,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611022233");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611030621");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -144,6 +154,8 @@ function db() {
   if (mem) return mem;
   try { const s = localStorage.getItem(CLAVE_DEMO); if (s) mem = JSON.parse(s); } catch { /* sin almacenamiento */ }
   if (!mem) { mem = semilla(); try { localStorage.setItem(CLAVE_DEMO, JSON.stringify(mem)); } catch { /* sin almacenamiento */ } }
+  mem.equipos ||= mem.delegaciones.length ? [{ id: uid(), concurso_id: "amateur-2", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0001" }] : [];
+  mem.entregas ||= {}; mem.tiempos ||= {};
   mem.asistentes ||= []; mem.charlas ||= {}; mem.preguntas ||= preguntasDemo(); mem.jugadores ||= []; mem.respuestas ||= [];
   mem.talleristas ||= []; mem.ganadores ||= []; mem.talleresAbiertos ||= Object.fromEntries(TALLERES.map((t) => [t.id, true]));
   // Recupera jurados registrados en versiones anteriores de la vista previa
@@ -158,7 +170,11 @@ function db() {
 function guardar() { try { localStorage.setItem(CLAVE_DEMO, JSON.stringify(mem)); } catch { /* sin almacenamiento */ } }
 const exigirAdmin = (c) => { if (norm(c) !== db().admin) throw new Error("Código de administrador incorrecto"); };
 const juradoDe = (c) => { const j = db().jurados.find((x) => x.codigo === norm(c)); if (!j) throw new Error("Código de jurado incorrecto"); return j; };
-const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas].some((x) => x.codigo === c && x.id !== excepto);
+const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas, ...(db().equipos || [])].some((x) => x.codigo === c && x.id !== excepto);
+const eqDe = (c) => { const e = (db().equipos || []).find((x) => x.codigo === norm(c)); if (!e) throw new Error("Código de equipo incorrecto"); return e; };
+const entJson = (e) => { const x = db().entregas[e.id] || {}; return { equipo_id: e.id, concurso_id: e.concurso_id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", lider: e.lider || "",
+  datos: x.datos || {}, estado: x.estado || "borrador", enviado: x.enviado || null, tarde: !!x.tarde, actualizado: x.actualizado || null }; };
+const tiempoJson = (cid) => { const t = db().tiempos[cid] || {}; return { inicio: t.inicio || null, fin: t.fin || null, ahora: new Date().toISOString() }; };
 const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; do { c = Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); } while (codigoUsado(c)); return c; };
 const talleristaDe = (c) => { const t = db().talleristas.find((x) => x.codigo === norm(c)); if (!t) throw new Error("Código de tallerista incorrecto"); return t; };
 
@@ -198,7 +214,8 @@ function quizRanking(charla) {
 
 const demo = {
   async entrar(codigo) { await espera(400); if (norm(codigo) === db().admin) return { rol: "admin" }; const j = db().jurados.find((x) => x.codigo === norm(codigo)); if (j) return { rol: "jurado", nombre: j.nombre };
-    const t = db().talleristas.find((x) => x.codigo === norm(codigo)); return t ? { rol: "tallerista", nombre: t.nombre } : null; },
+    const t = db().talleristas.find((x) => x.codigo === norm(codigo)); if (t) return { rol: "tallerista", nombre: t.nombre };
+    const e = (db().equipos || []).find((x) => x.codigo === norm(codigo)); return e ? { rol: "equipo", nombre: e.nombre } : null; },
   async datosJurado(codigo) { await espera(); const j = juradoDe(codigo); const d = db();
     return { jurado: { ...j }, delegaciones: d.delegaciones, abiertos: d.abiertos, calificaciones: d.calificaciones.filter((x) => x.jurado_id === j.id) }; },
   async calificar(codigo, concurso, subprueba, delegacion, datos, comentario = "") {
@@ -432,6 +449,39 @@ const demo = {
     if (tabla === "proveedor") L.items.forEach((i) => { if (i.proveedor_id === id) i.proveedor_id = null; });
     guardar(); },
   async adminLogConfig(codigo, tc, contingencia) { await espera(); exigirAdmin(codigo); const L = await logDemo(); Object.assign(L.config, { tc, contingencia }); guardar(); },
+  // ---- Entregas (vista previa) ----
+  async equipoDatos(codigo) { await espera(); const d = db(); const e = eqDe(codigo);
+    return { entrega: entJson(e), tiempo: tiempoJson(e.concurso_id), delegacion: d.delegaciones.find((x) => x.id === e.delegacion_id) || null }; },
+  async equipoGuardar(codigo, datos) { await espera(150); const d = db(); const e = eqDe(codigo); const x = (d.entregas[e.id] ||= { estado: "borrador" });
+    if (x.estado === "enviado") throw new Error("Tu equipo ya envió el entregable. Pide al organizador que lo reabra si necesitas corregir.");
+    const t = d.tiempos[e.concurso_id]; if (t?.fin && Date.now() > Date.parse(t.fin) + 60000) throw new Error("Se acabó el tiempo. Ya no se pueden hacer cambios; envía tu entregable.");
+    Object.assign(x, { datos, actualizado: new Date().toISOString() }); guardar(); return { actualizado: x.actualizado }; },
+  async equipoEnviar(codigo, datos) { await espera(); const d = db(); const e = eqDe(codigo); const x = (d.entregas[e.id] ||= { estado: "borrador" });
+    if (x.estado === "enviado") throw new Error("Tu equipo ya envió el entregable");
+    const t = d.tiempos[e.concurso_id], tarde = !!(t?.fin && Date.now() > Date.parse(t.fin) + 60000);
+    Object.assign(x, { datos: tarde ? x.datos || {} : datos, estado: "enviado", enviado: new Date().toISOString(), tarde, actualizado: new Date().toISOString() }); guardar(); return { enviado: x.enviado, tarde }; },
+  async juradoEntregas(codigo, concurso) { await espera(); const j = juradoDe(codigo); if (!j.concursos.includes(concurso)) throw new Error("No estás asignado a este concurso");
+    return { tiempo: tiempoJson(concurso), entregas: db().equipos.filter((e) => e.concurso_id === concurso).map(entJson) }; },
+  async adminEntregas(codigo, concurso) { await espera(80); exigirAdmin(codigo);
+    return { tiempo: tiempoJson(concurso), equipos: db().equipos.filter((e) => e.concurso_id === concurso).map((e) => ({ id: e.id, codigo: e.codigo, entrega: entJson(e) })) }; },
+  async adminEquipo(codigo, { id = null, concurso, delegacion, nombre = "", lider = "", borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
+    await espera(); exigirAdmin(codigo); const d = db();
+    if (borrar) { d.equipos = d.equipos.filter((e) => e.id !== id); delete d.entregas[id]; guardar(); return null; }
+    if (!d.delegaciones.some((x) => x.id === delegacion)) throw new Error("Elige la delegación");
+    if (d.equipos.some((e) => e.concurso_id === concurso && e.delegacion_id === delegacion && e.id !== id)) throw new Error("Esa delegación ya tiene un equipo en este concurso");
+    const fijo = norm(codigoFijo); if (fijo && codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otro jurado, tallerista o equipo");
+    let e = id && d.equipos.find((x) => x.id === id);
+    if (!e) { e = { id: uid(), concurso_id: concurso, codigo: nuevoCodigo() }; d.equipos.push(e); }
+    Object.assign(e, { delegacion_id: delegacion, nombre, lider }); if (regen) e.codigo = nuevoCodigo(); if (fijo) e.codigo = fijo;
+    guardar(); return { id: e.id, codigo: e.codigo }; },
+  async adminTiempo(codigo, concurso, accion, minutos = 35) { await espera(); exigirAdmin(codigo); const d = db(); const t = (d.tiempos[concurso] ||= {});
+    const ms = minutos * 60000;
+    if (accion === "iniciar") Object.assign(t, { inicio: new Date().toISOString(), fin: new Date(Date.now() + ms).toISOString() });
+    else if (accion === "extender") t.fin = new Date(Math.max(Date.parse(t.fin), Date.now()) + ms).toISOString();
+    else if (accion === "detener") t.fin = new Date().toISOString();
+    else Object.assign(t, { inicio: null, fin: null });
+    guardar(); },
+  async adminEntregaReabrir(codigo, equipo) { await espera(); exigirAdmin(codigo); const x = db().entregas[equipo]; if (x) Object.assign(x, { estado: "borrador", enviado: null, tarde: false, actualizado: new Date().toISOString() }); guardar(); },
   reiniciar() { mem = semilla(); guardar(); },
 };
 

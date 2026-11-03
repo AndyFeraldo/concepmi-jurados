@@ -1,11 +1,13 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611022233";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611022233";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611022233";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611022233";
-import { salir } from "./app.js?v=202611022233";
+import { api, ES_DEMO } from "./api.js?v=202611030621";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611030621";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611030621";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611030621";
+import { salir } from "./app.js?v=202611030621";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611030621";
+import { abrirVisor } from "./entrega-visor.js?v=202611030621";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
@@ -106,6 +108,8 @@ export async function vistaJurado(app, codigo) {
       ${data.delegaciones.length ? `
       ${selectorDeleg(cid, sub, did)}
       ${c.nota ? `<div class="nota">${esc(c.nota)}</div>` : ""}
+      ${tieneEntregable(cid) ? `<div class="en-jurado"><span>${I.tabla}<b>${esc(ENTREGABLES[cid].titulo)}</b> en línea: mira lo que escribió cada equipo (se actualiza en vivo).</span>
+        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver matriz de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button></div>` : ""}
       <div id="criterios">${criterios}</div>
       <label class="campo" style="margin-top:16px"><span>Comentario para el organizador (opcional)</span>
         <textarea id="comentario" maxlength="600" ${editable ? "" : "disabled"} placeholder="Observaciones, fortalezas o motivos de tu puntaje">${esc(form.comentario)}</textarea></label>
@@ -118,6 +122,18 @@ export async function vistaJurado(app, codigo) {
     $("[data-volver]", app).onclick = () => { inicio(); window.scrollTo(0, 0); };
     $$("[data-sub]", app).forEach((b) => (b.onclick = () => { abrirConcurso(cid, b.dataset.sub); window.scrollTo(0, 0); }));
     conectarSelector(cid, sub, did);
+    if (tieneEntregable(cid)) {
+      const nombreDel = (e) => { const d = data.delegaciones.find((x) => x.id === e.delegacion_id); return d ? (d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre) : ""; };
+      const cargarE = () => api.juradoEntregas(codigo, cid);
+      const ver = async (soloDel) => {
+        let inicial = null;
+        if (soloDel) { try { inicial = (await cargarE()).entregas.find((e) => e.delegacion_id === soloDel)?.equipo_id || null; } catch (e) { return aviso(e.message, "error"); }
+          if (!inicial) return aviso("Esta delegación aún no tiene equipo registrado", "error"); }
+        abrirVisor({ concurso: cid, cargar: cargarE, nombre: nombreDel, inicial });
+      };
+      $("[data-vermatriz]", app)?.addEventListener("click", () => ver(form.did));
+      $("[data-vertodas]", app)?.addEventListener("click", () => ver(null));
+    }
     if (!data.delegaciones.length) return;
     $("#comentario").oninput = (e) => (form.comentario = e.target.value);
     if (editable) conectarCriterios(sp);
