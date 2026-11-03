@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030621";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611030621";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611030621";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611030621";
-import { exportarExcel } from "./excel.js?v=202611030621";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611030621";
-import { crearLogistica } from "./admin-logistica.js?v=202611030621";
-import { crearEntregas } from "./admin-entregas.js?v=202611030621";
-import { crearCharlas } from "./admin-charlas.js?v=202611030621";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611030621";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030621";
-import { salir } from "./app.js?v=202611030621";
+import { api, ES_DEMO } from "./api.js?v=202611030644";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611030644";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611030644";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611030644";
+import { exportarExcel } from "./excel.js?v=202611030644";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611030644";
+import { crearLogistica } from "./admin-logistica.js?v=202611030644";
+import { crearEntregas } from "./admin-entregas.js?v=202611030644";
+import { crearCharlas } from "./admin-charlas.js?v=202611030644";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611030644";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030644";
+import { salir } from "./app.js?v=202611030644";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },

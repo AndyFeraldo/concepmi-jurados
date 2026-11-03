@@ -9,6 +9,7 @@ export const ENTREGABLES = {
     titulo: "Matriz de riesgos y oportunidades",
     corto: "Matriz de riesgos",
     minutos: 35, filasIniciales: 8, maxFilas: 20,
+    exposicion: "2 min de exposición + 2 min de preguntas",
     ayuda: "Riesgo = Causa, Evento de riesgo y Efecto (ej.: «Debido a [causa], podría ocurrir [evento], lo que ocasionaría [efecto]»). Severidad = P × I.",
   },
 };

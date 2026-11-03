@@ -3,11 +3,12 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611030621";
-import { ENTREGABLES } from "./entregables.js?v=202611030621";
-import { porId } from "./concursos.js?v=202611030621";
-import { abrirVisor, imprimir, estadoEntrega, resumenChips } from "./entrega-visor.js?v=202611030621";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030621";
+import { api } from "./api.js?v=202611030644";
+import { ENTREGABLES } from "./entregables.js?v=202611030644";
+import { porId } from "./concursos.js?v=202611030644";
+import { abrirVisor, imprimir, estadoEntrega, resumenChips } from "./entrega-visor.js?v=202611030644";
+import { abrirEscenario } from "./escenario.js?v=202611030644";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030644";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -31,7 +32,7 @@ export function crearEntregas(ctx) {
     // En vivo: se actualiza cada 4 s mientras esta pestaña está abierta
     temporizador = setInterval(async () => {
       if (!document.body.contains(v) || !$("[data-entregas]", v)) { clearInterval(temporizador); clearInterval(reloj); return; }
-      if (document.querySelector(".velo, .proy")) return;
+      if (document.querySelector(".velo, .proy, .escenario")) return;
       try { const antes = JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin; await cargar(); if (antes !== JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin) pintar(v); } catch { /* se reintenta */ }
     }, 4000);
     reloj = setInterval(() => pintarReloj(v), 1000);
@@ -68,10 +69,14 @@ export function crearEntregas(ctx) {
         <section class="tarjeta en-panel">
           <h3>Avance</h3>
           <div class="kpis" style="margin:0"><div class="kpi"><b>${enviados}/${eqs.length}</b><span>Matrices enviadas</span></div><div class="kpi"><b>${eqs.filter((x) => x.entrega.estado !== "enviado" && x.entrega.actualizado).length}</b><span>En borrador</span></div></div>
-          <div class="en-acc">
-            <button class="btn btn--naranja" data-proyectar ${eqs.length ? "" : "disabled"}>${I.vivo}Proyectar matrices</button>
-            <button class="btn" data-imprimir ${eqs.length ? "" : "disabled"}>${I.descargar}Imprimir todas / PDF</button>
+          <div class="en-proyectar">
+            <div class="en-opcion"><button class="btn btn--naranja" data-escenario>${I.pizarra}Proyectar pantalla del concurso</button>
+              <p><b>Mientras llenan la matriz.</b> Pantalla completa con el título del concurso y el cronómetro en vivo. Manejas el tiempo desde ahí moviendo el mouse (o desde esta pestaña).</p></div>
+            <div class="en-opcion"><button class="btn" data-proyectar ${eqs.length ? "" : "disabled"}>${I.vivo}Proyectar matrices</button>
+              <p><b>Cuando los equipos van a exponer.</b> Muestra la matriz de cada delegación para que el público y los jurados la sigan. Cámbiala con ◀ ▶.</p></div>
           </div>
+          <div class="en-acc"><button class="btn btn--mini" data-imprimir ${eqs.length ? "" : "disabled"}>${I.descargar}Imprimir reportes / PDF</button>
+            <span class="ayuda" style="margin:0">Una hoja por delegación con su matriz, lo que puso cada jurado y el puntaje final. Para enviar a los delegados.</span></div>
         </section>
       </div>
       <div class="cabeza"><div><h1 style="font-size:1.4rem">Equipos y códigos</h1><p>Un equipo por delegación. Entrega a cada equipo su código el día del concurso.</p></div>
@@ -100,9 +105,14 @@ export function crearEntregas(ctx) {
     $("[data-quitar]", v)?.addEventListener("click", async () => { if (await confirmar("¿Quitar el tiempo?", "El cronómetro desaparece y los equipos podrán editar sin límite (útil para pruebas).", { boton: "Quitar tiempo" })) accion("reiniciar"); });
     const cargarVisor = async () => { const r = await api.adminEntregas(ctx.codigo(), concurso); return { tiempo: r.tiempo, entregas: r.equipos.map((x) => x.entrega) }; };
     const nombreE = (e) => nomDel(e.delegacion_id);
-    $("[data-proyectar]", v).onclick = () => abrirVisor({ concurso, cargar: cargarVisor, nombre: nombreE });
-    $$("[data-ver]", v).forEach((b) => (b.onclick = () => abrirVisor({ concurso, cargar: cargarVisor, nombre: nombreE, inicial: b.dataset.ver })));
-    $("[data-imprimir]", v).onclick = () => imprimir(concurso, E.equipos.map((x) => x.entrega), nombreE);
+    // Calificaciones frescas para el reporte (si falla la recarga, usa las que ya tiene)
+    const notas = async () => { try { await ctx.recargar(true); } catch { /* usa lo cargado */ } return ctx.data(); };
+    $("[data-proyectar]", v).onclick = () => abrirVisor({ concurso, cargar: cargarVisor, nombre: nombreE, notas });
+    $$("[data-ver]", v).forEach((b) => (b.onclick = () => abrirVisor({ concurso, cargar: cargarVisor, nombre: nombreE, inicial: b.dataset.ver, notas })));
+    $("[data-imprimir]", v).onclick = async () => { const d = await notas(); imprimir(concurso, E.equipos.map((x) => x.entrega), nombreE, { notas: d }); };
+    $("[data-escenario]", v).onclick = () => abrirEscenario({ concurso, cargar: cargarVisor,
+      accion: (a, min) => api.adminTiempo(ctx.codigo(), concurso, a, min),
+      alCerrar: async () => { try { await cargar(); pintar(v); } catch { /* sigue */ } } });
     $$("[data-copiar]", v).forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copiar); aviso("Código copiado"); } catch { aviso(`Código: ${b.dataset.copiar}`); } }));
     $$("[data-reabrir]", v).forEach((b) => (b.onclick = async () => {
       if (!(await confirmar("¿Reabrir esta matriz?", "El equipo podrá volver a editarla y tendrá que enviarla otra vez.", { boton: "Reabrir" }))) return;
