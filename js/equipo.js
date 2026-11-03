@@ -3,11 +3,12 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030730";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611030730";
-import { porId } from "./concursos.js?v=202611030730";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611030730";
-import { salir } from "./app.js?v=202611030730";
+import { api, ES_DEMO } from "./api.js?v=202611030757";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611030757";
+import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa } from "./acta.js?v=202611030757";
+import { porId } from "./concursos.js?v=202611030757";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611030757";
+import { salir } from "./app.js?v=202611030757";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
@@ -29,8 +30,8 @@ export async function vistaEquipo(app, codigo) {
     // Si en este navegador quedó algo más nuevo sin guardar (se cayó internet), se recupera
     const usarLocal = local && data.entrega.estado !== "enviado" && (!data.entrega.actualizado || local.t > Date.parse(data.entrega.actualizado));
     datos = structuredClone(usarLocal ? local.datos : servidor);
-    datos.filas ||= [];
-    while (datos.filas.length < (def?.filasIniciales || 8)) datos.filas.push(filaVacia());
+    if (def?.tipo === "acta") datos = normalizarActa(datos);
+    else { datos.filas ||= []; while (datos.filas.length < (def?.filasIniciales || 8)) datos.filas.push(filaVacia()); }
     if (usarLocal) { pendiente = true; setTimeout(guardar, 300); }
   }
   const ahora = () => Date.now() + desfase;
@@ -58,20 +59,23 @@ export async function vistaEquipo(app, codigo) {
       else setTimeout(guardar, 4000);
     } finally { guardando = false; if (pendiente) { clearTimeout(temporizador); temporizador = setTimeout(guardar, 1500); } }
   }
-  const limpio = () => ({ lider: datos.lider || "", filas: datos.filas.map((f) => ({ ...filaVacia(), ...f })) });
+  const esActa = () => def()?.tipo === "acta";
+  const nom = () => def()?.nombre || "entregable"; // «matriz», «acta»
+  const Nom = () => nom()[0].toUpperCase() + nom().slice(1);
+  const limpio = () => (esActa() ? limpiarActa(datos) : { lider: datos.lider || "", filas: datos.filas.map((f) => ({ ...filaVacia(), ...f })) });
   function pintarEstado(t, tipo = "") { const el = $("[data-guardado]", app); if (el) { el.textContent = t; el.className = `eq-guardado eq-guardado--${tipo}`; } estadoGuardado = t; }
 
   async function refrescar() {
     try { const t0 = Date.now(); const d = await api.equipoDatos(codigo); desfase = Date.parse(d.tiempo.ahora) - (t0 + Date.now()) / 2; const cambioEstado = d.entrega.estado !== data.entrega.estado;
       data.tiempo = d.tiempo; data.entrega.estado = d.entrega.estado; data.entrega.enviado = d.entrega.enviado; data.entrega.tarde = d.entrega.tarde;
-      if (cambioEstado) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); datos.filas ||= []; } pintar(); }
+      if (cambioEstado) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); if (esActa()) datos = normalizarActa(datos); else datos.filas ||= []; } pintar(); }
     } catch { /* se reintenta */ }
   }
 
   // ---------------- Pantalla ----------------
   function pintar() {
     const c = porId(data.entrega.concurso_id), d = def(), bl = bloqueado();
-    const filas = conIds(datos.filas);
+    const filas = esActa() ? [] : conIds(datos.filas);
     app.innerHTML = `<div class="fondo fondo--sobrio"></div>
     <header class="barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI"><span class="sep"></span>
@@ -82,29 +86,33 @@ export async function vistaEquipo(app, codigo) {
       <div class="cabeza" style="margin-top:0"><div><h1>${esc(d?.titulo || "Entregable")}</h1>
         <p>${esc(data.delegacion?.siglas ? `${data.delegacion.siglas} · ${data.delegacion.nombre}` : data.delegacion?.nombre || "")}${data.entrega.nombre ? ` · ${esc(data.entrega.nombre)}` : ""}</p></div>
         <span class="eq-guardado" data-guardado>${esc(estadoGuardado)}</span></div>
-      ${enviado() ? `<div class="cerrado" style="background:rgba(59,224,143,.12);border-color:rgba(59,224,143,.5);color:#8FF2C0">${I.check}<span><b>¡Matriz enviada${data.entrega.tarde ? " fuera de tiempo" : ""}!</b> a las ${new Date(data.entrega.enviado).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}. Los jurados ya la pueden ver. Si necesitas corregir algo, pide al organizador que la reabra.</span></div>`
-        : bl ? `<div class="cerrado">${I.candado}<span><b>Se acabó el tiempo.</b> Ya no se pueden hacer cambios. Envía tu matriz ahora; si la envías tarde se registra como entrega tardía.</span></div>` : ""}
+      ${enviado() ? `<div class="cerrado" style="background:rgba(59,224,143,.12);border-color:rgba(59,224,143,.5);color:#8FF2C0">${I.check}<span><b>¡${Nom()} enviada${data.entrega.tarde ? " fuera de tiempo" : ""}!</b> a las ${new Date(data.entrega.enviado).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}. Los jurados ya la pueden ver. Si necesitas corregir algo, pide al organizador que la reabra.</span></div>`
+        : bl ? `<div class="cerrado">${I.candado}<span><b>Se acabó el tiempo.</b> Ya no se pueden hacer cambios. Envía tu ${nom()} ahora; si la envías tarde se registra como entrega tardía.</span></div>` : ""}
       <div class="eq-aviso">⚠️ Usen <b>una sola laptop</b> por equipo. Todo se guarda solo cada pocos segundos.</div>
       <section class="tarjeta eq-cab">
         <label class="campo"><span>Delegación</span><input value="${esc(data.delegacion?.nombre || "")}" disabled></label>
         <label class="campo"><span>Líder de equipo</span><input data-lider maxlength="120" value="${esc(datos.lider || "")}" placeholder="Nombre y apellido" ${bl ? "disabled" : ""}></label>
       </section>
-      <details class="eq-guia"><summary>${I.info} Guía rápida (cómo llenar la matriz)</summary>
+      ${esActa() ? `<details class="eq-guia" open><summary>${I.info} Guía rápida (cómo llenar el acta)</summary>
+        <p>${esc(d?.ayuda || "")}</p>
+        <p>Cada sección muestra si está <b>Completa</b>, <b>Incompleta</b> o <b>Sin llenar</b>. Usen <b>Agregar</b> para sumar filas en las tablas.</p>
+      </details>${editorActa(datos, bl)}` : `<details class="eq-guia"><summary>${I.info} Guía rápida (cómo llenar la matriz)</summary>
         <p>${esc(d?.ayuda || "")}</p>
         <p><b>Estrategias</b> · Amenazas: ${ESTRATEGIAS.Amenaza.join(", ")} · Oportunidades: ${ESTRATEGIAS.Oportunidad.join(", ")}.</p>
         <p><b>Niveles de severidad:</b> ${NIVELES.map(([n, a, b, cl]) => `<span class="sev ${cl}">${n} ${a}–${b}</span>`).join(" ")}</p>
         <p>El <b>ID</b> (A1, A2… / O1, O2…) y la <b>severidad</b> se calculan solos.</p>
       </details>
       <div class="eq-filas">${filas.map((f, i) => fila(f, i, bl)).join("")}</div>
-      ${bl ? "" : `<button class="btn" data-mas style="margin-top:10px" ${datos.filas.length >= (d?.maxFilas || 20) ? "disabled" : ""}>${I.mas}Agregar riesgo</button>`}
+      ${bl ? "" : `<button class="btn" data-mas style="margin-top:10px" ${datos.filas.length >= (d?.maxFilas || 20) ? "disabled" : ""}>${I.mas}Agregar riesgo</button>`}`}
       <div class="enviar">
         <div class="enviar__info"><span data-resumen></span></div>
-        <button class="btn btn--naranja" data-enviar ${enviado() ? "disabled" : ""}>${I.check}${enviado() ? "Matriz enviada" : "Enviar matriz al jurado"}</button>
+        <button class="btn btn--naranja" data-enviar ${enviado() ? "disabled" : ""}>${I.check}${enviado() ? `${Nom()} enviada` : `Enviar ${nom()} al jurado`}</button>
       </div>
     </main>
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
     $("[data-salir]", app).onclick = async () => { if (pendiente) await guardar(); limpiarTimers(); salir(); };
     const lid = $("[data-lider]", app); if (lid) lid.oninput = () => { datos.lider = lid.value; marcarCambio(); };
+    if (esActa()) enlazarActa($(".acta-ed", app), datos, { bl, cambio: () => { marcarCambio(); resumen(); }, repintar: (sel) => { pintar(); $(sel, app)?.scrollIntoView({ block: "center" }); } });
     $$("[data-f]", app).forEach((el) => {
       const ev = el.tagName === "SELECT" ? "onchange" : "oninput";
       el[ev] = () => {
@@ -156,6 +164,11 @@ export async function vistaEquipo(app, codigo) {
     resumen();
   }
   function resumen() {
+    if (esActa()) {
+      const r = resumenActa(datos), el = $("[data-resumen]", app);
+      if (el) el.innerHTML = `${r.completas} de ${r.total} secciones completas${r.firmas < 2 ? ` · <b style="color:#FFD98A">faltan ${2 - r.firmas} firma${2 - r.firmas === 1 ? "" : "s"}</b>` : " · firmas listas"}`;
+      return;
+    }
     const usadas = datos.filas.filter(filaUsada), inc = usadas.filter((f) => faltantes(f).length).length;
     const el = $("[data-resumen]", app);
     if (el) el.innerHTML = `${usadas.length} riesgo${usadas.length === 1 ? "" : "s"} · ${usadas.filter((f) => f.tipo === "Amenaza").length} amenazas · ${usadas.filter((f) => f.tipo === "Oportunidad").length} oportunidades${inc ? ` · <b style="color:#FFD98A">${inc} incompleto${inc === 1 ? "" : "s"}</b>` : ""}`;
@@ -172,16 +185,26 @@ export async function vistaEquipo(app, codigo) {
 
   async function enviar() {
     if (pendiente && !bloqueado()) await guardar();
+    if (esActa()) {
+      const r = resumenActa(datos);
+      if (r.vacia) return aviso("Llenen el acta antes de enviarla", "error");
+      const extra = r.faltan.length ? `<br><br>⚠️ Aún falta completar: <b>${r.faltan.map(esc).join(" · ")}</b>.` : "";
+      if (!(await confirmar("¿Enviar el acta al jurado?", `Después de enviarla ya no podrán cambiarla.${extra}`, { boton: "Enviar acta" }))) return;
+      return mandar();
+    }
     const usadas = datos.filas.filter(filaUsada);
     const inc = usadas.filter((f) => faltantes(f).length);
     if (!usadas.length) return aviso("Escribe al menos un riesgo antes de enviar", "error");
     const extra = inc.length ? `<br><br>⚠️ Hay <b>${inc.length} riesgo${inc.length === 1 ? "" : "s"} incompleto${inc.length === 1 ? "" : "s"}</b> (${conIds(datos.filas).filter((f) => filaUsada(f) && faltantes(f).length).map((f) => `${f.id}: falta ${faltantes(f).join(", ")}`).join(" · ")}).` : "";
     if (!(await confirmar("¿Enviar la matriz al jurado?", `Después de enviarla ya no podrán cambiarla.${extra}`, { boton: "Enviar matriz" }))) return;
+    return mandar();
+  }
+  async function mandar() {
     try {
       const r = await api.equipoEnviar(codigo, limpio());
       data.entrega.estado = "enviado"; data.entrega.enviado = r.enviado; data.entrega.tarde = r.tarde;
       try { localStorage.removeItem(CLAVE); } catch { /* sin almacenamiento */ }
-      lanzarConfeti(); aviso(r.tarde ? "Matriz enviada (fuera de tiempo)" : "¡Matriz enviada!"); pintar();
+      lanzarConfeti(); aviso(r.tarde ? `${Nom()} enviada (fuera de tiempo)` : `¡${Nom()} enviada!`); pintar();
     } catch (e) { aviso(e.message, "error"); }
   }
 

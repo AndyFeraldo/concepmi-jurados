@@ -1,13 +1,13 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030730";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611030730";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611030730";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611030730";
-import { salir } from "./app.js?v=202611030730";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611030730";
-import { abrirVisor } from "./entrega-visor.js?v=202611030730";
+import { api, ES_DEMO } from "./api.js?v=202611030757";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611030757";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611030757";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611030757";
+import { salir } from "./app.js?v=202611030757";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611030757";
+import { abrirVisor } from "./entrega-visor.js?v=202611030757";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
@@ -109,7 +109,7 @@ export async function vistaJurado(app, codigo) {
       ${selectorDeleg(cid, sub, did)}
       ${c.nota ? `<div class="nota">${esc(c.nota)}</div>` : ""}
       ${tieneEntregable(cid) ? `<div class="en-jurado"><span>${I.tabla}<b>${esc(ENTREGABLES[cid].titulo)}</b> en línea: mira lo que escribió cada equipo (se actualiza en vivo).</span>
-        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver matriz de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button></div>` : ""}
+        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button></div>` : ""}
       <div id="criterios">${criterios}</div>
       <label class="campo" style="margin-top:16px"><span>Comentario para el organizador (opcional)</span>
         <textarea id="comentario" maxlength="600" ${editable ? "" : "disabled"} placeholder="Observaciones, fortalezas o motivos de tu puntaje">${esc(form.comentario)}</textarea></label>

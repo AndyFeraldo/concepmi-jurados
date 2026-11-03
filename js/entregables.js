@@ -1,13 +1,23 @@
 // =========================================================
 // Entregables en línea de los concursos (lo que llenan los equipos)
+// Amateur I: Acta de constitución (tipo "acta", ver js/acta.js).
 // Amateur II: Matriz de riesgos y oportunidades (bases oficiales, punto 3.2).
 // Datos guardados: { lider, filas: [{ tipo, riesgo, p, i, estrategia, plan, dueno, trigger }] }
 // El ID (A1, A2… / O1, O2…) y la severidad (P × I) se calculan, no se escriben.
 // =========================================================
 export const ENTREGABLES = {
+  "amateur-1": {
+    tipo: "acta",
+    titulo: "Acta de constitución del proyecto",
+    corto: "Acta de constitución", nombre: "acta", plural: "actas",
+    minutos: 35,
+    exposicion: "2 min de pitch + 2 min de preguntas",
+    ayuda: "Lean el expediente del caso, debatan y completen las 10 secciones del acta bajo el estándar PMI. Al final, el Sponsor y el Director del proyecto (miembros del equipo) firman.",
+  },
   "amateur-2": {
+    tipo: "matriz",
     titulo: "Matriz de riesgos y oportunidades",
-    corto: "Matriz de riesgos",
+    corto: "Matriz de riesgos", nombre: "matriz", plural: "matrices",
     minutos: 35, filasIniciales: 8, maxFilas: 20,
     exposicion: "2 min de exposición + 2 min de preguntas",
     ayuda: "Riesgo = Causa, Evento de riesgo y Efecto (ej.: «Debido a [causa], podría ocurrir [evento], lo que ocasionaría [efecto]»). Severidad = P × I.",

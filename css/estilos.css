@@ -894,3 +894,75 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .escenario__grupo:first-of-type{ border-left:0; }
 .escenario__grupo > b{ font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--celeste); }
 .escenario__reloj--corto small{ color:var(--oro); }
+
+/* ---------- Amateur I · editor del acta (equipo) ---------- */
+.acta-ed{ display:grid; gap:14px; }
+.acta-ed__sec{ padding:16px; display:grid; gap:12px; }
+.acta-ed__cab{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.acta-ed__cab h3{ margin:0; font-size:1.05rem; flex:1; min-width:180px; }
+.acta-ed__n{ width:32px; height:32px; border-radius:10px; display:grid; place-items:center; font-family:var(--neon); background:linear-gradient(135deg, var(--celeste), #6E2BE6); color:#fff; flex:none; }
+.acta-ed__campos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px 14px; }
+.acta-ed__ancho{ grid-column:1 / -1; }
+.acta-ed__campos .campo small, .acta-ed__fila .campo small{ color:var(--tenue); font-weight:500; }
+.acta-ed__filas{ display:grid; gap:10px; }
+.acta-ed__fila{ display:grid; grid-template-columns:28px repeat(var(--cols), minmax(0, 1fr)) auto; gap:8px 10px; align-items:end; padding:10px; border:1px solid var(--borde); border-radius:14px; background:rgba(10,5,40,.3); }
+.acta-ed__i{ align-self:center; font-family:var(--neon); color:var(--celeste); text-align:center; }
+.acta-ed__pie{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.acta-ed__total{ margin-left:auto; color:var(--niebla); } .acta-ed__total b{ color:var(--oro); font-size:1.1rem; }
+.acta-firmas{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+.acta-firma{ display:grid; gap:8px; }
+.acta-firma__papel{ position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background:#fff; }
+.acta-firma__papel canvas{ display:block; width:100%; height:auto; aspect-ratio:480/150; cursor:crosshair; }
+.acta-firma__papel .btn{ position:absolute; top:6px; right:6px; background:rgba(14,8,56,.85); }
+@media (max-width:760px){
+  .acta-ed__fila{ grid-template-columns:28px 1fr auto; }
+  .acta-ed__fila .campo{ grid-column:2 / 3 !important; }
+  .acta-ed__fila .btn{ grid-column:3; grid-row:1; }
+}
+
+/* ---------- Acta de solo lectura (visor, proyector) ---------- */
+.acta-v{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
+.acta-v__sec{ border:1px solid var(--borde); border-radius:16px; padding:12px 14px; background:rgba(14,8,56,.55); min-width:0; }
+.acta-v__sec--general, .acta-v__sec--objetivos, .acta-v__sec--interesados, .acta-v__sec--firmas{ grid-column:1 / -1; }
+.acta-v h4{ margin:0 0 8px; display:flex; align-items:center; gap:8px; font-size:1rem; }
+.acta-v h4 > span{ min-width:26px; height:26px; padding:0 6px; border-radius:8px; display:grid; place-items:center; font-family:var(--neon); font-weight:400; background:linear-gradient(135deg, var(--celeste), #6E2BE6); font-size:.85rem; }
+.acta-v__falta{ font-style:normal; font-size:.72rem; color:#FFD98A; border:1px solid rgba(250,178,25,.5); padding:.1em .6em; border-radius:99px; }
+.acta-v__vacio{ color:var(--tenue); }
+.acta-v dl{ margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px 16px; }
+.acta-v dt{ font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--celeste); font-weight:700; }
+.acta-v dd{ margin:2px 0 0; line-height:1.4; }
+.acta-v table{ width:100%; border-collapse:collapse; font-size:.92em; }
+.acta-v th, .acta-v td{ padding:5px 8px; border-bottom:1px solid var(--borde); text-align:left; vertical-align:top; }
+.acta-v th{ font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--niebla); }
+.acta-v td.n{ text-align:right; white-space:nowrap; }
+.acta-v__tot td{ font-weight:800; color:var(--oro); border-bottom:0; }
+.acta-v__firmas{ display:flex; gap:40px; justify-content:center; flex-wrap:wrap; }
+.acta-v__firmas figure{ margin:0; display:grid; justify-items:center; gap:6px; }
+.acta-v__firmas img{ height:80px; width:auto; background:#fff; border-radius:10px; padding:4px 10px; }
+.acta-v__firmas figcaption{ display:grid; text-align:center; } .acta-v__firmas figcaption span{ color:var(--tenue); font-size:.8rem; }
+.acta-v__sinfirma{ height:80px; width:240px; border:1px dashed var(--borde); border-radius:10px; display:grid; place-items:center; color:var(--tenue); }
+@media (max-width:760px){ .acta-v{ grid-template-columns:1fr; } }
+
+/* ---------- Pantalla del concurso · momento de exposiciones ---------- */
+.escenario__expo{ position:relative; z-index:2; display:grid; grid-template-rows:auto 1fr; gap:12px; padding:0 clamp(16px,2.4vw,40px) 16px; min-height:0; }
+.escenario__expo[hidden]{ display:none; }
+.escenario--expo{ grid-template-rows:auto 1fr; }
+.escenario__expo-cab{ display:flex; align-items:center; gap:20px; }
+.escenario__expo-quien{ flex:1; display:grid; gap:2px; min-width:0; }
+.escenario__expo-quien small{ font-family:var(--neon); letter-spacing:.24em; text-transform:uppercase; color:var(--celeste); font-size:clamp(.7rem,1vw,.9rem); }
+.escenario__expo-quien > b{ font-family:var(--neon); font-weight:400; font-size:clamp(1.6rem,3.4vw,3.2rem); line-height:1.05;
+  background:linear-gradient(180deg, #fff 30%, #CBB8FF 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.escenario__expo-quien > span{ color:var(--niebla); font-size:clamp(.8rem,1.1vw,1rem); }
+.escenario__mini{ display:grid; justify-items:center; padding:10px 26px 12px; border-radius:22px; min-width:clamp(200px, 20vw, 320px);
+  background:rgba(14,8,56,.65); border:1px solid rgba(169,139,255,.5); box-shadow:0 16px 50px -18px rgba(110,43,230,.8); }
+.escenario__mini small{ font-family:var(--neon); letter-spacing:.2em; text-transform:uppercase; color:var(--oro); font-size:clamp(.65rem,.95vw,.85rem); }
+.escenario__mini b{ font-family:var(--neon); font-weight:400; font-size:clamp(2.6rem,5.6vw,5.4rem); line-height:1; font-variant-numeric:tabular-nums; }
+.escenario__mini span{ color:var(--niebla); font-size:clamp(.72rem,1vw,.9rem); }
+.escenario__mini--listo{ border-color:rgba(31,203,234,.7); } .escenario__mini--listo b{ color:#8FE6F6; }
+.escenario__mini--alerta{ border-color:rgba(250,178,25,.75); } .escenario__mini--alerta b{ color:#FAB219; }
+.escenario__mini--fin{ border-color:rgba(208,59,59,.85); animation:latido 1.2s ease-in-out infinite; } .escenario__mini--fin b{ color:#FF6B6B; font-size:clamp(2rem,4.2vw,4rem); }
+.escenario__cuerpo{ overflow:auto; min-height:0; padding-bottom:70px; font-size:clamp(.85rem,1.05vw,1.15rem); }
+.escenario__cuerpo .tabla-envoltura{ background:rgba(14,8,56,.55); }
+.escenario__cuerpo .matriz-tabla{ font-size:1em; }
+.escenario .escenario__grupo .visor-sel{ max-width:220px; font-size:.8rem; }
+.escenario [hidden]{ display:none !important; }

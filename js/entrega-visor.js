@@ -3,10 +3,11 @@
 // pantalla completa para el proyector y versión imprimible.
 // Lo usan el admin (pestaña Entregas) y los jurados.
 // =========================================================
-import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611030730";
-import { $, $$, esc, I, IMG } from "./ui.js?v=202611030730";
-import { porId } from "./concursos.js?v=202611030730";
-import { resultados } from "./calculo.js?v=202611030730";
+import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611030757";
+import { $, $$, esc, I, IMG } from "./ui.js?v=202611030757";
+import { porId } from "./concursos.js?v=202611030757";
+import { resultados } from "./calculo.js?v=202611030757";
+import { vistaActa, chipsActa, resumenActa } from "./acta.js?v=202611030757";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "");
 export const estadoEntrega = (e) => (e.estado === "enviado" ? (e.tarde ? ["Enviado tarde", "chip--rojo"] : ["Enviado", "chip--verde"]) : e.actualizado ? ["En borrador", "chip--ambar"] : ["Sin empezar", ""]);
@@ -40,6 +41,12 @@ export function resumenChips(datos) {
     ${r.criticos ? `<span class="chip chip--rojo">${r.criticos} crítico${r.criticos === 1 ? "" : "s"}</span>` : ""}${r.incompletas ? `<span class="chip chip--ambar">${r.incompletas} incompleto${r.incompletas === 1 ? "" : "s"}</span>` : ""}`;
 }
 
+// ---- Funciones comunes a todos los tipos de entregable (matriz, acta) ----
+export const esActa = (concurso) => ENTREGABLES[concurso]?.tipo === "acta";
+export const leyendaSev = () => `<p class="visor__ley">${NIVELES.map(([n, a, b, c]) => `<span class="sev ${c}">${n} ${a}–${b}</span>`).join(" ")}</p>`;
+export const contenidoEntrega = (concurso, datos, { orden = "id" } = {}) => (esActa(concurso) ? vistaActa(datos) : tablaMatriz(datos, { orden }) + leyendaSev());
+export const chipsEntrega = (concurso, datos) => (esActa(concurso) ? chipsActa(datos) : resumenChips(datos));
+
 // Pantalla completa con selector de equipos. cargar() → { tiempo, entregas: [...] }; nombre(e) → texto de la delegación
 // notas() (opcional, solo admin) → data con calificaciones y jurados, para incluir los puntajes al imprimir
 export function abrirVisor({ concurso, cargar, nombre, inicial = null, cadaMs = 5000, notas = null }) {
@@ -58,15 +65,15 @@ export function abrirVisor({ concurso, cargar, nombre, inicial = null, cadaMs = 
     el.innerHTML = `
       <header class="proy__cab"><img class="logo" src="${IMG.logo}" alt="CONCEPMI">
         <div><div class="proy__tit">${esc(def?.titulo || "Entregable")}${e ? ` · ${esc(nombre(e))}` : ""}</div>
+          ${e && esActa(concurso) && e.datos?.general?.nombre ? `<div class="proy__sub">Proyecto: <b>${esc(e.datos.general.nombre)}</b></div>` : ""}
           <div class="proy__sub">${e ? `${(e.datos?.lider || e.lider) ? `Líder: ${esc(e.datos?.lider || e.lider)} · ` : ""}<span class="chip ${cls}">${txt}</span>${e.enviado ? ` a las ${hora(e.enviado)}` : e.actualizado ? ` · guardado ${hora(e.actualizado)}` : ""}` : "Sin equipos"}</div></div>
         <div class="der">
           <select class="visor-sel" data-sel aria-label="Equipo">${lista.map((x) => `<option value="${x.equipo_id}" ${x.equipo_id === e?.equipo_id ? "selected" : ""}>${esc(nombre(x))} · ${estadoEntrega(x)[0]}</option>`).join("")}</select>
           <button class="btn btn--mini" data-ant title="Equipo anterior" aria-label="Equipo anterior">◀</button><button class="btn btn--mini" data-sig title="Equipo siguiente" aria-label="Equipo siguiente">▶</button>
-          <div class="segm" role="group" aria-label="Orden de la matriz"><span>Orden</span><button class="${orden === "id" ? "activo" : ""}" data-orden="id" aria-pressed="${orden === "id"}">ID</button><button class="${orden === "sev" ? "activo" : ""}" data-orden="sev" aria-pressed="${orden === "sev"}">Severidad ▼</button></div>
+          ${esActa(concurso) ? "" : `<div class="segm" role="group" aria-label="Orden de la matriz"><span>Orden</span><button class="${orden === "id" ? "activo" : ""}" data-orden="id" aria-pressed="${orden === "id"}">ID</button><button class="${orden === "sev" ? "activo" : ""}" data-orden="sev" aria-pressed="${orden === "sev"}">Severidad ▼</button></div>`}
           <button class="btn btn--mini" data-imp>${I.descargar}<span>Imprimir / PDF</span></button>
           <button class="btn btn--mini" data-cerrar>${I.cerrar}<span>Cerrar</span></button></div></header>
-      <main class="visor__cuerpo">${e ? `<div class="reparto" style="margin:0 0 10px">${resumenChips(e.datos)}${orden === "sev" ? `<span class="chip chip--celeste">Ordenado por severidad: de mayor a menor</span>` : ""}</div>${tablaMatriz(e.datos, { orden })}
-        <p class="visor__ley">${NIVELES.map(([n, a, b, c]) => `<span class="sev ${c}">${n} ${a}–${b}</span>`).join(" ")}</p>` : `<div class="vacio"><b>Aún no hay equipos en este concurso</b></div>`}</main>`;
+      <main class="visor__cuerpo">${e ? `<div class="reparto" style="margin:0 0 10px">${chipsEntrega(concurso, e.datos)}${orden === "sev" && !esActa(concurso) ? `<span class="chip chip--celeste">Ordenado por severidad: de mayor a menor</span>` : ""}</div>${contenidoEntrega(concurso, e.datos, { orden })}` : `<div class="vacio"><b>Aún no hay equipos en este concurso</b></div>`}</main>`;
     $("[data-cerrar]", el).onclick = cerrar;
     $("[data-sel]", el)?.addEventListener("change", (ev) => { actual = ev.target.value; pintar(); });
     $("[data-ant]", el).onclick = () => mover(-1); $("[data-sig]", el).onclick = () => mover(1);
@@ -110,11 +117,11 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
       ${sp.criterios.map((k) => `<tr><td>${esc(k.nombre)}</td><td class="n">${k.max}</td>${cs.map((x) => `<td class="n">${n1(x.datos?.[k.id])}</td>`).join("")}<td class="n prom">${n1(fila?.promCrit?.[k.id])}</td></tr>`).join("")}
       <tr class="tot"><td>Total</td><td class="n">${total}</td>${cs.map((x) => `<td class="n">${n1(x.total)}</td>`).join("")}<td class="n prom">${n1(fila?.bruto)}</td></tr></tbody></table>
       ${cs.some((x) => String(x.comentario || "").trim()) ? `<div class="coms">${cs.filter((x) => String(x.comentario || "").trim()).map((x) => `<p><b>${esc(jur(x.jurado_id))}:</b> ${esc(x.comentario)}</p>`).join("")}</div>` : ""}
-      <p class="calc">Puntaje final = promedio de los ${cs.length} jurado${cs.length === 1 ? "" : "s"} (${n1(fila?.bruto)})${fila?.penal ? ` − ${n1(fila.penal)} por entrega tardía (10 % de la fase escrita)` : ""}${fila?.ajuste?.walkover ? " · Walkover = 0" : fila?.ajuste?.descalificado ? " · Descalificado = 0" : ""}, redondeado a entero: <b>${fila?.rubrica ?? "—"} / ${total}</b>.</p>`;
+      <p class="calc">Puntaje final = ${cs.length === 1 ? "puntaje del único jurado que calificó" : `promedio de los ${cs.length} jurados`} (${n1(fila?.bruto)})${fila?.penal ? ` − ${n1(fila.penal)} por entrega tardía (10 % de la fase escrita)` : ""}${fila?.ajuste?.walkover ? " · Walkover = 0" : fila?.ajuste?.descalificado ? " · Descalificado = 0" : ""}, redondeado a entero: <b>${fila?.rubrica ?? "—"} / ${total}</b>.</p>`;
   }
 
   function hoja(e) {
-    const r = resumenMatriz(e.datos), [est] = estadoEntrega(e);
+    const acta = esActa(concurso), r = resumenMatriz(e.datos), ra = acta ? resumenActa(e.datos) : null, [est] = estadoEntrega(e);
     const fila = notas ? res.find((f) => f.delegacion.id === e.delegacion_id) : null;
     const total = sp ? sp.criterios.reduce((s, k) => s + k.max, 0) : 0;
     return `<section class="hoja">
@@ -124,14 +131,14 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
         <div class="dato"><span>Líder</span><b>${esc(e.datos?.lider || e.lider || "—")}</b></div>
         <div class="dato"><span>Hora de envío</span><b>${e.enviado ? fecha(e.enviado) : "No enviada"}</b></div>
         <div class="dato ${e.tarde ? "mal" : e.estado === "enviado" ? "bien" : ""}"><span>Estado</span><b>${e.estado === "enviado" ? (e.tarde ? "Entrega tardía" : "A tiempo") : esc(est)}</b></div>
-        <div class="dato"><span>Riesgos</span><b>${r.total} · ${r.amenazas} A / ${r.oportunidades} O</b></div>
+        ${acta ? `<div class="dato"><span>Secciones</span><b>${ra.completas}/${ra.total} completas · firmas ${ra.firmas}/2</b></div>` : `<div class="dato"><span>Riesgos</span><b>${r.total} · ${r.amenazas} A / ${r.oportunidades} O</b></div>`}
         ${fila ? `<div class="dato final"><span>Puntaje final</span><b>${fila.rubrica} <small>/ ${total}</small></b>${fila.puesto ? `<em>${fila.puesto}.° lugar${fila.empate ? " (empate)" : ""}</em>` : ""}</div>` : ""}
       </div>
-      <h2>Matriz de riesgos y oportunidades${orden === "sev" ? " <small>(ordenada por severidad)</small>" : ""}</h2>
+      ${acta ? `<h2>Acta de constitución${ra.proyecto ? ` · <small>${esc(ra.proyecto)}</small>` : ""}</h2>${vistaActa(e.datos)}` : `<h2>Matriz de riesgos y oportunidades${orden === "sev" ? " <small>(ordenada por severidad)</small>" : ""}</h2>
       <table class="mat"><thead><tr><th>ID</th><th>Riesgo (causa, evento y efecto)</th><th>Tipo</th><th class="n">P</th><th class="n">I</th><th class="n">P×I</th><th>Estrategia</th><th>Plan / acción concreta</th><th>Dueño</th><th>Disparador</th></tr></thead>
       <tbody>${ordenar(r.filas, orden).map((f) => { const n = nivel(f.sev); return `<tr><td><b>${esc(f.id)}</b></td><td>${esc(f.riesgo)}</td><td>${esc(f.tipo)}</td><td class="n">${esc(f.p)}</td><td class="n">${esc(f.i)}</td>
         <td class="n">${f.sev == null ? "—" : `<span class="sev ${n?.[3] || ""}">${f.sev}</span>`}</td><td>${esc(f.estrategia)}</td><td>${esc(f.plan)}</td><td>${esc(f.dueno)}</td><td>${esc(f.trigger)}</td></tr>`; }).join("") || `<tr><td colspan="10">Sin riesgos registrados</td></tr>`}</tbody></table>
-      <p class="ley">${NIVELES.map(([nn, a, b, cl]) => `<span class="sev ${cl}">${nn} ${a}–${b}</span>`).join(" ")}</p>
+      <p class="ley">${NIVELES.map(([nn, a, b, cl]) => `<span class="sev ${cl}">${nn} ${a}–${b}</span>`).join(" ")}</p>`}
       ${bloqueNotas(e)}
       <footer class="pie">Generado el ${fecha(Date.now())} · Panel de Jurados VI CONCEPMI · Documento para los delegados de la delegación</footer>
     </section>`;
@@ -155,7 +162,15 @@ export function imprimir(concurso, entregas, nombre, { notas = null, orden = "id
     .ley{margin:4px 0 0;display:flex;gap:5px;font-size:8px}
     .notas{width:auto;min-width:60%}.notas .prom{background:#fff4ec;font-weight:700}.notas .tot td{font-weight:700;background:#f6f4fc}
     .coms{margin-top:5px;border-left:3px solid #6E2BE6;padding:2px 8px;background:#faf9fd}.coms p{margin:2px 0}
-    .calc{margin:6px 0 0;font-size:10px}.vacio{color:#6b6585;font-style:italic}
+    .calc{margin:6px 0 0;font-size:10px}
+    .acta-v{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.acta-v__sec{border:1px solid #ddd8ee;border-radius:7px;padding:5px 8px;page-break-inside:avoid}
+    .acta-v__sec--general,.acta-v__sec--firmas,.acta-v__sec--objetivos,.acta-v__sec--interesados{grid-column:1/-1}
+    .acta-v h4{margin:0 0 4px;font-size:10px;color:#3A1AA8;display:flex;gap:6px;align-items:center}.acta-v h4 span{background:#3A1AA8;color:#fff;border-radius:4px;padding:0 5px;font-size:9px}
+    .acta-v__falta{font-style:normal;color:#d03b3b;font-weight:600;font-size:8.5px}.acta-v__vacio{color:#a09bb5}
+    .acta-v dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:3px 10px}.acta-v dt{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:#6b6585;font-weight:600}.acta-v dd{margin:0}
+    .acta-v table td,.acta-v table th{padding:2px 4px}.acta-v__tot td{font-weight:700;background:#f6f4fc}
+    .acta-v__firmas{display:flex;gap:30px;justify-content:center}.acta-v__firmas figure{margin:0;text-align:center}.acta-v__firmas img{height:56px;border-bottom:1px solid #1d1b29}
+    .acta-v__firmas figcaption{display:grid;font-size:9px}.acta-v__sinfirma{height:56px;width:170px;border-bottom:1px solid #1d1b29;color:#a09bb5;display:grid;place-items:end center}.vacio{color:#6b6585;font-style:italic}
     .pie{margin-top:10px;padding-top:5px;border-top:1px solid #e3dff0;color:#8a84a3;font-size:8px;text-align:center}
     tr,.datos,.coms{page-break-inside:avoid}
     .barra{position:sticky;top:0;background:#170D56;color:#fff;padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:12px;z-index:2}

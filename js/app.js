@@ -1,14 +1,15 @@
 // =========================================================
 // Panel de Jurados · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030730";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611030730";
-import { CONCURSOS } from "./concursos.js?v=202611030730";
-import { vistaJurado } from "./jurado.js?v=202611030730";
-import { vistaAdmin } from "./admin.js?v=202611030730";
-import { vistaTallerista } from "./tallerista.js?v=202611030730";
-import { vistaQuiz } from "./quiz.js?v=202611030730";
-import { vistaEquipo } from "./equipo.js?v=202611030730";
+import { api, ES_DEMO } from "./api.js?v=202611030757";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611030757";
+import { CONCURSOS } from "./concursos.js?v=202611030757";
+import { vistaJurado } from "./jurado.js?v=202611030757";
+import { vistaAdmin } from "./admin.js?v=202611030757";
+import { vistaTallerista } from "./tallerista.js?v=202611030757";
+import { vistaQuiz } from "./quiz.js?v=202611030757";
+import { vistaEquipo } from "./equipo.js?v=202611030757";
+import { vistaCoordinador } from "./coordinador.js?v=202611030757";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -87,7 +88,8 @@ const ROLES = {
   jurado: { titulo: "Acceso de jurado", icono: "mazo", fondo: "linear-gradient(135deg,#FF6A1F,#FF9A55)", btn: "btn--naranja", demo: "JUR001, JUR002 o JUR003", boton: "Jurado" },
   equipo: { titulo: "Acceso de equipo", icono: "tabla", fondo: "linear-gradient(135deg,#20D4D9,#1368CE)", btn: "btn--naranja", demo: "EQ0001", boton: "Equipo" },
   tallerista: { titulo: "Acceso de tallerista", icono: "pizarra", fondo: "linear-gradient(135deg,#A98BFF,#6E2BE6)", btn: "btn--naranja", demo: "TAL001", boton: "Tallerista" },
-  admin: { titulo: "Acceso de administrador", icono: "escudo", fondo: "linear-gradient(135deg,#1FCBEA,#6E2BE6)", btn: "btn--primario", demo: "ADMIN1", boton: "Admin" },
+  admin: { titulo: "Acceso de administrador", icono: "escudo", fondo: "linear-gradient(135deg,#1FCBEA,#6E2BE6)", btn: "btn--primario", demo: "ADMIN1 (o SALA01 para coordinador de sala)", boton: "Admin" },
+  coordinador: { boton: "Admin" },
 };
 
 function pedirCodigo(rol) {
@@ -97,7 +99,7 @@ function pedirCodigo(rol) {
     <div style="text-align:center">
       <div class="puerta__icono" style="margin:0 auto 12px;background:${R.fondo}">${I[R.icono]}</div>
       <h2>${R.titulo}</h2>
-      <p style="margin:0;color:var(--niebla)">${esAdmin ? "Escribe tu código de administrador." : "Escribe el código de 6 caracteres que te entregaron."}</p>
+      <p style="margin:0;color:var(--niebla)">${esAdmin ? "Escribe tu código de administrador o de coordinador de sala." : "Escribe el código de 6 caracteres que te entregaron."}</p>
       ${ES_DEMO ? `<p class="ayuda" style="margin-top:8px">Vista previa: prueba con <b>${R.demo}</b></p>` : ""}
     </div>
     <form>
@@ -121,12 +123,14 @@ function pedirCodigo(rol) {
     btn.disabled = true; err.textContent = "";
     try {
       const r = await api.entrar(codigo);
-      if (!r || r.rol !== rol) {
+      // El coordinador de sala entra por la misma puerta del admin
+      const valido = r && (r.rol === rol || (rol === "admin" && r.rol === "coordinador"));
+      if (!valido) {
         err.textContent = r ? `Ese código es de ${r.rol === "admin" ? "administrador" : r.rol}. Usa el botón ${ROLES[r.rol]?.boton || ""}.` : "Código incorrecto. Revisa e inténtalo otra vez.";
         inp.classList.remove("temblor"); void inp.offsetWidth; inp.classList.add("temblor"); inp.select();
         return;
       }
-      sesion.guardar({ rol, codigo });
+      sesion.guardar({ rol: r.rol, codigo });
       m.cerrar();
       abrir();
     } catch (ex) {
@@ -144,6 +148,7 @@ function abrir() {
   if (s?.rol === "tallerista") return vistaTallerista(app, s.codigo);
   if (s?.rol === "equipo") return vistaEquipo(app, s.codigo);
   if (s?.rol === "admin") return vistaAdmin(app, s.codigo);
+  if (s?.rol === "coordinador") return vistaCoordinador(app, s.codigo);
   portada();
 }
 
