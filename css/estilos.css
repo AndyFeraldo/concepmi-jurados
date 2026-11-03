@@ -974,3 +974,8 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .codigo-input--oculto{ padding-right:52px; padding-left:52px; }
 .codigo-ver{ position:absolute; right:8px; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:10px; font-size:1.15rem; display:grid; place-items:center; background:rgba(255,255,255,.06); border:1px solid var(--borde); cursor:pointer; }
 .codigo-ver:hover{ background:rgba(255,255,255,.12); }
+/* Portada: créditos bajo la descripción */
+.creditos{ display:grid; justify-items:center; gap:1px; margin:1.6vh auto 0; animation:subir .9s .58s both; }
+.creditos span{ font-family:var(--neon); font-size:.66rem; letter-spacing:.28em; text-transform:uppercase; color:var(--celeste); }
+.creditos b{ font-size:clamp(.95rem,1.4vw,1.1rem); color:var(--blanco); letter-spacing:.02em; }
+.creditos small{ font-size:clamp(.72rem,1vw,.82rem); color:var(--niebla); }

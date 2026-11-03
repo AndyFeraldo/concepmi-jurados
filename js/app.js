@@ -1,15 +1,15 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031256";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031256";
-import { CONCURSOS } from "./concursos.js?v=202611031256";
-import { vistaJurado } from "./jurado.js?v=202611031256";
-import { vistaAdmin } from "./admin.js?v=202611031256";
-import { vistaTallerista } from "./tallerista.js?v=202611031256";
-import { vistaQuiz } from "./quiz.js?v=202611031256";
-import { vistaEquipo } from "./equipo.js?v=202611031256";
-import { vistaCoordinador } from "./coordinador.js?v=202611031256";
+import { api, ES_DEMO } from "./api.js?v=202611031257";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031257";
+import { CONCURSOS } from "./concursos.js?v=202611031257";
+import { vistaJurado } from "./jurado.js?v=202611031257";
+import { vistaAdmin } from "./admin.js?v=202611031257";
+import { vistaTallerista } from "./tallerista.js?v=202611031257";
+import { vistaQuiz } from "./quiz.js?v=202611031257";
+import { vistaEquipo } from "./equipo.js?v=202611031257";
+import { vistaCoordinador } from "./coordinador.js?v=202611031257";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -44,6 +44,7 @@ function portada() {
         <img class="escena__logo" src="${IMG.logo}" alt="CONCEPMI VI" style="margin:0 auto">
         <h1 class="escena__titulo">Panel Maestro</h1>
         <p class="escena__sub">El centro de control del VI CONCEPMI: calificaciones de los jurados, entregas de los equipos, talleres, charlas y logística en un solo lugar. Todo suma en vivo a la Copa CONCEPMI VI.</p>
+        <p class="creditos"><span>Hecho por</span><b>Andy Fernández Aldoradín</b><small>DP CONCEPMI 2026</small><small>Coordinador PMO · PMI Lima Student Club</small></p>
         <div class="pildoras">
           <span class="pildora pildora--lila">${I.libro}${academicos} concursos académicos</span>
           <span class="pildora pildora--celeste">${I.bandera}${culturales} eventos culturales</span>
