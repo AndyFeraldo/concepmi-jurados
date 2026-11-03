@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031549";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031549";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031549";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031549";
-import { exportarExcel } from "./excel.js?v=202611031549";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031549";
-import { crearLogistica } from "./admin-logistica.js?v=202611031549";
-import { crearEntregas } from "./admin-entregas.js?v=202611031549";
-import { crearCharlas } from "./admin-charlas.js?v=202611031549";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031549";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031549";
-import { salir } from "./app.js?v=202611031549";
+import { api, ES_DEMO } from "./api.js?v=202611031705";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031705";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031705";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031705";
+import { exportarExcel } from "./excel.js?v=202611031705";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031705";
+import { crearLogistica } from "./admin-logistica.js?v=202611031705";
+import { crearEntregas } from "./admin-entregas.js?v=202611031705";
+import { crearCharlas } from "./admin-charlas.js?v=202611031705";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031705";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031705";
+import { salir } from "./app.js?v=202611031705";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -663,7 +663,8 @@ export async function vistaAdmin(app, codigo) {
             <div class="reparto">${ids.map((id) => `<span class="chip chip--verde">+${PUNTOS_TALLER} · ${esc(del2(id))}</span>`).join("")}</div>
             <p class="ayuda" style="margin:6px 0 0">Registrado ${hace(g.actualizado)}${g.tallerista ? ` por ${esc(g.tallerista)}` : ""}</p>`
           : `<p class="concurso__apodo">Aún no hay ganadores registrados.</p>`}
-          <div style="margin-top:8px"><button class="interruptor ${ab ? "interruptor--abierto" : "interruptor--cerrado"}" data-taller="${t.id}" title="${ab ? "Cerrar el registro" : "Reabrir el registro"}">${ab ? I.abierto + "Abierto" : I.candado + "Cerrado"}</button></div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button class="interruptor ${ab ? "interruptor--abierto" : "interruptor--cerrado"}" data-taller="${t.id}" title="${ab ? "Cerrar el registro" : "Reabrir el registro"}">${ab ? I.abierto + "Abierto" : I.candado + "Cerrado"}</button>
+            ${g?.integrantes.length ? `<button class="btn btn--mini btn--peligro" data-borrar-ganadores="${t.id}" title="Borrar los ganadores registrados de este taller">${I.basura}Borrar resultado</button>` : ""}</div>
         </article>`; }).join("")}</div>
       <div class="cabeza"><div><h1>Talleristas</h1><p>Crea un código para cada tallerista y elige qué talleres tiene habilitados. A la derecha ves qué talleres todavía no tienen tallerista.</p></div></div>
       <div class="jur-layout"><div class="jurados">
@@ -682,6 +683,25 @@ export async function vistaAdmin(app, codigo) {
     $("[data-crear]", v).onclick = () => formPersona("tallerista", null);
     $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona("tallerista", tal(b.dataset.editar))));
     $$("[data-copiar]", v).forEach((b) => (b.onclick = () => copiar(b.dataset.copiar)));
+    $$("[data-borrar-ganadores]", v).forEach((b) => (b.onclick = () => {
+      const tid = b.dataset.borrarGanadores, t = tallerPorId(tid), g = ganador(tid), ids = delegacionesGanadoras(g);
+      const m = modal(`<h2>Borrar resultado del taller</h2>
+        <div class="en-borrar">
+          <div><small>Taller</small><b>Taller ${esc(t.num)} · ${esc(t.nombre)}</b></div>
+          <div><small>Registrado por</small><b>${esc(g.tallerista || "—")} · ${hace(g.actualizado)}</b></div>
+          <div><small>Integrantes (${g.integrantes.length})</small><b style="font-weight:500">${g.integrantes.map((x) => `${esc(x.nombre)} <span class="tenue">(${esc(del(x.delegacion)?.siglas || del(x.delegacion)?.nombre || "—")})</span>`).join(", ")}</b></div>
+          <div class="reparto" style="margin:0">${ids.map((id) => `<span class="chip chip--rojo">−${PUNTOS_TALLER} · ${esc(del(id)?.siglas || del(id)?.nombre || "—")}</span>`).join("")}</div>
+        </div>
+        <p>Se borran los ganadores de este taller y esas delegaciones <b>pierden los ${PUNTOS_TALLER} pts</b> de la Copa. El taller, el tallerista y su código se mantienen: el tallerista puede volver a registrarlos. Esto no se puede deshacer.</p>
+        <p class="error"></p>
+        <div class="modal__acciones"><button class="btn" data-cancelar>Cancelar</button><button class="btn btn--peligro" data-si>${I.basura}Borrar resultado</button></div>`);
+      $("[data-cancelar]", m.el).onclick = m.cerrar;
+      $("[data-si]", m.el).onclick = async (ev) => {
+        ev.currentTarget.disabled = true;
+        try { await api.adminTallerBorrar(codigo, tid); m.cerrar(); aviso(`Resultado del Taller ${t.num} borrado`); recargar(true); }
+        catch (e) { $(".error", m.el).textContent = e.message; ev.currentTarget.disabled = false; }
+      };
+    }));
     $$("[data-taller]", v).forEach((b) => (b.onclick = async () => {
       const tid = b.dataset.taller; const ab = tallerAbierto(tid);
       if (ab && !(await confirmar("¿Cerrar el registro?", `El tallerista del <b>Taller ${esc(tallerPorId(tid).num)}</b> ya no podrá cambiar a los ganadores. Puedes reabrirlo cuando quieras.`, { boton: "Cerrar registro", peligro: true }))) return;

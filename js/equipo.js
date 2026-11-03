@@ -3,12 +3,12 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031549";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611031549";
-import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa } from "./acta.js?v=202611031549";
-import { porId } from "./concursos.js?v=202611031549";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611031549";
-import { salir } from "./app.js?v=202611031549";
+import { api, ES_DEMO } from "./api.js?v=202611031705";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611031705";
+import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa } from "./acta.js?v=202611031705";
+import { porId } from "./concursos.js?v=202611031705";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611031705";
+import { salir } from "./app.js?v=202611031705";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
