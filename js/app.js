@@ -1,15 +1,15 @@
 // =========================================================
-// Panel de Jurados · VI CONCEPMI 2026 · arranque y portada
+// Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031255";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031255";
-import { CONCURSOS } from "./concursos.js?v=202611031255";
-import { vistaJurado } from "./jurado.js?v=202611031255";
-import { vistaAdmin } from "./admin.js?v=202611031255";
-import { vistaTallerista } from "./tallerista.js?v=202611031255";
-import { vistaQuiz } from "./quiz.js?v=202611031255";
-import { vistaEquipo } from "./equipo.js?v=202611031255";
-import { vistaCoordinador } from "./coordinador.js?v=202611031255";
+import { api, ES_DEMO } from "./api.js?v=202611031256";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031256";
+import { CONCURSOS } from "./concursos.js?v=202611031256";
+import { vistaJurado } from "./jurado.js?v=202611031256";
+import { vistaAdmin } from "./admin.js?v=202611031256";
+import { vistaTallerista } from "./tallerista.js?v=202611031256";
+import { vistaQuiz } from "./quiz.js?v=202611031256";
+import { vistaEquipo } from "./equipo.js?v=202611031256";
+import { vistaCoordinador } from "./coordinador.js?v=202611031256";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -23,7 +23,7 @@ export const sesion = {
 export function salir() { sesion.borrar(); portada(); }
 
 function portada() {
-  document.title = "Panel de Jurados · CONCEPMI VI 2026";
+  document.title = "Panel Maestro · CONCEPMI VI 2026";
   const academicos = CONCURSOS.filter((c) => c.tipo === "academico").length;
   const culturales = CONCURSOS.filter((c) => c.tipo === "cultural").length;
   app.innerHTML = `
@@ -32,7 +32,7 @@ function portada() {
     <header class="portada__barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI">
       <span class="sep"></span>
-      <div><div class="barra__titulo">Panel de Jurados</div><div class="barra__sub">VI CONCEPMI 2026 · Calificación oficial</div></div>
+      <div><div class="barra__titulo">Panel Maestro</div><div class="barra__sub">VI CONCEPMI 2026 · Centro de control</div></div>
       <div class="der">
         <span class="en-vivo"><span class="punto punto--vivo"></span>EN VIVO</span>
         <img class="club" src="${IMG.club}" alt="PMI Lima Perú Chapter Student Club">
@@ -42,8 +42,8 @@ function portada() {
       <div>
         <p class="escena__pre">PMI LIMA STUDENT CLUB PRESENTA</p>
         <img class="escena__logo" src="${IMG.logo}" alt="CONCEPMI VI" style="margin:0 auto">
-        <h1 class="escena__titulo">Panel de Jurados</h1>
-        <p class="escena__sub">Califica cada concurso con la rúbrica oficial de sus bases. Los puntajes llegan en vivo a la Copa CONCEPMI VI.</p>
+        <h1 class="escena__titulo">Panel Maestro</h1>
+        <p class="escena__sub">El centro de control del VI CONCEPMI: calificaciones de los jurados, entregas de los equipos, talleres, charlas y logística en un solo lugar. Todo suma en vivo a la Copa CONCEPMI VI.</p>
         <div class="pildoras">
           <span class="pildora pildora--lila">${I.libro}${academicos} concursos académicos</span>
           <span class="pildora pildora--celeste">${I.bandera}${culturales} eventos culturales</span>
@@ -65,13 +65,13 @@ function portada() {
           <button class="puerta puerta--equipo" data-rol="equipo">
             <span class="puerta__icono">${I.tabla}</span>
             <span class="puerta__nombre">Equipo</span>
-            <span class="puerta__txt">Concursos: llena y envía el entregable de tu equipo (matriz de riesgos).</span>
+            <span class="puerta__txt">Concursos: llena y envía el entregable de tu equipo (acta de constitución o matriz de riesgos).</span>
             <span class="puerta__ir">Entrar a mi concurso ${I.flecha}</span>
           </button>
           <button class="puerta puerta--admin" data-rol="admin">
             <span class="puerta__icono">${I.escudo}</span>
             <span class="puerta__nombre">Admin</span>
-            <span class="puerta__txt">Resultados en vivo, jurados, talleristas, delegaciones y Excel.</span>
+            <span class="puerta__txt">Resultados en vivo, jurados, entregas, logística y Excel. También coordinadores de sala.</span>
             <span class="puerta__ir">Abrir panel ${I.flecha}</span>
           </button>
         </div>

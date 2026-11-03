@@ -1,4 +1,4 @@
-# Panel de Jurados · VI CONCEPMI 2026
+# Panel Maestro (antes «Panel de Jurados») · VI CONCEPMI 2026
 
 Contexto para Claude Code. El usuario (Andy, director del proyecto CONCEPMI VI, PMI Lima Perú
 Chapter Student Club) **no sabe programar**: explica en español sencillo, sin jerga, y haz tú
