@@ -7,10 +7,10 @@
 //  · Proyector: tarjeta «Expone ahora / Sigue» con turno, archivos y cronómetro 5 + 3 min.
 // Los archivos están en un espacio privado; se abren con enlaces temporales (api.presUrl).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611032102";
-import { ENTREGABLES } from "./entregables.js?v=202611032102";
-import { porId } from "./concursos.js?v=202611032102";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611032102";
+import { api, ES_DEMO } from "./api.js?v=202611032144";
+import { ENTREGABLES } from "./entregables.js?v=202611032144";
+import { porId } from "./concursos.js?v=202611032144";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611032144";
 
 const LIMA = "America/Lima";
 export const fechaLima = (t) => new Date(t).toLocaleString("es-PE", { timeZone: LIMA, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -52,17 +52,23 @@ export async function vistaPresentacion(app, codigo, salir) {
   let desfase = Date.parse(P.config.ahora) - Date.now();
   const limpiar = () => { clearInterval(tic); clearInterval(sondeo); clearTimeout(guardarT); };
 
+  const INFO = {
+    ppt: { ico: "PPT", t: "Presentación en PowerPoint", d: "Formato .pptx (o .ppt). Queda como respaldo y lo revisan los jurados.", acepta: ".pptx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint", ver: "Descargar mi PPT" },
+    pdf: { ico: "PDF", t: "Presentación en PDF · ES LA QUE SE PROYECTA", d: "Exporten su PowerPoint a PDF (Archivo → Exportar → PDF). En el auditorio se proyecta este PDF y pasan las diapositivas con el puntero. Las animaciones no se ven: diseñen cada paso como una diapositiva.", acepta: ".pdf,application/pdf", ver: "Ver mi PDF" },
+    video: { ico: "▶", t: "Video (opcional)", d: "Si su pitch incluye un video, súbanlo aquí en .mp4 (máx. 50 MB, ideal 720p y menos de 1 min). Se reproduce dentro de la pantalla, después de la diapositiva que indiquen.", acepta: ".mp4,.mov,.webm,.m4v,video/mp4,video/quicktime,video/webm", ver: "Ver mi video" },
+  };
   function slot(tipo) {
-    const f = P.presentacion[tipo], ppt = tipo === "ppt", abierta = P.config.puede;
-    return `<article class="tarjeta pres-slot ${f ? "pres-slot--ok" : ""}" data-slot="${tipo}">
-      <div class="pres-slot__ico ${ppt ? "pres-slot__ico--ppt" : "pres-slot__ico--pdf"}">${ppt ? "PPT" : "PDF"}</div>
-      <div class="pres-slot__txt"><h3>${ppt ? "Presentación en PowerPoint" : "Copia en PDF (respaldo)"} <span class="chip ${f ? "chip--verde" : "chip--ambar"}">${f ? "✓ Subido" : "Pendiente"}</span></h3>
-        <p>${ppt ? "Formato .pptx (o .ppt). Es el archivo que se proyectará en el auditorio." : "El mismo pitch exportado a PDF, por si el PowerPoint falla en el proyector."}</p>
+    const f = P.presentacion[tipo], k = INFO[tipo], abierta = P.config.puede, opcional = tipo === "video";
+    return `<article class="tarjeta pres-slot ${f ? "pres-slot--ok" : ""} ${tipo === "pdf" ? "pres-slot--clave" : ""}" data-slot="${tipo}">
+      <div class="pres-slot__ico pres-slot__ico--${tipo}">${k.ico}</div>
+      <div class="pres-slot__txt"><h3>${k.t} <span class="chip ${f ? "chip--verde" : opcional ? "" : "chip--ambar"}">${f ? "✓ Subido" : opcional ? "Opcional" : "Pendiente"}</span></h3>
+        <p>${k.d}</p>
+        ${tipo === "video" && f ? `<label class="campo pres-despues"><span>Mostrar el video después de la diapositiva N.º</span><input data-d="videoDespues" inputmode="numeric" maxlength="3" value="${esc(datos.videoDespues || "")}" placeholder="Ej. 4" ${abierta ? "" : "disabled"}></label>` : ""}
         ${f ? `<p class="pres-slot__arch"><b>${esc(f.nombre)}</b> · ${mb(f.tamano)} · subido ${fechaLima(f.subido)}</p>` : ""}
         <div class="pres-barra" data-barra hidden><i></i><span>0 %</span></div>
         <div class="pres-slot__acc">
-          ${abierta ? `<label class="btn ${f ? "" : "btn--naranja"}">${I.descargar}<span>${f ? "Reemplazar archivo" : "Elegir archivo"}</span><input type="file" data-archivo="${tipo}" accept="${ppt ? ".pptx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint" : ".pdf,application/pdf"}" hidden></label>` : ""}
-          ${f ? `<button class="btn" data-ver="${tipo}">${I.vivo}${ppt ? "Descargar mi PPT" : "Ver mi PDF"}</button>` : ""}
+          ${abierta ? `<label class="btn ${f || opcional ? "" : "btn--naranja"}">${I.descargar}<span>${f ? "Reemplazar archivo" : "Elegir archivo"}</span><input type="file" data-archivo="${tipo}" accept="${k.acepta}" hidden></label>` : ""}
+          ${f ? `<button class="btn" data-ver="${tipo}">${I.vivo}${k.ver}</button>` : ""}
         </div></div></article>`;
   }
 
@@ -85,12 +91,13 @@ export async function vistaPresentacion(app, codigo, salir) {
           <label class="campo"><span>Nombre del proyecto</span><input data-d="proyecto" maxlength="160" value="${esc(datos.proyecto)}" placeholder="Ej. AgroScan" ${cfg.puede ? "" : "disabled"}></label>
           <label class="campo"><span>Líder de equipo</span><input data-d="lider" maxlength="120" value="${esc(datos.lider)}" placeholder="Nombre y apellido" ${cfg.puede ? "" : "disabled"}></label>
         </section>
-        <div class="pres-slots">${slot("ppt")}${slot("pdf")}</div>
+        <div class="pres-slots">${slot("pdf")}${slot("ppt")}${slot("video")}</div>
         <details class="eq-guia" open><summary>${I.info} Recomendaciones para que se vea perfecto en el auditorio</summary>
           <ul class="pres-tips">
-            <li>Usen formato <b>16:9</b> y <b>incrusten las fuentes</b> (PowerPoint → Archivo → Opciones → Guardar → «Incrustar fuentes en el archivo»).</li>
-            <li>Si tienen <b>videos</b>, insértenlos dentro del PPT (no como enlace a internet) y revisen que el archivo no pase de <b>50 MB</b>.</li>
-            <li>El <b>PDF</b> es obligatorio como respaldo: si el PowerPoint falla en el proyector, se usa el PDF.</li>
+            <li><b>Lo que se proyecta es su PDF</b>, a pantalla completa, y ustedes pasan las diapositivas con el puntero. Usen formato <b>16:9</b>.</li>
+            <li>El PDF no muestra animaciones ni transiciones: si algo debe aparecer «por partes», háganlo en diapositivas seguidas.</li>
+            <li>Si tienen un <b>video</b>, súbanlo aparte en .mp4 e indiquen después de qué diapositiva va: se reproduce solo al pasar con el puntero.</li>
+            <li>El <b>PowerPoint</b> también es obligatorio: queda como respaldo y lo revisan los jurados.</li>
             <li>Tienen <b>5 min de pitch + 3 min de preguntas</b>. Los jurados verán su presentación también en sus laptops.</li>
           </ul></details>
         <p class="ayuda" data-guardado></p>
@@ -98,6 +105,7 @@ export async function vistaPresentacion(app, codigo, salir) {
       ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
     $("[data-salir]", app).onclick = () => { limpiar(); salir(); };
     $$("[data-d]", app).forEach((el) => (el.oninput = () => {
+      if (el.dataset.d === "videoDespues") el.value = el.value.replace(/\D/g, "");
       datos[el.dataset.d] = el.value; clearTimeout(guardarT); $("[data-guardado]", app).textContent = "Guardando…";
       guardarT = setTimeout(async () => { try { await api.equipoGuardar(codigo, datos); $("[data-guardado]", app).textContent = "✓ Guardado"; } catch (e) { $("[data-guardado]", app).textContent = e.message; } }, 900);
     }));
@@ -105,11 +113,11 @@ export async function vistaPresentacion(app, codigo, salir) {
     $$("[data-archivo]", app).forEach((inp) => (inp.onchange = async () => {
       const f = inp.files?.[0]; if (!f) return;
       const tipo = inp.dataset.archivo, caja = $(`[data-slot="${tipo}"]`, app), barra = $("[data-barra]", caja);
-      if (f.size > 52428800) return aviso(`«${f.name}» pesa ${mb(f.size)}. El máximo es 50 MB: comprime las imágenes o videos.`, "error");
+      if (f.size > 52428800) return aviso(`«${f.name}» pesa ${mb(f.size)}. El máximo es 50 MB: comprime las imágenes o el video.`, "error");
       barra.hidden = false; $$("button, label.btn", caja).forEach((x) => x.classList.add("deshabilitado"));
       try {
         await api.presSubir(codigo, tipo, f, (p) => { $("i", barra).style.width = `${Math.round(p * 100)}%`; $("span", barra).textContent = `${Math.round(p * 100)} %`; });
-        P = await api.equipoPresentacion(codigo); lanzarConfeti(); aviso(`${tipo === "ppt" ? "PowerPoint" : "PDF"} subido`); pintar();
+        P = await api.equipoPresentacion(codigo); lanzarConfeti(); aviso(`${tipo === "ppt" ? "PowerPoint" : tipo === "pdf" ? "PDF" : "Video"} subido`); pintar();
       } catch (e) { aviso(e.message, "error"); barra.hidden = true; $$(".deshabilitado", caja).forEach((x) => x.classList.remove("deshabilitado")); }
     }));
     reloj();
@@ -175,9 +183,9 @@ export function conectarPlazo(v, { codigo, concurso, cfg, recargar }) {
   });
 }
 export function celdaArchivos(p, puede) {
-  const una = (t) => { const f = p?.[t]; return `<div class="pres-celda ${f ? "pres-celda--ok" : ""}"><b>${t.toUpperCase()}</b>${f ? `<span title="${esc(f.nombre)}">${esc(f.nombre)} · ${mb(f.tamano)}<br><small>${fechaLima(f.subido)}</small></span>
-    <button class="btn btn--mini" data-pres-ver="${t}" data-eq="${p.equipo_id}">${t === "pdf" ? "Ver" : "Bajar"}</button>` : `<span class="tenue">${puede ? "pendiente" : "no entregó"}</span>`}</div>`; };
-  return `<div class="pres-celdas">${una("ppt")}${una("pdf")}</div>`;
+  const una = (t) => { const f = p?.[t]; return `<div class="pres-celda ${f ? "pres-celda--ok" : ""}"><b>${t === "video" ? "VID" : t.toUpperCase()}</b>${f ? `<span title="${esc(f.nombre)}">${esc(f.nombre)} · ${mb(f.tamano)}<br><small>${fechaLima(f.subido)}</small></span>
+    <button class="btn btn--mini" data-pres-ver="${t}" data-eq="${p.equipo_id}">${t === "ppt" ? "Bajar" : "Ver"}</button>` : `<span class="tenue">${puede ? "pendiente" : "no entregó"}</span>`}</div>`; };
+  return `<div class="pres-celdas">${una("pdf")}${una("ppt")}${p?.video ? una("video") : ""}</div>`;
 }
 
 // ---------------- Imagen del orden (para WhatsApp) ----------------
@@ -304,18 +312,18 @@ export async function descargarZip(items, url) {
   const m = modal(`<h2>Preparando el ZIP</h2><p data-prog>Cargando…</p><div class="pres-barra"><i data-bar style="width:0%"></i><span data-pct>0 %</span></div><p class="ayuda">No cierres esta ventana. Los archivos se descargan uno por uno.</p>`);
   try {
     const JSZip = await cargarJSZip(); const zip = new JSZip(); const faltan = [];
-    const tareas = items.flatMap((it) => ["ppt", "pdf"].map((t) => ({ it, t })));
+    const tareas = items.flatMap((it) => ["pdf", "ppt", ...(it.pres?.video ? ["video"] : [])].map((t) => ({ it, t })));
     let k = 0;
     for (const { it, t } of tareas) {
       k++; $("[data-prog]", m.el).textContent = `${k} de ${tareas.length} · ${nomDel(it.delegacion)} · ${t.toUpperCase()}`;
       const f = it.pres?.[t];
-      if (!f) { faltan.push(`${nomDel(it.delegacion)} (${t.toUpperCase()})`); continue; }
+      if (!f) { if (t !== "video") faltan.push(`${nomDel(it.delegacion)} (${t.toUpperCase()})`); continue; }
       const ext = (f.nombre.split(".").pop() || t).toLowerCase();
       const r = await fetch(await url(it.pres.equipo_id, t)); if (!r.ok) throw new Error(`No se pudo bajar el ${t.toUpperCase()} de ${nomDel(it.delegacion)}`);
-      zip.file(`${t === "pdf" ? "PDF de respaldo/" : ""}${archivoZip(it.pos, it.delegacion, ext)}`, await r.blob());
+      zip.file(`${t === "pdf" ? "PDF (se proyecta)/" : t === "video" ? "Videos/" : "PowerPoint (respaldo)/"}${archivoZip(it.pos, it.delegacion, ext)}`, await r.blob());
       const p = Math.round((k / tareas.length) * 100); $("[data-bar]", m.el).style.width = `${p}%`; $("[data-pct]", m.el).textContent = `${p} %`;
     }
-    zip.file("LEEME.txt", `Presentaciones del Concurso de Proyectos · VI CONCEPMI 2026\nNumeradas según el orden del sorteo.\nCopia esta carpeta a la laptop del proyector y a una USB de respaldo.\n${faltan.length ? `\nFaltan: ${faltan.join(", ")}\n` : ""}`);
+    zip.file("LEEME.txt", `Presentaciones del Concurso de Proyectos · VI CONCEPMI 2026\nNumeradas según el orden del sorteo.\nEn la pantalla del concurso se proyecta el PDF; el PowerPoint y los videos quedan de respaldo.\nCopia esta carpeta a la laptop del proyector y a una USB.\n${faltan.length ? `\nFaltan: ${faltan.join(", ")}\n` : ""}`);
     $("[data-prog]", m.el).textContent = "Comprimiendo…";
     const blob = await zip.generateAsync({ type: "blob" });
     const a = document.createElement("a"); a.download = "presentaciones-concurso-proyectos.zip"; a.href = URL.createObjectURL(blob); a.click();

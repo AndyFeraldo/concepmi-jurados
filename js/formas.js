@@ -4,9 +4,9 @@
 //  · acta → Amateur I (js/acta.js)   · mvp → IATHON (js/mvp.js)
 // La matriz de riesgos (Amateur II) es otro tipo y no pasa por aquí.
 // =========================================================
-import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa, chipsActa, vistaActa } from "./acta.js?v=202611032102";
-import { normalizarMvp, limpiarMvp, editorMvp, enlazarMvp, resumenMvp, chipsMvp, vistaMvp, textoResumenMvp, conectarEmbed } from "./mvp.js?v=202611032102";
-import { ENTREGABLES } from "./entregables.js?v=202611032102";
+import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa, chipsActa, vistaActa } from "./acta.js?v=202611032144";
+import { normalizarMvp, limpiarMvp, editorMvp, enlazarMvp, resumenMvp, chipsMvp, vistaMvp, textoResumenMvp, conectarEmbed } from "./mvp.js?v=202611032144";
+import { ENTREGABLES } from "./entregables.js?v=202611032144";
 
 export const FORMAS = {
   acta: {

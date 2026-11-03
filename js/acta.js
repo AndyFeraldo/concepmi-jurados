@@ -5,7 +5,7 @@
 // Datos: { lider, general:{}, proposito:{}, objetivos:[], requisitos:[], alcance:{}, riesgos:[],
 //          hitos:[], presupuesto:[], interesados:[], gobernanza:{}, firmas:{ sponsor:{nombre,img}, director:{nombre,img} } }
 // =========================================================
-import { $, $$, esc, I } from "./ui.js?v=202611032102";
+import { $, $$, esc, I } from "./ui.js?v=202611032144";
 
 export const SECCIONES = [
   { id: "general", n: 1, titulo: "Información general", tipo: "campos", req: ["nombre", "sponsor", "director"], campos: [

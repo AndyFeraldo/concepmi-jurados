@@ -1,14 +1,14 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611032102";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611032102";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611032102";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611032102";
-import { salir } from "./app.js?v=202611032102";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611032102";
-import { abrirVisor } from "./entrega-visor.js?v=202611032102";
-import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611032102";
+import { api, ES_DEMO } from "./api.js?v=202611032144";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611032144";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611032144";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611032144";
+import { salir } from "./app.js?v=202611032144";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611032144";
+import { abrirVisor } from "./entrega-visor.js?v=202611032144";
+import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611032144";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
@@ -139,7 +139,7 @@ export async function vistaJurado(app, codigo) {
       if (cajaPres) api.juradoPresentaciones(codigo, cid).then((r) => {
         const pr = r.equipos.find((x) => x.delegacion_id === form.did), orden = r.config?.orden || [], turno = orden.indexOf(form.did);
         const b = (t) => pr?.[t] ? `<button class="btn btn--mini ${t === "pdf" ? "btn--naranja" : ""}" data-jpres="${t}">${I.vivo}${t === "pdf" ? "Ver PDF" : "Bajar PPT"} <small>(${mb(pr[t].tamano)})</small></button>` : `<span class="chip">Sin ${t.toUpperCase()}</span>`;
-        cajaPres.innerHTML = `<span>${I.tabla}<b>Presentación de este equipo</b>${turno >= 0 ? ` · turno <b>${turno + 1}</b> de ${orden.length}` : ""}: ábrela en tu laptop mientras expone.</span>${b("pdf")}${b("ppt")}`;
+        cajaPres.innerHTML = `<span>${I.tabla}<b>Presentación de este equipo</b>${turno >= 0 ? ` · turno <b>${turno + 1}</b> de ${orden.length}` : ""}: ábrela en tu laptop mientras expone.</span>${b("pdf")}${b("ppt")}${pr?.video ? `<button class="btn btn--mini" data-jpres="video">${I.vivo}Ver video <small>(${mb(pr.video.tamano)})</small></button>` : ""}`;
         $$("[data-jpres]", cajaPres).forEach((x) => (x.onclick = () => abrirArchivo(codigo, pr.equipo_id, x.dataset.jpres)));
       }).catch((e) => { cajaPres.innerHTML = `<span>${I.alerta} ${esc(e.message)}</span>`; });
       $("[data-vertodas]", app)?.addEventListener("click", () => ver(null));

@@ -3,13 +3,14 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611032102";
-import { ENTREGABLES } from "./entregables.js?v=202611032102";
-import { porId } from "./concursos.js?v=202611032102";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611032102";
-import { abrirEscenario } from "./escenario.js?v=202611032102";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611032102";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611032102";
+import { api } from "./api.js?v=202611032144";
+import { ENTREGABLES } from "./entregables.js?v=202611032144";
+import { porId } from "./concursos.js?v=202611032144";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611032144";
+import { abrirEscenario } from "./escenario.js?v=202611032144";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611032144";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611032144";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611032144";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -172,7 +173,7 @@ export function crearEntregas(ctx) {
             <div class="en-opcion"><button class="btn btn--naranja" data-sorteo ${eqs.length > 1 ? "" : "disabled"}>${I.girar}${cfg.orden.length ? "Ver / repetir sorteo" : "Sorteo del orden"}</button>
               <p><b>Un día antes del concurso.</b> Sortea el orden de exposición con animación, guárdalo y descarga la <b>imagen para WhatsApp</b>.</p></div>
             <div class="en-opcion"><button class="btn btn--naranja" data-escenario>${I.pizarra}Proyectar pantalla del concurso</button>
-              <p><b>En la laptop del proyector.</b> Portada con el orden, «Expone ahora / Sigue» y cronómetro de <b>5 min de pitch + 3 min de preguntas</b> que empieza al pulsar <b>Iniciar</b>.</p></div>
+              <p><b>En la laptop del proyector.</b> Muestra el <b>PDF de cada delegación dentro de la pantalla</b> (sin botones de descarga) y se pasa con el <b>puntero</b>. Si subieron video, se reproduce solo en la diapositiva que indicaron. Cronómetro de <b>5 min de pitch + 3 min de preguntas</b> que empieza al pulsar <b>Iniciar</b>.</p></div>
           </div>
           <div class="en-acc">
             <button class="btn btn--mini" data-zip ${nPpt + nPdf ? "" : "disabled"}>${I.descargar}Descargar todas (ZIP)</button>
@@ -216,11 +217,11 @@ export function crearEntregas(ctx) {
       (eq, tipo) => api.presUrl(ctx.codigo(), eq, tipo, true));
     const notas = async () => { try { await ctx.recargar(true); } catch { /* usa lo cargado */ } return ctx.data(); };
     $("[data-imprimir]", v).onclick = async () => { const d = await notas(); imprimir(concurso, eqs.map((x) => x.entrega), nombreE, { notas: d }); };
-    // Pantalla del concurso: el orden y los archivos se leen cada pocos segundos
-    const cargarVisor = async () => { const [r, pp] = await Promise.all([api.adminEntregas(ctx.codigo(), concurso), api.adminPresentaciones(ctx.codigo(), concurso)]);
-      return { tiempo: r.tiempo, entregas: r.equipos.map((x) => x.entrega), pres: pp }; };
-    $("[data-escenario]", v).onclick = () => abrirEscenario({ concurso, cargar: cargarVisor, nombre: nombreE, accion: async () => {},
-      pres: { abrir, delegacion: (did) => del(did) },
+    // Pantalla del concurso: proyecta el PDF de cada delegación dentro de la pantalla y se avanza con el puntero
+    $("[data-escenario]", v).onclick = () => abrirSalaProyectos({ concurso: c?.nombre || "Concurso Nacional de Proyectos", minutos: def.cortos,
+      equipos: eqs.map((x) => ({ equipo_id: x.id, delegacion: del(x.entrega.delegacion_id), proyecto: x.entrega.datos?.proyecto || "", lider: x.entrega.datos?.lider || "",
+        videoDespues: x.entrega.datos?.videoDespues || "", pres: presDe(x.id) })),
+      url: (eq, tipo) => api.presUrl(ctx.codigo(), eq, tipo), abrir,
       alCerrar: async () => { try { await cargar(); pintar(v); } catch { /* sigue */ } } });
   }
 

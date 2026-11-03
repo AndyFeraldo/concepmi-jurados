@@ -1319,3 +1319,73 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .escenario--pres .escenario__mini b{ font-size:clamp(3.4rem,7vw,6.6rem); }
 @media (max-width:900px){ .pres-expo{ grid-template-columns:1fr; grid-template-areas:"turno" "info" "sigue" "ruta"; } }
 .en-jurado--pres{ flex-wrap:wrap; }
+
+/* ---------- Concurso de Proyectos: pantalla con el PDF dentro (js/sala-proyectos.js) ---------- */
+.sala{ position:fixed; inset:0; z-index:75; overflow:hidden; isolation:isolate; cursor:none; color:#fff;
+  background:radial-gradient(circle at 20% 10%, #3A1AA8, #170D56 55%, #0B0630); }
+.sala--ctrl{ cursor:auto; }
+.sala .fondo, .sala .deco{ position:absolute; }
+.sala__vista{ position:absolute; inset:0; display:grid; }
+.sala__negro{ position:absolute; inset:0; z-index:5; background:#000; }
+.sala__barra{ position:absolute; left:0; right:0; bottom:0; height:6px; z-index:4; transform-origin:left; background:linear-gradient(90deg, var(--celeste), #7CF3FF); transition:transform .25s linear; }
+.sala__barra.sala-t--alerta{ background:#FAB219; } .sala__barra.sala-t--fin{ background:#FF3B5C; }
+.sala__ctrl{ position:absolute; left:50%; bottom:14px; z-index:8; transform:translate(-50%, 140%); opacity:0; transition:.25s; width:max-content; max-width:calc(100vw - 24px);
+  display:flex; flex-wrap:wrap; justify-content:center; gap:8px 14px; padding:10px 14px; border-radius:18px; background:rgba(10,6,40,.92); border:1px solid rgba(169,139,255,.4); box-shadow:0 18px 50px -12px #000; }
+.sala--ctrl .sala__ctrl{ transform:translate(-50%, 0); opacity:1; }
+.sala__grupo{ display:flex; gap:6px; align-items:center; }
+.sala__grupo select{ background:#1B1060; color:#fff; border:1px solid rgba(169,139,255,.5); border-radius:10px; padding:.35em .6em; font:inherit; font-size:.85rem; }
+.sala__ctrl .btn.activo{ background:var(--naranja); border-color:var(--naranja); color:#fff; }
+.sala__ayuda{ width:100%; margin:0; text-align:center; font-size:.75rem; color:var(--niebla); }
+
+/* Reloj */
+.sala-t{ display:grid; justify-items:end; line-height:1; }
+.sala-t small{ font-family:var(--neon); letter-spacing:.18em; text-transform:uppercase; font-size:clamp(.6rem, 1vw, .9rem); color:var(--celeste); }
+.sala-t b{ font-family:var(--neon); font-weight:400; font-variant-numeric:tabular-nums; font-size:clamp(2.2rem, 5.2vw, 4.6rem); }
+.sala-t--grande{ justify-items:center; margin:3vh auto 2vh; padding:1.4vh 3.4vw 1.8vh; border-radius:26px; background:rgba(14,8,56,.55); border:1px solid rgba(169,139,255,.45); }
+.sala-t--grande b{ font-size:clamp(3.6rem, 10vw, 8.5rem); text-shadow:0 0 40px rgba(31,203,234,.45); }
+.sala-t--espera b{ color:#E8E0FF; }
+.sala-t--alerta b, .sala-t--alerta small{ color:#FAB219; }
+.sala-t--fin b, .sala-t--fin small{ color:#FF3B5C; animation:sala-parpadeo .6s steps(2, start) infinite; }
+@keyframes sala-parpadeo{ to{ visibility:hidden; } }
+
+/* Orden general */
+.sala-orden{ position:relative; z-index:1; display:grid; justify-items:center; align-content:center; gap:1.4vh; padding:4vh 4vw; text-align:center; }
+.sala-orden__logo{ width:min(40vw, 420px); }
+.sala-orden__tit{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(2rem, 5vw, 4.4rem); line-height:1.05; }
+.sala-orden__sub{ margin:0; color:var(--celeste); font-family:var(--neon); letter-spacing:.2em; text-transform:uppercase; font-size:clamp(.8rem, 1.4vw, 1.2rem); }
+.sala-orden__lista{ list-style:none; margin:2vh 0 0; padding:0; display:flex; flex-wrap:wrap; justify-content:center; gap:1.2vh 1.2vw; width:min(1200px, 92vw); }
+.sala-orden__lista li{ flex:0 1 clamp(150px, 17vw, 230px); }
+.sala-orden__lista li{ display:flex; align-items:center; gap:.8em; padding:1.2vh 1.2vw; border-radius:16px; background:rgba(14,8,56,.6); border:1px solid rgba(169,139,255,.35); animation:subir .6s calc(var(--i) * 70ms) both; }
+.sala-orden__lista b{ font-family:var(--neon); font-weight:400; color:var(--naranja); font-size:clamp(1.2rem, 2.2vw, 2rem); }
+.sala-orden__lista span{ font-weight:700; font-size:clamp(1rem, 1.8vw, 1.6rem); text-align:left; }
+.sala-orden__lista li.ahora{ border-color:var(--naranja); box-shadow:0 0 30px -6px var(--naranja); }
+
+/* Portada del turno */
+.sala-portada{ position:relative; z-index:1; display:grid; grid-template-rows:auto 1fr; padding:3vh 4vw; }
+.sala-portada__cab{ display:flex; align-items:center; gap:1.2vw; }
+.sala-portada__cab img{ height:clamp(40px, 8vh, 80px); }
+.sala-portada__cab span{ font-family:var(--neon); font-size:clamp(1rem, 2vw, 1.8rem); }
+.sala-portada__cuerpo{ display:grid; justify-items:center; align-content:center; text-align:center; gap:.6vh; animation:subir .7s both; }
+.sala-portada__turno{ margin:0; font-family:var(--neon); letter-spacing:.2em; text-transform:uppercase; color:var(--celeste); font-size:clamp(1rem, 2.4vw, 2rem); }
+.sala-portada__turno b{ font-weight:400; color:var(--naranja); font-size:1.6em; }
+.sala-portada__sigla{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(3rem, 11vw, 10rem); line-height:1; text-shadow:0 0 50px rgba(255,122,0,.35); }
+.sala-portada__nombre{ margin:0; font-size:clamp(1rem, 2.2vw, 1.9rem); color:#E6DDFF; max-width:80vw; }
+.sala-portada__proy{ margin:.6vh 0 0; font-size:clamp(1.1rem, 2.6vw, 2.2rem); font-weight:700; color:#FFD27A; max-width:80vw; }
+.sala-portada__lobo{ position:absolute; right:3vw; bottom:3vh; width:min(16vw, 200px); filter:drop-shadow(0 12px 30px rgba(0,0,0,.5)); }
+.sala-chip{ display:inline-block; padding:.4em 1em; border-radius:999px; background:rgba(31,203,234,.15); border:1px solid rgba(31,203,234,.45); color:#BFF4FF; font-size:clamp(.8rem, 1.3vw, 1.05rem); }
+.sala-chip--no{ background:rgba(255,59,92,.15); border-color:rgba(255,59,92,.5); color:#FFC2CD; }
+
+/* Diapositivas */
+.sala-show{ position:relative; z-index:1; display:grid; grid-template-rows:auto 1fr; height:100vh; height:100dvh; background:#05031a; }
+.sala-show__cab{ display:flex; align-items:center; gap:1.4vw; padding:.6vh 1.6vw; background:linear-gradient(90deg, #170D56, #2A1590); border-bottom:2px solid rgba(255,122,0,.6); }
+.sala-show__cab img{ height:clamp(30px, 6vh, 56px); }
+.sala-show__quien{ flex:1; min-width:0; display:flex; align-items:baseline; gap:.8vw; white-space:nowrap; overflow:hidden; }
+.sala-show__quien small{ font-family:var(--neon); color:var(--celeste); letter-spacing:.12em; text-transform:uppercase; font-size:clamp(.7rem, 1.2vw, 1rem); }
+.sala-show__quien b{ font-family:var(--neon); font-weight:400; font-size:clamp(1.2rem, 2.6vw, 2.3rem); }
+.sala-show__quien span{ color:#FFD27A; font-weight:600; overflow:hidden; text-overflow:ellipsis; font-size:clamp(.85rem, 1.5vw, 1.3rem); }
+.sala-show__cab .sala-t{ display:flex; align-items:baseline; gap:.8vw; }
+.sala-show__lienzo{ position:relative; display:grid; place-items:center; overflow:hidden; min-height:0; padding:6px 0 10px; }
+.sala-show__lienzo canvas{ display:block; background:#fff; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+.sala-show__lienzo video{ width:100%; height:100%; object-fit:contain; background:#000; }
+.sala-show__msg{ display:grid; gap:.6em; text-align:center; } .sala-show__msg b{ font-size:clamp(1.4rem, 3vw, 2.6rem); } .sala-show__msg span{ color:var(--niebla); }
+.sala-show__num{ position:absolute; right:14px; bottom:14px; z-index:2; padding:.25em .7em; border-radius:999px; background:rgba(5,3,26,.7); color:#E6DDFF; font-size:clamp(.7rem, 1.1vw, .95rem); }

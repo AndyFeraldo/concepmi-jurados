@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611032102";
-import { CONCURSOS, porId } from "./concursos.js?v=202611032102";
-import { TALLERES } from "./talleres.js?v=202611032102";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611032102";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611032144";
+import { CONCURSOS, porId } from "./concursos.js?v=202611032144";
+import { TALLERES } from "./talleres.js?v=202611032144";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611032144";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -172,7 +172,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611032102");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611032144");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -228,7 +228,7 @@ const ARCHIVOS_DEMO = new Map();
 const presCfgRaw = (cid) => { const d = db(); d.presConfig ||= {}; return (d.presConfig[cid] ||= { limite: "2026-11-24T04:59:59.000Z", abierto: true }); };
 const presCfg = (cid) => { const c = presCfgRaw(cid), s = (db().sorteos || {})[cid];
   return { ...c, ahora: new Date().toISOString(), puede: c.abierto && Date.now() <= Date.parse(c.limite), orden: s?.orden || [], sorteado: s?.creado || null }; };
-const presJson = (e) => { const p = (db().pres || {})[e.id] || {}; return { equipo_id: e.id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", ppt: p.ppt || null, pdf: p.pdf || null }; };
+const presJson = (e) => { const p = (db().pres || {})[e.id] || {}; return { equipo_id: e.id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", ppt: p.ppt || null, pdf: p.pdf || null, video: p.video || null }; };
 const exigirLogistica = (c) => { if (norm(c) === db().admin) return; if (!(db().coordinadores || []).some((x) => x.codigo === norm(c) && x.logistica)) throw new Error("Este código no tiene acceso a Logística"); };
 const exigirSala = (c, concurso) => { if (norm(c) === db().admin) return; const k = (db().coordinadores || []).find((x) => x.codigo === norm(c)); if (!k || !k.concursos.includes(concurso)) throw new Error("Este código no puede manejar las entregas de este concurso"); };
 const eqDe = (c) => { const e = (db().equipos || []).find((x) => x.codigo === norm(c)); if (!e) throw new Error("Código de equipo incorrecto"); return e; };
@@ -588,6 +588,7 @@ const demo = {
     const ext = (archivo.name.split(".").pop() || "").toLowerCase();
     if (tipo === "ppt" && !["pptx", "ppt"].includes(ext)) throw new Error("El archivo de PowerPoint debe ser .pptx o .ppt");
     if (tipo === "pdf" && ext !== "pdf") throw new Error("El respaldo debe ser un archivo .pdf");
+    if (tipo === "video" && !["mp4", "mov", "webm", "m4v"].includes(ext)) throw new Error("El video debe ser .mp4 (también se acepta .mov o .webm)");
     if (archivo.size > 52428800) throw new Error("El archivo debe pesar como máximo 50 MB");
     for (let k = 1; k <= 10; k++) { await espera(60); alAvanzar?.(k / 10); }
     ARCHIVOS_DEMO.set(`${e.id}:${tipo}`, archivo); const d = db(); d.pres ||= {};
