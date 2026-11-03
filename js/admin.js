@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031728";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031728";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031728";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031728";
-import { exportarExcel } from "./excel.js?v=202611031728";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031728";
-import { crearLogistica } from "./admin-logistica.js?v=202611031728";
-import { crearEntregas } from "./admin-entregas.js?v=202611031728";
-import { crearCharlas } from "./admin-charlas.js?v=202611031728";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031728";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031728";
-import { salir } from "./app.js?v=202611031728";
+import { api, ES_DEMO } from "./api.js?v=202611031800";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031800";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031800";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031800";
+import { exportarExcel } from "./excel.js?v=202611031800";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031800";
+import { crearLogistica } from "./admin-logistica.js?v=202611031800";
+import { crearEntregas } from "./admin-entregas.js?v=202611031800";
+import { crearCharlas } from "./admin-charlas.js?v=202611031800";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031800";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031800";
+import { salir } from "./app.js?v=202611031800";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -284,7 +284,7 @@ export async function vistaAdmin(app, codigo) {
       for (const [yo, pts, rival, rivalNom] of [[A, e.puntaje_a, B, e.nombre_b], [B, e.puntaje_b, A, e.nombre_a]]) {
         if (!yo) continue;
         if (!por.has(yo.id)) por.set(yo.id, []);
-        por.get(yo.id).push({ puntos: Math.round(Number(pts) || 0), rival: rival ? rival.id : String(rivalNom || ""), rivalTxt: rival ? rival.siglas || rival.nombre : rivalNom });
+        por.get(yo.id).push({ enf: e.id, puntos: Math.round(Number(pts) || 0), rival: rival ? rival.id : String(rivalNom || ""), rivalTxt: rival ? rival.siglas || rival.nombre : rivalNom });
       }
     }
     const filas = [...por.entries()].map(([did, ps]) => {
@@ -301,15 +301,19 @@ export async function vistaAdmin(app, codigo) {
 
   async function traerConocimientos(c) {
     const m = modal(`<h2>Traer resultados del concurso</h2><div class="cargando" style="min-height:120px"><div class="giro"></div>Leyendo los enfrentamientos terminados…</div>`, { ancho: true });
-    let enfs;
-    try { enfs = await api.adminConocimientos(codigo); }
+    let enfs, historial;
+    try { ({ enfrentamientos: enfs, historial } = await api.adminConocimientos(codigo)); }
     catch (e) { m.el.innerHTML = `<h2>Traer resultados del concurso</h2><div class="vacio"><b>No se pudo leer el concurso</b>${esc(e.message)}</div><div class="modal__acciones"><button class="btn" data-cerrar>Cerrar</button></div>`; $("[data-cerrar]", m.el).onclick = m.cerrar; return; }
     const { filas, sinDel } = planConocimientos(enfs);
     const aplicar = filas.filter((f) => f.estado !== "igual" && !f.fuera);
+    // Enfrentamientos que entran a la Copa (los 2 primeros de cada delegación) y cuáles faltan marcar como exportados
+    const usadosIds = new Set(filas.filter((f) => !f.fuera).flatMap((f) => f.usados.map((x) => x.enf)));
+    const porMarcar = enfs.filter((e) => usadosIds.has(e.id) && !e.exportado).map((e) => e.id);
+    const yaExp = enfs.filter((e) => e.exportado).length;
     const etq = { nuevo: ["Nuevo", "chip--verde"], cambia: ["Cambia", "chip--ambar"], igual: ["Sin cambios", ""] };
     const enfTxt = (x) => (x ? `<b>${x.puntos}</b> <small class="tenue">vs ${esc(x.rivalTxt || "—")}</small>` : `<span class="tenue">Pendiente</span>`);
     m.el.innerHTML = `<h2>Traer resultados del concurso</h2>
-      <p class="ayuda" style="margin-top:0">Se leyeron <b>${enfs.length}</b> enfrentamiento${enfs.length === 1 ? "" : "s"} terminado${enfs.length === 1 ? "" : "s"} (los anulados no cuentan). Revisa y confirma: solo se actualizan las delegaciones marcadas como <b>Nuevo</b> o <b>Cambia</b>.</p>
+      <p class="ayuda" style="margin-top:0">Se leyeron <b>${enfs.length}</b> enfrentamiento${enfs.length === 1 ? "" : "s"} terminado${enfs.length === 1 ? "" : "s"} (los anulados no cuentan) · <b>${yaExp}</b> ya exportado${yaExp === 1 ? "" : "s"} antes. Revisa y confirma: solo se actualizan las delegaciones marcadas como <b>Nuevo</b> o <b>Cambia</b>.</p>
       ${sinDel.length ? `<div class="cerrado" style="margin:0 0 10px">${I.alerta}<span>Estos nombres del concurso <b>no coinciden con ninguna delegación</b> del panel y no se importan: <b>${sinDel.map(esc).join(", ")}</b>. Corrige el nombre en el concurso o crea la delegación con esas siglas.</span></div>` : ""}
       ${filas.length ? `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Delegación</th><th class="num">Enfrentamiento 1</th><th class="num">Enfrentamiento 2</th><th class="num">Puntos Copa</th><th>Estado</th></tr></thead><tbody>
         ${filas.map((f) => { const [t, cl] = etq[f.estado]; return `<tr><td><b>${esc(f.d?.siglas || f.d?.nombre || "—")}</b>${f.extra ? `<br><small class="chip chip--ambar log-tag">jugó ${f.ps.length}: se cuentan los 2 primeros</small>` : ""}</td>
@@ -319,7 +323,7 @@ export async function vistaAdmin(app, codigo) {
       <p class="ayuda">Las delegaciones que no jugaron se quedan como están. Si registraste algo a mano para una delegación que sí jugó, se reemplaza por lo del concurso.</p>
       <p class="error"></p>
       <div class="modal__acciones"><button class="btn" data-cancelar>Cancelar</button>
-        <button class="btn btn--naranja" data-confirmar ${aplicar.length ? "" : "disabled"}>${I.check}${aplicar.length ? `Confirmar y pasar a la Copa (${aplicar.length})` : "Todo está al día"}</button></div>`;
+        <button class="btn btn--naranja" data-confirmar ${aplicar.length || porMarcar.length ? "" : "disabled"}>${I.check}${aplicar.length ? `Confirmar y pasar a la Copa (${aplicar.length})` : porMarcar.length ? "Marcar como exportados" : "Todo exportado ✓"}</button></div>`;
     $("[data-cancelar]", m.el).onclick = m.cerrar;
     $("[data-confirmar]", m.el).onclick = async (ev) => {
       const b = ev.currentTarget; b.disabled = true; let ok = 0;
@@ -327,8 +331,12 @@ export async function vistaAdmin(app, codigo) {
         try { await api.adminManual(codigo, c.id, f.d.id, f.datos, false); ok++; }
         catch (e) { $(".error", m.el).textContent = `${f.d.siglas || f.d.nombre}: ${e.message}`; }
       }
-      await recargar(true);
-      if (ok === aplicar.length) { m.cerrar(); lanzarConfeti(); aviso(`${ok} delegación${ok === 1 ? "" : "es"} actualizada${ok === 1 ? "" : "s"} en la Copa`); }
+      if (ok === aplicar.length && porMarcar.length) {
+        const detalle = filas.filter((f) => !f.fuera).map((f) => ({ del: f.d.siglas || f.d.nombre, total: Math.min(70, f.total), estado: f.estado }));
+        try { await api.adminConocExportar(codigo, porMarcar, detalle); } catch (e) { aviso(`Copa actualizada, pero no se guardó el historial: ${e.message}`, "error"); }
+      }
+      await recargar(true); estadoConocimientos();
+      if (ok === aplicar.length) { m.cerrar(); lanzarConfeti(); aviso(ok ? `${ok} delegación${ok === 1 ? "" : "es"} actualizada${ok === 1 ? "" : "s"} en la Copa · datos exportados` : "Enfrentamientos marcados como exportados"); }
       else { b.disabled = false; aviso(`Se actualizaron ${ok} de ${aplicar.length}`, "error"); }
     };
   }
@@ -339,6 +347,7 @@ export async function vistaAdmin(app, codigo) {
         <div><b>${I.vivo} Vinculado al sistema del Concurso de Conocimientos</b><small>Haz el concurso en su página. Al terminar, pulsa <b>Traer resultados</b>, revisa y confirma: los puntos pasan solos a esta tabla y a la Copa.</small></div>
         <a class="btn" href="${URL_CONOCIMIENTOS}" target="_blank" rel="noopener">${I.flecha}Abrir Concurso de Conocimientos</a>
         <button class="btn btn--naranja" data-traer>${I.descargar}Traer resultados del concurso</button>
+        <div class="conoc-estado" data-conoc-estado><span class="tenue">Revisando exportaciones…</span></div>
       </div>` : ""}
       <button class="registro-cta" data-panel2>
         <span class="registro-cta__icono">${c.id === "talent" ? I.vivo : I.libro}</span>
@@ -349,6 +358,20 @@ export async function vistaAdmin(app, codigo) {
       <div class="tabla-envoltura">${tablaManual(c)}</div>`;
     $("[data-panel2]", r).onclick = () => panelManual(c);
     $("[data-traer]", r)?.addEventListener("click", () => traerConocimientos(c));
+    if (c.id === "conocimientos") estadoConocimientos();
+  }
+
+  // Estado visual: ¿todo exportado? + historial de exportaciones
+  async function estadoConocimientos() {
+    const caja = document.querySelector("[data-conoc-estado]"); if (!caja) return;
+    let r; try { r = await api.adminConocimientos(codigo); } catch (e) { caja.innerHTML = `<span class="chip chip--rojo">No se pudo revisar: ${esc(e.message)}</span>`; return; }
+    const enfs = r.enfrentamientos || [], hist = r.historial || [], pend = enfs.filter((e) => !e.exportado).length;
+    const fecha = (t) => new Date(t).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    caja.innerHTML = `${!enfs.length ? `<span class="chip">Aún no hay enfrentamientos terminados en el concurso</span>`
+        : pend ? `<span class="chip chip--ambar">${pend} enfrentamiento${pend === 1 ? "" : "s"} nuevo${pend === 1 ? "" : "s"} sin exportar</span>`
+        : `<span class="chip chip--verde">${I.check} Datos exportados · los ${enfs.length} enfrentamientos están en la Copa</span>`}
+      ${hist.length ? `<details class="conoc-hist"><summary>Historial de exportaciones (${hist.length})</summary><ol>${hist.map((h) => `<li><b>${fecha(h.creado)}</b> · ${h.n} enfrentamiento${h.n === 1 ? "" : "s"} exportado${h.n === 1 ? "" : "s"}
+        <div class="reparto" style="margin:4px 0 0">${(h.detalle || []).map((d) => `<span class="chip ${d.estado === "igual" ? "" : "chip--verde"}">${esc(d.del)} · ${d.total} pts</span>`).join("")}</div></li>`).join("")}</ol></details>` : ""}`;
   }
 
   function tablaManual(c, { seleccion = null, clicable = false } = {}) {

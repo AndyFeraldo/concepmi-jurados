@@ -1013,3 +1013,7 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .conoc-vinculo > div{ flex:1; min-width:240px; display:grid; gap:3px; }
 .conoc-vinculo b{ display:flex; align-items:center; gap:6px; } .conoc-vinculo b svg{ width:1.1em; height:1.1em; color:var(--celeste); }
 .conoc-vinculo small{ color:var(--niebla); font-size:.82rem; }
+.conoc-estado{ flex-basis:100%; display:grid; gap:8px; }
+.conoc-estado > .chip{ justify-self:start; }
+.conoc-hist summary{ cursor:pointer; font-weight:700; font-size:.85rem; color:var(--celeste); }
+.conoc-hist ol{ margin:8px 0 0; padding-left:20px; display:grid; gap:8px; font-size:.85rem; }
