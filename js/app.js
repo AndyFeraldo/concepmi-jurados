@@ -1,15 +1,15 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031533";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031533";
-import { CONCURSOS } from "./concursos.js?v=202611031533";
-import { vistaJurado } from "./jurado.js?v=202611031533";
-import { vistaAdmin } from "./admin.js?v=202611031533";
-import { vistaTallerista } from "./tallerista.js?v=202611031533";
-import { vistaQuiz } from "./quiz.js?v=202611031533";
-import { vistaEquipo } from "./equipo.js?v=202611031533";
-import { vistaCoordinador } from "./coordinador.js?v=202611031533";
+import { api, ES_DEMO } from "./api.js?v=202611031549";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031549";
+import { CONCURSOS } from "./concursos.js?v=202611031549";
+import { vistaJurado } from "./jurado.js?v=202611031549";
+import { vistaAdmin } from "./admin.js?v=202611031549";
+import { vistaTallerista } from "./tallerista.js?v=202611031549";
+import { vistaQuiz } from "./quiz.js?v=202611031549";
+import { vistaEquipo } from "./equipo.js?v=202611031549";
+import { vistaCoordinador } from "./coordinador.js?v=202611031549";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";

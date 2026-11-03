@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031533";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031533";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031533";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031533";
-import { exportarExcel } from "./excel.js?v=202611031533";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031533";
-import { crearLogistica } from "./admin-logistica.js?v=202611031533";
-import { crearEntregas } from "./admin-entregas.js?v=202611031533";
-import { crearCharlas } from "./admin-charlas.js?v=202611031533";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031533";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031533";
-import { salir } from "./app.js?v=202611031533";
+import { api, ES_DEMO } from "./api.js?v=202611031549";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031549";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031549";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031549";
+import { exportarExcel } from "./excel.js?v=202611031549";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031549";
+import { crearLogistica } from "./admin-logistica.js?v=202611031549";
+import { crearEntregas } from "./admin-entregas.js?v=202611031549";
+import { crearCharlas } from "./admin-charlas.js?v=202611031549";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031549";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031549";
+import { salir } from "./app.js?v=202611031549";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -635,6 +635,20 @@ export async function vistaAdmin(app, codigo) {
     }));
   }
 
+  // Talleristas restantes: cada taller necesita al menos 1 tallerista asignado
+  function tarjetasTalleristas() {
+    const cob = TALLERES.map((t) => { const as = data.talleristas.filter((x) => x.talleres.includes(t.id)); return { t, tiene: as.length, nombres: as.map((x) => x.nombre) }; });
+    const faltan = cob.filter((x) => !x.tiene).length;
+    return `<aside class="cob-panel" aria-label="Talleristas restantes por taller">
+      <div class="cob-resumen ${faltan ? "" : "cob-resumen--ok"}"><b>${faltan || "✓"}</b><span>${faltan ? `taller${faltan === 1 ? "" : "es"} sin tallerista` : "Todos los talleres tienen tallerista"}</span><small>${cob.length - faltan} de ${cob.length} talleres cubiertos · ${data.talleristas.length} tallerista${data.talleristas.length === 1 ? "" : "s"} creado${data.talleristas.length === 1 ? "" : "s"}</small></div>
+      <h4 class="cob-grupo">Talleres</h4>
+      ${cob.map((x) => `<div class="cob ${x.tiene ? "cob--ok" : "cob--falta"}" title="${esc(x.nombres.join(", ") || "Sin tallerista asignado")}">
+        <div class="cob__cab"><b>Taller ${esc(x.t.num)} · ${esc(x.t.nombre)}</b><div class="cob__estado">${x.tiene ? `<span class="cob__num cob__num--ok">✓</span><span>completo</span>` : `<span class="cob__num cob__num--falta">1</span><span>restante</span>`}</div></div>
+        <div class="cob__barra"><i style="width:${x.tiene ? 100 : 0}%"></i></div>
+        <p>${x.tiene ? esc(x.nombres.join(", ")) : "Sin tallerista asignado"}</p></div>`).join("")}
+    </aside>`;
+  }
+
   // ---------------- Talleristas y ganadores de talleres ----------------
   function talleristas(v) {
     const del2 = (id) => del(id)?.siglas || del(id)?.nombre || "Delegación eliminada";
@@ -651,8 +665,8 @@ export async function vistaAdmin(app, codigo) {
           : `<p class="concurso__apodo">Aún no hay ganadores registrados.</p>`}
           <div style="margin-top:8px"><button class="interruptor ${ab ? "interruptor--abierto" : "interruptor--cerrado"}" data-taller="${t.id}" title="${ab ? "Cerrar el registro" : "Reabrir el registro"}">${ab ? I.abierto + "Abierto" : I.candado + "Cerrado"}</button></div>
         </article>`; }).join("")}</div>
-      <div class="cabeza"><div><h1>Talleristas</h1><p>Crea un código para cada tallerista y elige qué talleres tiene habilitados.</p></div></div>
-      <div class="jurados">
+      <div class="cabeza"><div><h1>Talleristas</h1><p>Crea un código para cada tallerista y elige qué talleres tiene habilitados. A la derecha ves qué talleres todavía no tienen tallerista.</p></div></div>
+      <div class="jur-layout"><div class="jurados">
         <button class="crear" data-crear>${I.mas}<span>Crear código de tallerista</span></button>
         ${data.talleristas.map((t) => `<article class="jurado">
             <div class="jurado__cab">${avatar(t.nombre, t.foto)}<div><h4>${esc(t.nombre)}</h4><p>${t.talleres.length} taller${t.talleres.length === 1 ? "" : "es"}</p></div></div>
@@ -664,7 +678,7 @@ export async function vistaAdmin(app, codigo) {
               <button class="btn btn--mini" data-regen="${t.id}">${I.girar}Nuevo código</button>
               <button class="btn btn--mini btn--peligro" data-quitar="${t.id}">${I.basura}Eliminar</button>
             </div></article>`).join("")}
-      </div>`;
+      </div>${tarjetasTalleristas()}</div>`;
     $("[data-crear]", v).onclick = () => formPersona("tallerista", null);
     $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona("tallerista", tal(b.dataset.editar))));
     $$("[data-copiar]", v).forEach((b) => (b.onclick = () => copiar(b.dataset.copiar)));
