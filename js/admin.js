@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030644";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611030644";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611030644";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611030644";
-import { exportarExcel } from "./excel.js?v=202611030644";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611030644";
-import { crearLogistica } from "./admin-logistica.js?v=202611030644";
-import { crearEntregas } from "./admin-entregas.js?v=202611030644";
-import { crearCharlas } from "./admin-charlas.js?v=202611030644";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611030644";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030644";
-import { salir } from "./app.js?v=202611030644";
+import { api, ES_DEMO } from "./api.js?v=202611030730";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611030730";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611030730";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611030730";
+import { exportarExcel } from "./excel.js?v=202611030730";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611030730";
+import { crearLogistica } from "./admin-logistica.js?v=202611030730";
+import { crearEntregas } from "./admin-entregas.js?v=202611030730";
+import { crearCharlas } from "./admin-charlas.js?v=202611030730";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611030730";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030730";
+import { salir } from "./app.js?v=202611030730";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -91,7 +91,18 @@ export async function vistaAdmin(app, codigo) {
       if ((forzar || !ocupado) && !["logistica", "entregas"].includes(pestana)) pintar();
     } catch { /* se reintenta en el siguiente ciclo */ }
   }
-  temporizador = setInterval(() => { if (!document.body.contains($("#vista", app))) return clearInterval(temporizador); recargar(); }, SEGUNDOS_REFRESCO * 1000);
+  // Ahorro de datos: no se actualiza si la pestaña del navegador está oculta, y en Logística y
+  // Entregas (que tienen su propia actualización) solo cada ~30 s. Al volver a la pestaña se pone al día.
+  let vueltas = 0;
+  temporizador = setInterval(() => {
+    if (!document.body.contains($("#vista", app))) return clearInterval(temporizador);
+    if (document.hidden) return;
+    vueltas++;
+    if (["logistica", "entregas"].includes(pestana) && vueltas % Math.round(30 / SEGUNDOS_REFRESCO)) return;
+    recargar();
+  }, SEGUNDOS_REFRESCO * 1000);
+  const alVolver = () => { if (!document.body.contains($("#vista", app))) return document.removeEventListener("visibilitychange", alVolver); if (!document.hidden) recargar(); };
+  document.addEventListener("visibilitychange", alVolver);
 
   // Votos esperados por concurso
   function avance(c) {

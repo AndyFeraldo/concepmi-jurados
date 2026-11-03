@@ -4,18 +4,39 @@
 // y avance de entregas. El admin maneja el tiempo con una barra
 // discreta que solo aparece al mover el mouse.
 // =========================================================
-import { ENTREGABLES } from "./entregables.js?v=202611030644";
-import { porId } from "./concursos.js?v=202611030644";
-import { $, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611030644";
+import { ENTREGABLES } from "./entregables.js?v=202611030730";
+import { porId } from "./concursos.js?v=202611030730";
+import { $, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611030730";
 
 const hora = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+
+// Tiempos de la fase oral (bases Amateur II: 2 min de exposición + 2 min de preguntas)
+const CORTOS = {
+  exp: { min: 2, txt: "Exposición del equipo", ayuda: "Tiempo para exponer la matriz", fin: "Terminó el tiempo de exposición" },
+  preg: { min: 2, txt: "Ronda de preguntas", ayuda: "Preguntas del jurado y respuestas del equipo", fin: "Terminó la ronda de preguntas" },
+};
+
+// Sonidos con el propio navegador (sin archivos): «ti, ti, ti» al llegar a cero
+let audio = null;
+const preparar = () => { try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume?.(); } catch { /* sin sonido */ } };
+function pitido(frec = 988, dur = 0.16, cuando = 0) {
+  if (!audio) return;
+  try {
+    const t = audio.currentTime + cuando, o = audio.createOscillator(), g = audio.createGain();
+    o.type = "square"; o.frequency.value = frec;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur + 0.02);
+  } catch { /* sin sonido */ }
+}
+const alarma = () => { for (let k = 0; k < 3; k++) pitido(988, 0.16, k * 0.28); pitido(1318, 0.5, 0.9); };
 
 // cargar() → { tiempo:{inicio, fin, ahora}, entregas:[...] } · accion(a, min) → promesa
 export function abrirEscenario({ concurso, cargar, accion, alCerrar }) {
   const def = ENTREGABLES[concurso], c = porId(concurso);
   const el = document.createElement("div");
   el.className = "escenario";
-  let T = { fin: null }, lista = [], desfase = 0, vivo = true, ocultar = null, ultimoSeg = null;
+  let T = { fin: null }, lista = [], desfase = 0, vivo = true, ocultar = null, ultimoSeg = null, corto = null, previoLlenado = null;
+  preparar(); // el clic en «Proyectar pantalla» permite activar el sonido
 
   el.innerHTML = `${fondoAnimado(30)}
     <header class="portada__barra escenario__barra">
@@ -43,24 +64,53 @@ export function abrirEscenario({ concurso, cargar, accion, alCerrar }) {
     <img class="wolfito" src="${IMG.wolfito}" alt="" aria-hidden="true">
     <div class="escenario__ctrl" data-ctrl>
       <span class="escenario__ctrl-t">Solo tú ves estos botones al mover el mouse</span>
-      <label>Min <input data-min inputmode="numeric" value="${def?.minutos || 35}"></label>
-      <button class="btn btn--mini btn--naranja" data-iniciar>${I.flecha}<span>Iniciar</span></button>
-      <button class="btn btn--mini" data-mas5>+5 min</button>
-      <button class="btn btn--mini btn--peligro" data-detener>Terminar</button>
-      <button class="btn btn--mini" data-full>Pantalla completa</button>
-      <button class="btn btn--mini" data-cerrar>${I.cerrar}<span>Salir</span></button>
+      <div class="escenario__grupo"><b>Llenado</b>
+        <label>Min <input data-min inputmode="numeric" value="${def?.minutos || 35}"></label>
+        <button class="btn btn--mini btn--naranja" data-iniciar>${I.flecha}<span>Iniciar</span></button>
+        <button class="btn btn--mini" data-mas5>+5 min</button>
+        <button class="btn btn--mini btn--peligro" data-detener>Terminar</button></div>
+      <div class="escenario__grupo"><b>Exposiciones</b>
+        <button class="btn btn--mini btn--naranja" data-corto="exp">${I.personas}<span>Exposición ${CORTOS.exp.min} min</span></button>
+        <button class="btn btn--mini btn--naranja" data-corto="preg">${I.info}<span>Preguntas ${CORTOS.preg.min} min</span></button>
+        <button class="btn btn--mini" data-pausa hidden>Pausar</button>
+        <button class="btn btn--mini" data-llenado hidden>Volver al llenado</button></div>
+      <div class="escenario__grupo">
+        <button class="btn btn--mini" data-full>Pantalla completa</button>
+        <button class="btn btn--mini" data-cerrar>${I.cerrar}<span>Salir</span></button></div>
     </div>`;
   document.body.append(el);
 
   const pantallaCompleta = () => document.documentElement.requestFullscreen?.().catch(() => {});
   pantallaCompleta();
 
+  // Cronómetro corto de exposición / preguntas: solo en esta pantalla (no cambia el tiempo oficial)
+  const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  function restanteCorto() { return corto.pausa != null ? corto.pausa : Math.max(0, Math.ceil((corto.fin - Date.now()) / 1000)); }
+  function pintarCorto(r) {
+    const s = restanteCorto(), k = CORTOS[corto.tipo];
+    const clave = `c${corto.tipo}${s}${corto.pausa != null}`;
+    if (clave === r.dataset.clave) return; r.dataset.clave = clave;
+    if (s === 0 && !corto.sono) { corto.sono = true; alarma(); }
+    if (s === 30 && corto.pausa == null && !corto.aviso30) { corto.aviso30 = true; pitido(880, 0.12); }
+    r.className = `escenario__reloj escenario__reloj--corto ${s === 0 ? "escenario__reloj--fin" : s <= 30 ? "escenario__reloj--alerta" : ""}`;
+    r.innerHTML = s > 0
+      ? `<small>${k.txt}</small><b>${mmss(s)}</b><span>${corto.pausa != null ? "En pausa" : k.ayuda}</span>`
+      : `<small>${k.txt}</small><b>¡Tiempo!</b><span>${k.fin}</span>`;
+    $("[data-pausa]", el).textContent = corto.pausa != null ? "Reanudar" : "Pausar";
+    $("[data-pausa]", el).hidden = s === 0;
+  }
+
   function pintarReloj() {
     const r = $("[data-reloj]", el);
+    $("[data-avance]", el).hidden = !!corto;
+    if (corto) return pintarCorto(r);
     const fin = T.fin ? Date.parse(T.fin) : null;
     const s = fin ? Math.max(0, Math.round((fin - (Date.now() + desfase)) / 1000)) : null;
-    if (s === ultimoSeg && r.dataset.fin === String(T.fin)) return;
-    ultimoSeg = s; r.dataset.fin = String(T.fin);
+    // Suena al terminar el llenado solo si lo vimos llegar a cero en esta pantalla
+    if (s === 0 && previoLlenado > 0 && previoLlenado <= 5) alarma();
+    previoLlenado = s;
+    if (s === ultimoSeg && r.dataset.clave === String(T.fin)) return;
+    ultimoSeg = s; r.dataset.clave = String(T.fin);
     if (!fin) {
       r.className = "escenario__reloj escenario__reloj--espera";
       r.innerHTML = `<small>Prepárense</small><b>${def?.minutos || 35}:00</b><span>El tiempo de llenado empezará en un momento</span>`;
@@ -92,7 +142,7 @@ export function abrirEscenario({ concurso, cargar, accion, alCerrar }) {
   // Barra del admin: aparece al mover el mouse y se esconde a los 3 s
   const mostrar = () => { el.classList.add("escenario--ctrl"); clearTimeout(ocultar); ocultar = setTimeout(() => el.classList.remove("escenario--ctrl"), 3000); };
   el.addEventListener("mousemove", mostrar);
-  const hacer = async (a, min) => { try { await accion(a, min); await leer(); aviso(a === "iniciar" ? "¡Tiempo iniciado!" : a === "extender" ? "+5 minutos" : "Tiempo terminado"); } catch (e) { aviso(e.message, "error"); } };
+  const hacer = async (a, min) => { preparar(); if (corto) $("[data-llenado]", el).onclick(); try { await accion(a, min); await leer(); aviso(a === "iniciar" ? "¡Tiempo iniciado!" : a === "extender" ? "+5 minutos" : "Tiempo terminado"); } catch (e) { aviso(e.message, "error"); } };
   $("[data-iniciar]", el).onclick = async () => {
     const min = Math.max(1, Math.min(240, Number($("[data-min]", el).value) || def?.minutos || 35));
     if (T.fin && !(await confirmar("¿Reiniciar el tiempo?", `El cronómetro vuelve a empezar con ${min} minutos para todos los equipos.`, { boton: "Reiniciar" }))) return;
@@ -101,6 +151,23 @@ export function abrirEscenario({ concurso, cargar, accion, alCerrar }) {
   $("[data-mas5]", el).onclick = () => hacer("extender", 5);
   $("[data-detener]", el).onclick = async () => { if (await confirmar("¿Terminar el tiempo ahora?", "Los equipos tendrán 1 minuto de gracia y luego ya no podrán editar.", { boton: "Terminar ahora", peligro: true })) hacer("detener"); };
   $("[data-full]", el).onclick = pantallaCompleta;
+  el.querySelectorAll("[data-corto]").forEach((b) => (b.onclick = () => {
+    preparar();
+    const tipo = b.dataset.corto;
+    corto = { tipo, fin: Date.now() + CORTOS[tipo].min * 60000, pausa: null, sono: false, aviso30: false };
+    pitido(660, 0.1);
+    $("[data-llenado]", el).hidden = false; pintarReloj();
+  }));
+  $("[data-pausa]", el).onclick = () => {
+    if (!corto) return;
+    if (corto.pausa != null) { corto.fin = Date.now() + corto.pausa * 1000; corto.pausa = null; }
+    else corto.pausa = restanteCorto();
+    pintarReloj();
+  };
+  $("[data-llenado]", el).onclick = () => {
+    corto = null; ultimoSeg = null; $("[data-reloj]", el).dataset.clave = "";
+    $("[data-llenado]", el).hidden = $("[data-pausa]", el).hidden = true; pintarReloj();
+  };
 
   const cerrar = () => {
     vivo = false; clearInterval(t1); clearInterval(t2); clearTimeout(ocultar);

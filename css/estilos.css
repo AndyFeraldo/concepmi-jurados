@@ -890,3 +890,7 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .escenario__ctrl label{ display:flex; align-items:center; gap:6px; font-size:.78rem; color:var(--niebla); }
 .escenario__ctrl input{ width:54px; padding:.35em .5em; border-radius:8px; background:rgba(255,255,255,.08); border:1px solid var(--borde); color:#fff; }
 @media (max-height:760px){ .escenario__logo{ width:min(34vw, 300px); } }
+.escenario__grupo{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:0 8px; border-left:1px solid var(--borde); }
+.escenario__grupo:first-of-type{ border-left:0; }
+.escenario__grupo > b{ font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--celeste); }
+.escenario__reloj--corto small{ color:var(--oro); }

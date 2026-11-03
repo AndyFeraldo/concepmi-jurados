@@ -3,12 +3,12 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611030644";
-import { ENTREGABLES } from "./entregables.js?v=202611030644";
-import { porId } from "./concursos.js?v=202611030644";
-import { abrirVisor, imprimir, estadoEntrega, resumenChips } from "./entrega-visor.js?v=202611030644";
-import { abrirEscenario } from "./escenario.js?v=202611030644";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030644";
+import { api } from "./api.js?v=202611030730";
+import { ENTREGABLES } from "./entregables.js?v=202611030730";
+import { porId } from "./concursos.js?v=202611030730";
+import { abrirVisor, imprimir, estadoEntrega, resumenChips } from "./entrega-visor.js?v=202611030730";
+import { abrirEscenario } from "./escenario.js?v=202611030730";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030730";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -32,7 +32,7 @@ export function crearEntregas(ctx) {
     // En vivo: se actualiza cada 4 s mientras esta pestaña está abierta
     temporizador = setInterval(async () => {
       if (!document.body.contains(v) || !$("[data-entregas]", v)) { clearInterval(temporizador); clearInterval(reloj); return; }
-      if (document.querySelector(".velo, .proy, .escenario")) return;
+      if (document.hidden || document.querySelector(".velo, .proy, .escenario")) return;
       try { const antes = JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin; await cargar(); if (antes !== JSON.stringify(E.equipos.map((x) => [x.entrega.actualizado, x.entrega.estado])) + E.tiempo.fin) pintar(v); } catch { /* se reintenta */ }
     }, 4000);
     reloj = setInterval(() => pintarReloj(v), 1000);

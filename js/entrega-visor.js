@@ -3,10 +3,10 @@
 // pantalla completa para el proyector y versión imprimible.
 // Lo usan el admin (pestaña Entregas) y los jurados.
 // =========================================================
-import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611030644";
-import { $, $$, esc, I, IMG } from "./ui.js?v=202611030644";
-import { porId } from "./concursos.js?v=202611030644";
-import { resultados } from "./calculo.js?v=202611030644";
+import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611030730";
+import { $, $$, esc, I, IMG } from "./ui.js?v=202611030730";
+import { porId } from "./concursos.js?v=202611030730";
+import { resultados } from "./calculo.js?v=202611030730";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "");
 export const estadoEntrega = (e) => (e.estado === "enviado" ? (e.tarde ? ["Enviado tarde", "chip--rojo"] : ["Enviado", "chip--verde"]) : e.actualizado ? ["En borrador", "chip--ambar"] : ["Sin empezar", ""]);
