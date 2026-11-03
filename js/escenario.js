@@ -5,11 +5,11 @@
 //    de 2 min (exposición o preguntas) que SOLO empieza cuando se pulsa Iniciar.
 // Los botones aparecen al mover el mouse (solo los ve quien maneja la laptop).
 // =========================================================
-import { ENTREGABLES } from "./entregables.js?v=202611031953";
-import { formaDe } from "./formas.js?v=202611031953";
-import { porId } from "./concursos.js?v=202611031953";
-import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611031953";
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611031953";
+import { ENTREGABLES } from "./entregables.js?v=202611032031";
+import { formaDe } from "./formas.js?v=202611032031";
+import { porId } from "./concursos.js?v=202611032031";
+import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611032031";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611032031";
 
 const hora = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -59,6 +59,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
         <div class="pildoras">
           <span class="pildora pildora--lila">${I.reloj}${def?.minutos || 35} min de ${def?.tipo === "mvp" ? "desarrollo" : "llenado"}</span>
           ${def?.exposicion ? `<span class="pildora pildora--celeste">${I.personas}${esc(def.exposicion)}</span>` : ""}
+          ${def?.exposicion ? `<span class="pildora pildora--celeste" data-pild-expo hidden></span>` : ""}
           <span class="pildora pildora--oro">${I.copa}Hasta ${c?.maxCopa ?? 60} pts para la Copa</span>
         </div>
         <div class="escenario__reloj" data-reloj aria-live="polite"></div>
@@ -124,6 +125,9 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar }) {
   }
   function pintarAvance() {
     const env = lista.filter((e) => e.estado === "enviado").length, n = lista.length;
+    // Estimado de la fase oral: cada equipo = exposición + preguntas + cambio de equipo
+    const pe = $("[data-pild-expo]", el);
+    if (pe) { const porEq = CORTOS.exp.min + CORTOS.preg.min + (def?.cambioMin ?? 1); pe.hidden = !n; pe.innerHTML = `${I.reloj}${n} equipo${n === 1 ? "" : "s"} × ${porEq} min ≈ ${n * porEq} min de exposiciones`; }
     $("[data-avance]", el).innerHTML = n ? `<div class="escenario__barra-av"><i style="width:${(env / n) * 100}%"></i></div><span><b>${env}</b> de ${n} ${pl} enviadas</span>` : "";
   }
 

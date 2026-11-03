@@ -1183,3 +1183,10 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 @media (max-width:760px){ .gala__podio{ grid-template-columns:repeat(3, 1fr); } .gala__revela{ flex-direction:column; } .gala__ganador{ max-width:none; text-align:center; } .gala__puntos{ justify-content:center; } }
 .gala__pod .wolf-metal__base{ display:none; }
 .gala__pod .wolf-metal{ margin-bottom:-2vh; }
+
+/* Copa: tabla difuminada para no revelar ganadores al compartir pantalla */
+.copa-velo{ position:relative; }
+.copa-velo--oculta .copa-velo__contenido{ filter:blur(14px) saturate(.6); opacity:.55; pointer-events:none; user-select:none; max-height:70vh; overflow:hidden; }
+.copa-velo__aviso{ position:absolute; z-index:3; top:min(140px, 20%); left:50%; transform:translateX(-50%); display:grid; justify-items:center; gap:8px; text-align:center; padding:22px 26px; border-radius:20px; background:rgba(14,8,56,.92); border:1px solid rgba(255,106,31,.55); box-shadow:0 20px 60px rgba(0,0,0,.5); width:min(520px, 90%); }
+.copa-velo__aviso b{ display:flex; align-items:center; gap:8px; font-size:1.05rem; } .copa-velo__aviso b svg{ width:1.2em; height:1.2em; color:var(--naranja); }
+.copa-velo__aviso span{ color:var(--niebla); font-size:.88rem; }

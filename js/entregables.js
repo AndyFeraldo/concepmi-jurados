@@ -10,7 +10,8 @@ export const ENTREGABLES = {
     tipo: "mvp",
     titulo: "Ficha del MVP · prompt maestro y link",
     corto: "Ficha del MVP", nombre: "ficha", plural: "fichas",
-    minutos: 60,
+    // 90 min en total: 5 de bienvenida y caso + 35 de desarrollo + 9 equipos × 5 min de exposición (2 pitch + 2 preguntas + 1 cambio) + 3 de cierre
+    minutos: 35, cambioMin: 1, totalMin: 90,
     exposicion: "2 min de pitch + 2 min de preguntas",
     ayuda: "Analicen el caso, elijan UNA solución por consenso, pidan a la IA de su preferencia un PROMPT MAESTRO y construyan su MVP con la herramienta que quieran. Aquí registran la solución, el prompt y el link público del MVP, que se proyectará en su exposición.",
   },
