@@ -3,12 +3,12 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611030757";
-import { ENTREGABLES } from "./entregables.js?v=202611030757";
-import { porId } from "./concursos.js?v=202611030757";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega } from "./entrega-visor.js?v=202611030757";
-import { abrirEscenario } from "./escenario.js?v=202611030757";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030757";
+import { api } from "./api.js?v=202611030820";
+import { ENTREGABLES } from "./entregables.js?v=202611030820";
+import { porId } from "./concursos.js?v=202611030820";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611030820";
+import { abrirEscenario } from "./escenario.js?v=202611030820";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030820";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -70,7 +70,7 @@ export function crearEntregas(ctx) {
         </section>
         <section class="tarjeta en-panel">
           <h3>Avance</h3>
-          <div class="kpis" style="margin:0"><div class="kpi"><b>${enviados}/${eqs.length}</b><span>${Pl} enviadas</span></div><div class="kpi"><b>${eqs.filter((x) => x.entrega.estado !== "enviado" && x.entrega.actualizado).length}</b><span>En borrador</span></div></div>
+          <div class="kpis" style="margin:0"><div class="kpi"><b>${enviados}/${eqs.length}</b><span>${Pl} enviadas</span></div><div class="kpi"><b>${eqs.filter((x) => x.entrega.estado !== "enviado" && x.entrega.actualizado && tieneDatos(x.entrega)).length}</b><span>En borrador</span></div></div>
           <div class="en-proyectar">
             <div class="en-opcion"><button class="btn btn--naranja" data-escenario>${I.pizarra}Proyectar pantalla del concurso</button>
               <p><b>Para todo el concurso, en la laptop del proyector.</b> Mientras llenan: título y cronómetro oficial. En las exposiciones: la ${nm} de la delegación que expone con su cronómetro de 2 min (empieza solo cuando pulsas <b>Iniciar</b>). Los botones aparecen al mover el mouse.</p></div>
@@ -89,9 +89,10 @@ export function crearEntregas(ctx) {
             <td><code class="en-codigo">${esc(x.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar="${esc(x.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
             <td><span class="chip ${cl}">${t}</span>${e.tarde ? `<br>${aj.retraso ? `<small class="chip chip--rojo log-tag">−10 % aplicado</small>` : esAdmin ? `<button class="btn btn--mini btn--peligro" data-sancion="${e.delegacion_id}">Aplicar −10 % por retraso</button>` : `<small class="tenue">El admin aplica el −10 %</small>`}` : ""}</td>
             <td><div class="reparto" style="margin:0">${chipsEntrega(concurso, e.datos)}</div></td>
-            <td class="tenue" style="white-space:nowrap">${e.enviado ? `enviado ${hora(e.enviado)}` : e.actualizado ? `guardado ${hora(e.actualizado)}` : "—"}</td>
+            <td class="tenue" style="white-space:nowrap">${e.enviado ? `enviado ${hora(e.enviado)}` : e.actualizado && tieneDatos(e) ? `guardado ${hora(e.actualizado)}` : "—"}</td>
             <td style="white-space:nowrap"><button class="btn btn--mini" data-ver="${e.equipo_id}">${I.vivo}Ver</button>
               ${e.estado === "enviado" ? `<button class="btn btn--mini" data-reabrir="${e.equipo_id}" title="Permitir que el equipo vuelva a editar">${I.abierto}Reabrir</button>` : ""}
+              ${tieneDatos(e) || e.estado === "enviado" ? `<button class="btn btn--mini btn--peligro" data-vaciar="${e.equipo_id}" title="Borrar lo que escribió este equipo">${I.basura}Borrar respuesta</button>` : ""}
               <button class="btn btn--mini btn--icono" data-editar="${x.id}" title="Editar equipo" aria-label="Editar equipo">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="6"><div class="vacio"><b>Aún no hay equipos</b>Usa «Crear equipos para las delegaciones» o «Nuevo equipo».</div></td></tr>`}
       </tbody></table></div>
       ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Coordinadores de sala</h1><p>Personas que manejan las entregas de un concurso en su salón (por ejemplo, Amateur I) con <b>su propio código</b>. Entran por el botón <b>Admin</b> de la portada y solo ven esta pestaña para sus concursos: no pueden tocar calificaciones, jurados, logística ni la Copa.</p></div>
@@ -124,6 +125,7 @@ export function crearEntregas(ctx) {
       if (!(await confirmar(`¿Reabrir esta ${nm}?`, "El equipo podrá volver a editarla y tendrá que enviarla otra vez.", { boton: "Reabrir" }))) return;
       try { await api.adminEntregaReabrir(ctx.codigo(), b.dataset.reabrir); await cargar(); pintar(v); aviso(`${nm[0].toUpperCase() + nm.slice(1)} reabierta`); } catch (e) { aviso(e.message, "error"); }
     }));
+    $$("[data-vaciar]", v).forEach((b) => (b.onclick = () => borrarRespuesta(E.equipos.find((x) => x.entrega.equipo_id === b.dataset.vaciar), v)));
     $$("[data-sancion]", v).forEach((b) => (b.onclick = async () => {
       const did = b.dataset.sancion, a = ajuste(did);
       if (!(await confirmar("¿Aplicar sanción por retraso?", `Se descuenta el <b>10 %</b> de la fase escrita a <b>${esc(nomDel(did))}</b>, según las bases. Puedes quitarla desde Resultados.`, { boton: "Aplicar −10 %", peligro: true }))) return;
@@ -138,6 +140,29 @@ export function crearEntregas(ctx) {
       for (const d of sinEquipo) { try { await api.adminEquipo(ctx.codigo(), { concurso, delegacion: d.id }); n++; } catch (ex) { aviso(`${d.nombre}: ${ex.message}`, "error"); } }
       await cargar(); pintar(v); lanzarConfeti(); aviso(`${n} equipos creados con su código`);
     });
+  }
+
+  // ---------------- Borrar la respuesta de un equipo (para pruebas) ----------------
+  function borrarRespuesta(x, v) {
+    if (!x) return;
+    const e = x.entrega, def = ENTREGABLES[concurso], nm = def.nombre, [est] = estadoEntrega(e);
+    const m = modal(`<h2>Borrar respuesta</h2>
+      <div class="en-borrar">
+        <div><small>Delegación</small><b>${esc(nomDel(e.delegacion_id))}</b></div>
+        <div><small>Concurso</small><b>${esc(porId(concurso)?.nombre || concurso)} · ${esc(def.corto)}</b></div>
+        <div><small>Estado actual</small><b>${esc(est)}${e.enviado ? ` (${hora(e.enviado)})` : ""}</b></div>
+        <div class="reparto" style="margin:0">${chipsEntrega(concurso, e.datos)}</div>
+      </div>
+      <p>Se borra <b>todo lo que escribió este equipo</b> en su ${nm} y queda como <b>Sin empezar</b>. El equipo y su código <b>${esc(x.codigo)}</b> se mantienen, así que puede volver a llenarla. Esto no se puede deshacer.</p>
+      <p class="ayuda">Si el equipo tiene su pantalla abierta, se pondrá en blanco sola en unos segundos.</p>
+      <p class="error"></p>
+      <div class="modal__acciones"><button class="btn" data-cancelar>Cancelar</button><button class="btn btn--peligro" data-si>${I.basura}Borrar respuesta</button></div>`);
+    $("[data-cancelar]", m.el).onclick = m.cerrar;
+    $("[data-si]", m.el).onclick = async (ev) => {
+      ev.currentTarget.disabled = true;
+      try { await api.adminEntregaVaciar(ctx.codigo(), e.equipo_id); m.cerrar(); await cargar(); pintar(v); aviso(`Respuesta de ${nomDel(e.delegacion_id)} borrada`); }
+      catch (ex) { $(".error", m.el).textContent = ex.message; ev.currentTarget.disabled = false; }
+    };
   }
 
   // ---------------- Coordinadores de sala (solo admin) ----------------

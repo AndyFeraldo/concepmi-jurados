@@ -3,11 +3,11 @@
 // (códigos de equipo, tiempo oficial, pantalla del concurso, reabrir, reportes).
 // No ve calificaciones sueltas, jurados (códigos), logística ni la Copa.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030757";
-import { crearEntregas } from "./admin-entregas.js?v=202611030757";
-import { ENTREGABLES } from "./entregables.js?v=202611030757";
-import { $, esc, I, IMG, aviso } from "./ui.js?v=202611030757";
-import { salir } from "./app.js?v=202611030757";
+import { api, ES_DEMO } from "./api.js?v=202611030820";
+import { crearEntregas } from "./admin-entregas.js?v=202611030820";
+import { ENTREGABLES } from "./entregables.js?v=202611030820";
+import { $, esc, I, IMG, aviso } from "./ui.js?v=202611030820";
+import { salir } from "./app.js?v=202611030820";
 
 export async function vistaCoordinador(app, codigo) {
   let data = null;

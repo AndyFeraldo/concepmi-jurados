@@ -3,12 +3,12 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611030757";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611030757";
-import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa } from "./acta.js?v=202611030757";
-import { porId } from "./concursos.js?v=202611030757";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611030757";
-import { salir } from "./app.js?v=202611030757";
+import { api, ES_DEMO } from "./api.js?v=202611030820";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611030820";
+import { normalizarActa, limpiarActa, editorActa, enlazarActa, resumenActa } from "./acta.js?v=202611030820";
+import { porId } from "./concursos.js?v=202611030820";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611030820";
+import { salir } from "./app.js?v=202611030820";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
@@ -67,8 +67,10 @@ export async function vistaEquipo(app, codigo) {
 
   async function refrescar() {
     try { const t0 = Date.now(); const d = await api.equipoDatos(codigo); desfase = Date.parse(d.tiempo.ahora) - (t0 + Date.now()) / 2; const cambioEstado = d.entrega.estado !== data.entrega.estado;
+      const vaciada = !Object.keys(d.entrega.datos || {}).length && d.entrega.actualizado && d.entrega.actualizado !== data.entrega.actualizado && !pendiente && !guardando;
+      if (vaciada) { try { localStorage.removeItem(CLAVE); } catch { /* sin almacenamiento */ } data.entrega.actualizado = d.entrega.actualizado; datos = structuredClone(d.entrega.datos); if (esActa()) datos = normalizarActa(datos); else { datos.filas = []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } }
       data.tiempo = d.tiempo; data.entrega.estado = d.entrega.estado; data.entrega.enviado = d.entrega.enviado; data.entrega.tarde = d.entrega.tarde;
-      if (cambioEstado) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); if (esActa()) datos = normalizarActa(datos); else datos.filas ||= []; } pintar(); }
+      if (cambioEstado || vaciada) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); if (esActa()) datos = normalizarActa(datos); else { datos.filas ||= []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } } pintar(); }
     } catch { /* se reintenta */ }
   }
 

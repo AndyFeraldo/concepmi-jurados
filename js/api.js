@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611030757";
-import { CONCURSOS, porId } from "./concursos.js?v=202611030757";
-import { TALLERES } from "./talleres.js?v=202611030757";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611030757";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611030820";
+import { CONCURSOS, porId } from "./concursos.js?v=202611030820";
+import { TALLERES } from "./talleres.js?v=202611030820";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611030820";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -73,6 +73,7 @@ const real = {
     rpc("jur_admin_equipo", { p_codigo: codigo, p_id: id, p_concurso: concurso, p_delegacion: delegacion, p_nombre: nombre, p_lider: lider, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
   adminTiempo: (codigo, concurso, accion, minutos = 35) => rpc("jur_admin_tiempo", { p_codigo: codigo, p_concurso: concurso, p_accion: accion, p_minutos: minutos }),
   adminEntregaReabrir: (codigo, equipo) => rpc("jur_admin_entrega_reabrir", { p_codigo: codigo, p_equipo: equipo }),
+  adminEntregaVaciar: (codigo, equipo) => rpc("jur_admin_entrega_vaciar", { p_codigo: codigo, p_equipo: equipo }),
   coordDatos: (codigo) => rpc("jur_coord_datos", { p_codigo: codigo }),
   adminCoordinadores: (codigo) => rpc("jur_admin_coordinadores", { p_codigo: codigo }),
   adminCoordinador: (codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null }) =>
@@ -129,7 +130,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611030757");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611030820");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -491,6 +492,8 @@ const demo = {
     else Object.assign(t, { inicio: null, fin: null });
     guardar(); },
   async adminEntregaReabrir(codigo, equipo) { await espera(); const eq = db().equipos.find((e) => e.id === equipo); if (!eq) throw new Error("Ese equipo ya no existe"); exigirSala(codigo, eq.concurso_id); const x = db().entregas[equipo]; if (x) Object.assign(x, { estado: "borrador", enviado: null, tarde: false, actualizado: new Date().toISOString() }); guardar(); },
+  async adminEntregaVaciar(codigo, equipo) { await espera(); const eq = db().equipos.find((e) => e.id === equipo); if (!eq) throw new Error("Ese equipo ya no existe"); exigirSala(codigo, eq.concurso_id);
+    const x = db().entregas[equipo]; if (x) Object.assign(x, { datos: {}, estado: "borrador", enviado: null, tarde: false, actualizado: new Date().toISOString() }); guardar(); },
   async coordDatos(codigo) { await espera(); const d = db(); const k = (d.coordinadores || []).find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código de coordinador incorrecto");
     return { coordinador: { id: k.id, nombre: k.nombre, concursos: k.concursos }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(({ id, nombre, siglas }) => ({ id, nombre, siglas })),
       jurados: d.jurados.filter((j) => j.concursos.some((c) => k.concursos.includes(c))).map(({ id, nombre, concursos }) => ({ id, nombre, concursos })),

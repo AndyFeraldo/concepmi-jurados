@@ -966,3 +966,6 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .escenario__cuerpo .matriz-tabla{ font-size:1em; }
 .escenario .escenario__grupo .visor-sel{ max-width:220px; font-size:.8rem; }
 .escenario [hidden]{ display:none !important; }
+.en-borrar{ display:grid; gap:8px; padding:12px 14px; border:1px solid rgba(208,59,59,.45); border-radius:14px; background:rgba(208,59,59,.08); margin:4px 0 12px; }
+.en-borrar > div:not(.reparto){ display:grid; gap:1px; }
+.en-borrar small{ font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--tenue); font-weight:700; }

@@ -3,14 +3,15 @@
 // pantalla completa para el proyector y versión imprimible.
 // Lo usan el admin (pestaña Entregas) y los jurados.
 // =========================================================
-import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611030757";
-import { $, $$, esc, I, IMG } from "./ui.js?v=202611030757";
-import { porId } from "./concursos.js?v=202611030757";
-import { resultados } from "./calculo.js?v=202611030757";
-import { vistaActa, chipsActa, resumenActa } from "./acta.js?v=202611030757";
+import { ENTREGABLES, resumenMatriz, nivel, NIVELES } from "./entregables.js?v=202611030820";
+import { $, $$, esc, I, IMG } from "./ui.js?v=202611030820";
+import { porId } from "./concursos.js?v=202611030820";
+import { resultados } from "./calculo.js?v=202611030820";
+import { vistaActa, chipsActa, resumenActa } from "./acta.js?v=202611030820";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "");
-export const estadoEntrega = (e) => (e.estado === "enviado" ? (e.tarde ? ["Enviado tarde", "chip--rojo"] : ["Enviado", "chip--verde"]) : e.actualizado ? ["En borrador", "chip--ambar"] : ["Sin empezar", ""]);
+export const tieneDatos = (e) => Object.keys(e?.datos || {}).length > 0;
+export const estadoEntrega = (e) => (e.estado === "enviado" ? (e.tarde ? ["Enviado tarde", "chip--rojo"] : ["Enviado", "chip--verde"]) : e.actualizado && tieneDatos(e) ? ["En borrador", "chip--ambar"] : ["Sin empezar", ""]);
 
 // Severidad de mayor a menor; las filas sin P o I van al final. Empates: amenazas primero y luego por número.
 export function ordenar(filas, orden) {
