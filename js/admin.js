@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031257";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031257";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031257";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031257";
-import { exportarExcel } from "./excel.js?v=202611031257";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031257";
-import { crearLogistica } from "./admin-logistica.js?v=202611031257";
-import { crearEntregas } from "./admin-entregas.js?v=202611031257";
-import { crearCharlas } from "./admin-charlas.js?v=202611031257";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031257";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031257";
-import { salir } from "./app.js?v=202611031257";
+import { api, ES_DEMO } from "./api.js?v=202611031533";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031533";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031533";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031533";
+import { exportarExcel } from "./excel.js?v=202611031533";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031533";
+import { crearLogistica } from "./admin-logistica.js?v=202611031533";
+import { crearEntregas } from "./admin-entregas.js?v=202611031533";
+import { crearCharlas } from "./admin-charlas.js?v=202611031533";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031533";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031533";
+import { salir } from "./app.js?v=202611031533";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -521,12 +521,88 @@ export async function vistaAdmin(app, codigo) {
   }
 
   // ---------------- Jurados ----------------
+  // Cuántos jurados pide cada concurso (bases) frente a cuántos tiene asignados
+  function coberturaJurados() {
+    return CONCURSOS.map((c) => {
+      const asignados = data.jurados.filter((j) => j.concursos.includes(c.id));
+      const pide = c.jurados || 0;
+      return { c, pide, tiene: asignados.length, faltan: Math.max(0, pide - asignados.length), extra: Math.max(0, asignados.length - pide), nombres: asignados.map((j) => j.nombre) };
+    });
+  }
+  function tarjetasCobertura() {
+    const cob = coberturaJurados(), conJurado = cob.filter((x) => x.pide > 0);
+    const faltanTotal = conJurado.reduce((a, x) => a + x.faltan, 0), completos = conJurado.filter((x) => !x.faltan).length;
+    const tarjeta = (x) => {
+      if (!x.pide) return `<div class="cob cob--na"><div class="cob__cab"><b>${esc(x.c.nombre)}</b></div><p>No usa jurados en este panel: los puntos los registra el admin.</p></div>`;
+      const pct = Math.min(100, (x.tiene / x.pide) * 100);
+      const estado = x.faltan ? `<span class="cob__num cob__num--falta">${x.faltan}</span><span>restante${x.faltan === 1 ? "" : "s"}</span>` : `<span class="cob__num cob__num--ok">✓</span><span>completo${x.extra ? ` · +${x.extra} extra` : ""}</span>`;
+      return `<div class="cob ${x.faltan ? "cob--falta" : "cob--ok"}" title="${esc(x.nombres.join(", ") || "Sin jurados asignados")}">
+        <div class="cob__cab"><b>${esc(x.c.nombre)}</b><div class="cob__estado">${estado}</div></div>
+        <div class="cob__barra"><i style="width:${pct}%"></i></div>
+        <p>${x.tiene} de ${x.pide} jurado${x.pide === 1 ? "" : "s"} asignado${x.pide === 1 ? "" : "s"}</p></div>`;
+    };
+    const grupo = (tipo, titulo) => `<h4 class="cob-grupo">${titulo}</h4>${cob.filter((x) => x.c.tipo === tipo).map(tarjeta).join("")}`;
+    return `<aside class="cob-panel" aria-label="Jurados restantes por concurso">
+      <div class="cob-resumen ${faltanTotal ? "" : "cob-resumen--ok"}"><b>${faltanTotal ? faltanTotal : "✓"}</b><span>${faltanTotal ? `jurado${faltanTotal === 1 ? "" : "s"} por asignar en total` : "Todos los concursos tienen sus jurados"}</span><small>${completos} de ${conJurado.length} concursos completos · según las bases</small></div>
+      ${grupo("academico", "Académicos")}${grupo("cultural", "Culturales")}
+    </aside>`;
+  }
+
+  // Perfiles de los jurados: página blanca para imprimir o guardar en PDF
+  function descargarPerfiles() {
+    const m = modal(`<h2>Descargar perfiles de jurados</h2><form class="form">
+      <label class="campo"><span>Ordenar</span><select name="orden"><option value="concurso">Por concurso (un jurado puede salir en varios)</option><option value="nombre">Por nombre (cada jurado una vez)</option></select></label>
+      <label class="chip" style="cursor:pointer;justify-self:start"><input type="checkbox" name="codigos"> Incluir códigos de acceso (solo para ti, no lo compartas)</label>
+      <div class="modal__acciones"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.descargar}Abrir para imprimir / PDF</button></div></form>`);
+    const f = $("form", m.el);
+    $("[data-cancelar]", m.el).onclick = m.cerrar;
+    f.onsubmit = (ev) => {
+      ev.preventDefault();
+      const porConcurso = f.orden.value === "concurso", conCodigo = f.codigos.checked;
+      const w = window.open("", "_blank");
+      if (!w) return aviso("Tu navegador bloqueó la ventana. Permite las ventanas emergentes para este sitio.", "error");
+      m.cerrar();
+      const abs = (u) => new URL(u, location.href).href;
+      const ini = (n) => String(n || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join("").toUpperCase();
+      const ficha = (j) => `<article class="ficha">${j.foto ? `<img src="${j.foto}" alt="">` : `<div class="ini">${esc(ini(j.nombre))}</div>`}
+        <div><h3>${esc(j.nombre)}</h3>${j.descripcion ? `<p>${esc(j.descripcion)}</p>` : `<p class="vacio">Sin descripción registrada</p>`}
+          <div class="chips">${j.concursos.map((cid) => `<span>${esc(porId(cid)?.nombre || cid)}</span>`).join("")}</div>
+          ${conCodigo ? `<div class="cod">Código: <b>${esc(j.codigo)}</b></div>` : ""}</div></article>`;
+      const orden = [...data.jurados].sort((a, b) => a.nombre.localeCompare(b.nombre));
+      const cuerpo = porConcurso
+        ? coberturaJurados().filter((x) => x.pide > 0 || x.tiene > 0).map((x) => `<section class="grupo"><h2>${esc(x.c.nombre)} <small>${x.tiene} de ${x.pide} jurados${x.faltan ? ` · faltan ${x.faltan}` : " · completo"}</small></h2>
+            <div class="fichas">${orden.filter((j) => j.concursos.includes(x.c.id)).map(ficha).join("") || `<p class="vacio">Aún no hay jurados asignados.</p>`}</div></section>`).join("")
+        : `<div class="fichas">${orden.map(ficha).join("")}</div>`;
+      w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Perfiles de jurados · VI CONCEPMI 2026</title>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>*{box-sizing:border-box}body{font-family:Poppins,"Segoe UI",Arial,sans-serif;color:#1d1b29;background:#eceaf3;margin:0;font-size:11px}
+        .hoja{background:#fff;max-width:200mm;margin:14px auto;padding:10mm;box-shadow:0 4px 18px rgba(0,0,0,.12)}
+        .cab{display:flex;align-items:center;gap:12px;background:linear-gradient(100deg,#170D56,#3A1AA8 70%,#6E2BE6);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:10px}
+        .cab img{height:28px}.cab .club{height:32px;margin-left:auto}.cab div{display:grid}.cab b{font-size:15px}.cab span{font-size:9px;opacity:.8;letter-spacing:.06em;text-transform:uppercase}
+        h2{font-size:13px;color:#3A1AA8;margin:14px 0 6px;border-bottom:2px solid #ece8fb;padding-bottom:3px}h2 small{color:#6b6585;font-weight:400;font-size:10px}
+        .fichas{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ficha{display:flex;gap:10px;border:1px solid #ddd8ee;border-radius:10px;padding:8px;page-break-inside:avoid}
+        .ficha img,.ini{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:none}.ini{display:grid;place-items:center;background:#6E2BE6;color:#fff;font-weight:700;font-size:20px}
+        h3{margin:0 0 2px;font-size:12.5px}p{margin:0 0 4px;color:#3d3a4f;line-height:1.35}.vacio{color:#a09bb5;font-style:italic}
+        .chips{display:flex;flex-wrap:wrap;gap:3px}.chips span{background:#ece8fb;color:#3A1AA8;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:600}
+        .cod{margin-top:4px;font-size:10px}.cod b{font-family:monospace;letter-spacing:.12em;background:#fff4ec;padding:1px 5px;border-radius:4px}
+        .pie{margin-top:12px;padding-top:5px;border-top:1px solid #e3dff0;color:#8a84a3;font-size:8.5px;text-align:center}
+        .barra{position:sticky;top:0;background:#170D56;color:#fff;padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:12px}
+        .barra button{margin-left:auto;padding:7px 14px;border:0;border-radius:6px;background:#FF6A1F;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+        @page{size:A4;margin:10mm}@media print{body{background:#fff}.barra{display:none}.hoja{box-shadow:none;margin:0;max-width:none;padding:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
+        <div class="barra">${data.jurados.length} jurado${data.jurados.length === 1 ? "" : "s"}. En «Destino» elige <b>Guardar como PDF</b>.<button onclick="print()">Imprimir / Guardar PDF</button></div>
+        <div class="hoja"><header class="cab"><img src="${abs(IMG.logo)}" alt="CONCEPMI VI"><div><b>Perfiles de jurados</b><span>VI CONCEPMI 2026 · ${porConcurso ? "por concurso" : "por nombre"}${conCodigo ? " · CONFIDENCIAL: incluye códigos" : ""}</span></div><img class="club" src="${abs(IMG.club)}" alt="PMI Lima Student Club"></header>
+        ${data.jurados.length ? cuerpo : `<p class="vacio">Aún no hay jurados registrados.</p>`}
+        <div class="pie">Generado el ${new Date().toLocaleString("es-PE")} · Panel Maestro VI CONCEPMI</div></div></body></html>`);
+      w.document.close();
+    };
+  }
+
   function jurados(v) {
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Jurados</h1><p>Crea un código para cada jurado y elige en qué concursos puede calificar.</p></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn--mini" data-respaldo>${I.copiar}Copiar respaldo</button><button class="btn btn--mini" data-importar>${I.descargar}Importar respaldo</button></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Jurados</h1><p>Crea un código para cada jurado y elige en qué concursos puede calificar. A la derecha ves cuántos jurados le faltan a cada concurso según sus bases.</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn--mini btn--naranja" data-perfiles>${I.descargar}Descargar perfiles (PDF)</button><button class="btn btn--mini" data-respaldo>${I.copiar}Copiar respaldo</button><button class="btn btn--mini" data-importar>${I.descargar}Importar respaldo</button></div></div>
       ${ES_DEMO ? `<div class="cerrado" style="background:rgba(255,194,61,.12);border-color:rgba(255,194,61,.5);color:#FFE3A6">${I.alerta}<span><b>Estás en la vista previa.</b> Los jurados que crees aquí se guardan solo en este navegador y sus códigos NO funcionan en la versión real. ${data.jurados.some((x) => x.recuperado) ? "Los marcados como <b>recuperado</b> los registraste antes: usa <b>Copiar respaldo</b> y pégalo en <b>Importar respaldo</b> de la versión publicada para crearlos con los mismos códigos." : ""}</span></div>` : ""}
-      <div class="jurados">
+      <div class="jur-layout"><div class="jurados">
         <button class="crear" data-crear>${I.mas}<span>Crear código de jurado</span></button>
         ${data.jurados.map((j) => {
           const n = data.calificaciones.filter((x) => x.jurado_id === j.id).length;
@@ -540,8 +616,9 @@ export async function vistaAdmin(app, codigo) {
               <button class="btn btn--mini" data-regen="${j.id}">${I.girar}Nuevo código</button>
               <button class="btn btn--mini btn--peligro" data-quitar="${j.id}">${I.basura}Eliminar</button>
             </div></article>`; }).join("")}
-      </div>`;
+      </div>${tarjetasCobertura()}</div>`;
     $("[data-crear]", v).onclick = () => formPersona("jurado", null);
+    $("[data-perfiles]", v).onclick = descargarPerfiles;
     $("[data-respaldo]", v).onclick = copiarRespaldo;
     $("[data-importar]", v).onclick = importarRespaldo;
     $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona("jurado", jur(b.dataset.editar))));

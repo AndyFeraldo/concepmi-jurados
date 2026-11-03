@@ -22,7 +22,7 @@ administrador vea resultados en vivo, la Copa CONCEPMI y exporte a Excel.
 - `index.html`: entrada; carga `vendor/` (supabase, confetti, xlsx) y `js/app.js` (ES modules, sin build).
 - `js/concursos.js`: **fuente única** de concursos, rúbricas, niveles y puntos. Viene de las bases oficiales (PDF en `concepmi-vi/public/bases`).
 - `js/calculo.js`: promedios, redondeo, rankings, empates y Copa.
-- `js/jurado.js`: vistas del jurado. `js/tallerista.js`: vista del tallerista. `js/admin.js`: panel de administrador (pestaña Talleristas incluida). `js/excel.js`: exportación.
+- `js/jurado.js`: vistas del jurado. `js/tallerista.js`: vista del tallerista. `js/admin.js`: panel de administrador (pestaña Talleristas incluida; en Jurados, tarjetas de **jurados restantes por concurso** según `c.jurados` de las bases y botón **Descargar perfiles (PDF)** con foto, nombre, descripción y concursos, opcionalmente con códigos). `js/excel.js`: exportación.
 - `js/talleres.js`: los 4 talleres (nombre, lugar, hora) y el cálculo de sus puntos.
 - `js/charlas.js`: las 3 charlas principales (ponente, día, hora, pilares) y sus puntos. `js/quiz.js`: trivia en el celular del asistente (se abre con `?charla=c1|c2|c3`, el enlace del QR). `js/admin-charlas.js`: pestaña Charlas del admin, pantalla del auditorio (QR, preguntas en vivo, podio), importación de inscritos y de preguntas por Excel.
 - `js/admin-logistica.js`: pestaña **Logística** del admin: Resumen (mini dashboard), Presupuesto vs real (casilla ✓ Comprado, orden ▲▼), Gastos y comprobantes (adjuntos, ZIP), Proveedores, Historial de cambios, Reporte para gerencia (página imprimible) y Excel. Fechas siempre **dd/mm/aaaa** (campos de texto con máscara, no `type=date`).
