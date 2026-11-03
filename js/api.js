@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611030820";
-import { CONCURSOS, porId } from "./concursos.js?v=202611030820";
-import { TALLERES } from "./talleres.js?v=202611030820";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611030820";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611031254";
+import { CONCURSOS, porId } from "./concursos.js?v=202611031254";
+import { TALLERES } from "./talleres.js?v=202611031254";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611031254";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -76,8 +76,8 @@ const real = {
   adminEntregaVaciar: (codigo, equipo) => rpc("jur_admin_entrega_vaciar", { p_codigo: codigo, p_equipo: equipo }),
   coordDatos: (codigo) => rpc("jur_coord_datos", { p_codigo: codigo }),
   adminCoordinadores: (codigo) => rpc("jur_admin_coordinadores", { p_codigo: codigo }),
-  adminCoordinador: (codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null }) =>
-    rpc("jur_admin_coordinador", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_borrar: borrar, p_codigo_fijo: codigoFijo }),
+  adminCoordinador: (codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, logistica = false }) =>
+    rpc("jur_admin_coordinador", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_borrar: borrar, p_codigo_fijo: codigoFijo, p_logistica: logistica }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -130,7 +130,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611030820");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611031254");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -162,6 +162,7 @@ function db() {
   mem.equipos ||= mem.delegaciones.length ? [{ id: uid(), concurso_id: "amateur-2", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0001" }] : [];
   mem.entregas ||= {}; mem.tiempos ||= {};
   mem.coordinadores ||= [{ id: uid(), nombre: "Coordinador de prueba", codigo: "SALA01", concursos: ["amateur-1"] }];
+  if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "amateur-1")) mem.equipos.push({ id: uid(), concurso_id: "amateur-1", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0002" });
   mem.asistentes ||= []; mem.charlas ||= {}; mem.preguntas ||= preguntasDemo(); mem.jugadores ||= []; mem.respuestas ||= [];
   mem.talleristas ||= []; mem.ganadores ||= []; mem.talleresAbiertos ||= Object.fromEntries(TALLERES.map((t) => [t.id, true]));
@@ -179,6 +180,7 @@ const exigirAdmin = (c) => { if (norm(c) !== db().admin) throw new Error("Códig
 const juradoDe = (c) => { const j = db().jurados.find((x) => x.codigo === norm(c)); if (!j) throw new Error("Código de jurado incorrecto"); return j; };
 const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas, ...(db().equipos || []), ...(db().coordinadores || [])].some((x) => x.codigo === c && x.id !== excepto);
 // Admin, o coordinador asignado a ese concurso
+const exigirLogistica = (c) => { if (norm(c) === db().admin) return; if (!(db().coordinadores || []).some((x) => x.codigo === norm(c) && x.logistica)) throw new Error("Este código no tiene acceso a Logística"); };
 const exigirSala = (c, concurso) => { if (norm(c) === db().admin) return; const k = (db().coordinadores || []).find((x) => x.codigo === norm(c)); if (!k || !k.concursos.includes(concurso)) throw new Error("Este código no puede manejar las entregas de este concurso"); };
 const eqDe = (c) => { const e = (db().equipos || []).find((x) => x.codigo === norm(c)); if (!e) throw new Error("Código de equipo incorrecto"); return e; };
 const entJson = (e) => { const x = db().entregas[e.id] || {}; return { equipo_id: e.id, concurso_id: e.concurso_id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", lider: e.lider || "",
@@ -412,17 +414,17 @@ const demo = {
       d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "" }); n++; }
     guardar(); return { importados: n, total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length }; },
   // ---- Logística (vista previa) ----
-  async adminLogistica(codigo) { await espera(); exigirAdmin(codigo); const L = structuredClone(await logDemo()); L.archivos = L.archivos.map(({ datos, ...a }) => a); return L; },
-  async adminLogOrden(codigo, tabla, ids) { await espera(80); exigirAdmin(codigo); const L = await logDemo(); const f = tabla === "categoria" ? L.categorias : L.items;
+  async adminLogistica(codigo) { await espera(); exigirLogistica(codigo); const L = structuredClone(await logDemo()); L.archivos = L.archivos.map(({ datos, ...a }) => a); return L; },
+  async adminLogOrden(codigo, tabla, ids) { await espera(80); exigirLogistica(codigo); const L = await logDemo(); const f = tabla === "categoria" ? L.categorias : L.items;
     ids.forEach((id, n) => { const r = f.find((x) => x.id === id); if (r) r.orden = n + 1; }); guardar(); },
-  async adminLogArchivoSubir(codigo, { gasto = null, item = null, nombre, tipo, datos }) { await espera(); exigirAdmin(codigo); const L = await logDemo();
+  async adminLogArchivoSubir(codigo, { gasto = null, item = null, nombre, tipo, datos }) { await espera(); exigirLogistica(codigo); const L = await logDemo();
     if (datos.length > 7000000) throw new Error("El archivo pesa más de 5 MB. Comprime la imagen o el PDF.");
     const a = { id: uid(), gasto_id: gasto, item_id: item, nombre, tipo, tamano: Math.floor(datos.length * 3 / 4), datos, creado: new Date().toISOString() };
     L.archivos.push(a); guardar(); return a.id; },
-  async adminLogArchivo(codigo, id) { await espera(); exigirAdmin(codigo); const a = (await logDemo()).archivos.find((x) => x.id === id); return a ? { id: a.id, nombre: a.nombre, tipo: a.tipo, datos: a.datos } : null; },
-  async adminLogArchivoBorrar(codigo, id) { await espera(); exigirAdmin(codigo); const L = await logDemo(); L.archivos = L.archivos.filter((x) => x.id !== id); guardar(); },
+  async adminLogArchivo(codigo, id) { await espera(); exigirLogistica(codigo); const a = (await logDemo()).archivos.find((x) => x.id === id); return a ? { id: a.id, nombre: a.nombre, tipo: a.tipo, datos: a.datos } : null; },
+  async adminLogArchivoBorrar(codigo, id) { await espera(); exigirLogistica(codigo); const L = await logDemo(); L.archivos = L.archivos.filter((x) => x.id !== id); guardar(); },
   async adminLogGuardar(codigo, tabla, datos) {
-    await espera(); exigirAdmin(codigo); const L = await logDemo();
+    await espera(); exigirLogistica(codigo); const L = await logDemo();
     const lista = { categoria: L.categorias, item: L.items, proveedor: L.proveedores, fondo: L.fondos, gasto: L.gastos }[tabla];
     if (!lista) throw new Error("Tabla no válida");
     const req = { categoria: "nombre", item: "descripcion", proveedor: "nombre", fondo: "nombre" }[tabla];
@@ -447,7 +449,7 @@ const demo = {
     if (tabla === "item" && d.orden == null) delete d.orden;
     Object.assign(r, d, { id: r.id }); guardar(); return r.id; },
   async adminLogBorrar(codigo, tabla, id) {
-    await espera(); exigirAdmin(codigo); const L = await logDemo();
+    await espera(); exigirLogistica(codigo); const L = await logDemo();
     if (tabla === "categoria" && L.items.some((i) => i.categoria_id === id)) throw new Error("Primero mueve o elimina los ítems de esta categoría");
     const k = { categoria: "categorias", item: "items", proveedor: "proveedores", fondo: "fondos", gasto: "gastos" }[tabla];
     const x = L[k].find((y) => y.id === id);
@@ -458,7 +460,7 @@ const demo = {
     if (tabla === "fondo") L.gastos.forEach((g) => { if (g.fondo_id === id) g.fondo_id = null; });
     if (tabla === "proveedor") L.items.forEach((i) => { if (i.proveedor_id === id) i.proveedor_id = null; });
     guardar(); },
-  async adminLogConfig(codigo, tc, contingencia) { await espera(); exigirAdmin(codigo); const L = await logDemo(); Object.assign(L.config, { tc, contingencia }); guardar(); },
+  async adminLogConfig(codigo, tc, contingencia) { await espera(); exigirLogistica(codigo); const L = await logDemo(); Object.assign(L.config, { tc, contingencia }); guardar(); },
   // ---- Entregas (vista previa) ----
   async equipoDatos(codigo) { await espera(); const d = db(); const e = eqDe(codigo);
     return { entrega: entJson(e), tiempo: tiempoJson(e.concurso_id), delegacion: d.delegaciones.find((x) => x.id === e.delegacion_id) || null }; },
@@ -495,19 +497,19 @@ const demo = {
   async adminEntregaVaciar(codigo, equipo) { await espera(); const eq = db().equipos.find((e) => e.id === equipo); if (!eq) throw new Error("Ese equipo ya no existe"); exigirSala(codigo, eq.concurso_id);
     const x = db().entregas[equipo]; if (x) Object.assign(x, { datos: {}, estado: "borrador", enviado: null, tarde: false, actualizado: new Date().toISOString() }); guardar(); },
   async coordDatos(codigo) { await espera(); const d = db(); const k = (d.coordinadores || []).find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código de coordinador incorrecto");
-    return { coordinador: { id: k.id, nombre: k.nombre, concursos: k.concursos }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(({ id, nombre, siglas }) => ({ id, nombre, siglas })),
+    return { coordinador: { id: k.id, nombre: k.nombre, concursos: k.concursos, logistica: !!k.logistica }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(({ id, nombre, siglas }) => ({ id, nombre, siglas })),
       jurados: d.jurados.filter((j) => j.concursos.some((c) => k.concursos.includes(c))).map(({ id, nombre, concursos }) => ({ id, nombre, concursos })),
       calificaciones: d.calificaciones.filter((c) => k.concursos.includes(c.concurso_id)), ajustes: d.ajustes.filter((a) => k.concursos.includes(a.concurso_id)) }; },
   async adminCoordinadores(codigo) { await espera(); exigirAdmin(codigo); return [...(db().coordinadores || [])].sort((a, b) => a.nombre.localeCompare(b.nombre)); },
-  async adminCoordinador(codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null }) {
+  async adminCoordinador(codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, logistica = false }) {
     await espera(); exigirAdmin(codigo); const d = db(); d.coordinadores ||= [];
     if (borrar) { d.coordinadores = d.coordinadores.filter((k) => k.id !== id); guardar(); return null; }
-    if (String(nombre).trim().length < 2) throw new Error("Escribe el nombre del coordinador");
-    if (!concursos.length) throw new Error("Elige al menos un concurso");
+    if (String(nombre).trim().length < 2) throw new Error("Escribe el nombre");
+    if (!concursos.length && !logistica) throw new Error("Elige al menos un concurso o Logística");
     const fijo = norm(codigoFijo); if (fijo && codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otro jurado, tallerista, equipo o coordinador");
     let k = id && d.coordinadores.find((x) => x.id === id);
     if (!k) { k = { id: uid(), codigo: nuevoCodigo() }; d.coordinadores.push(k); }
-    Object.assign(k, { nombre: String(nombre).trim(), concursos }); if (fijo) k.codigo = fijo;
+    Object.assign(k, { nombre: String(nombre).trim(), concursos, logistica: !!logistica }); if (fijo) k.codigo = fijo;
     guardar(); return { id: k.id, codigo: k.codigo }; },
   reiniciar() { mem = semilla(); guardar(); },
 };

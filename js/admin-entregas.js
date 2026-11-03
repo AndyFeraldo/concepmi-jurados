@@ -3,12 +3,12 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611030820";
-import { ENTREGABLES } from "./entregables.js?v=202611030820";
-import { porId } from "./concursos.js?v=202611030820";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611030820";
-import { abrirEscenario } from "./escenario.js?v=202611030820";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611030820";
+import { api } from "./api.js?v=202611031254";
+import { ENTREGABLES } from "./entregables.js?v=202611031254";
+import { porId } from "./concursos.js?v=202611031254";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611031254";
+import { abrirEscenario } from "./escenario.js?v=202611031254";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031254";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -95,8 +95,8 @@ export function crearEntregas(ctx) {
               ${tieneDatos(e) || e.estado === "enviado" ? `<button class="btn btn--mini btn--peligro" data-vaciar="${e.equipo_id}" title="Borrar lo que escribió este equipo">${I.basura}Borrar respuesta</button>` : ""}
               <button class="btn btn--mini btn--icono" data-editar="${x.id}" title="Editar equipo" aria-label="Editar equipo">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="6"><div class="vacio"><b>Aún no hay equipos</b>Usa «Crear equipos para las delegaciones» o «Nuevo equipo».</div></td></tr>`}
       </tbody></table></div>
-      ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Coordinadores de sala</h1><p>Personas que manejan las entregas de un concurso en su salón (por ejemplo, Amateur I) con <b>su propio código</b>. Entran por el botón <b>Admin</b> de la portada y solo ven esta pestaña para sus concursos: no pueden tocar calificaciones, jurados, logística ni la Copa.</p></div>
-        <button class="btn btn--naranja" data-coord-nuevo>${I.mas}Nuevo coordinador</button></div>
+      ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Accesos limitados</h1><p>Personas con <b>su propio código</b> que entran por el botón <b>Admin</b> de la portada y solo ven lo que les asignes: <b>coordinadores de sala</b> (Entregas de su concurso, por ejemplo Amateur I) y <b>líder de logística</b> (solo la pestaña Logística). No pueden tocar calificaciones, jurados, la Copa ni nada más.</p></div>
+        <button class="btn btn--naranja" data-coord-nuevo>${I.mas}Nuevo acceso</button></div>
       <div data-coords>${pintarCoords()}</div>` : ""}`;
     pintarReloj(v);
     if (esAdmin && !coords) cargarCoords(v);
@@ -172,22 +172,23 @@ export function crearEntregas(ctx) {
   }
   function pintarCoords() {
     if (!coords) return `<div class="cargando" style="min-height:80px"><div class="giro"></div></div>`;
-    if (!coords.length) return `<div class="vacio"><b>Aún no hay coordinadores</b>Crea uno para la persona que manejará otro salón.</div>`;
-    return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Concursos</th><th></th></tr></thead><tbody>
+    if (!coords.length) return `<div class="vacio"><b>Aún no hay accesos limitados</b>Crea uno para un coordinador de sala o para tu líder de logística.</div>`;
+    return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Puede ver</th><th></th></tr></thead><tbody>
       ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td><code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
-        <td>${k.concursos.map((x) => `<span class="chip">${esc(porId(x)?.nombre || x)}</span>`).join(" ")}</td>
-        <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar coordinador" aria-label="Editar coordinador">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>`;
+        <td>${k.concursos.map((x) => `<span class="chip">Entregas · ${esc(porId(x)?.nombre || x)}</span>`).join(" ")} ${k.logistica ? `<span class="chip chip--celeste">Logística</span>` : ""}</td>
+        <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>`;
   }
   function enlazarCoords(v) {
     if (!esAdmin) return;
-    $("[data-coord-nuevo]", v)?.addEventListener("click", () => formCoord(null, v));
+    const nuevo = $("[data-coord-nuevo]", v); if (nuevo) nuevo.onclick = () => formCoord(null, v);
     $$("[data-coord-editar]", v).forEach((b) => (b.onclick = () => formCoord(coords.find((k) => k.id === b.dataset.coordEditar), v)));
     $$("[data-copiar-coord]", v).forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copiarCoord); aviso("Código copiado"); } catch { aviso(`Código: ${b.dataset.copiarCoord}`); } }));
   }
   function formCoord(k, v) {
-    const m = modal(`<h2>${k ? "Editar coordinador" : "Nuevo coordinador de sala"}</h2><form class="form">
+    const m = modal(`<h2>${k ? "Editar acceso" : "Nuevo acceso limitado"}</h2><form class="form">
       <label class="campo"><span>Nombre</span><input name="nombre" maxlength="120" required value="${esc(k?.nombre || "")}" placeholder="Nombre y apellido"></label>
-      <fieldset class="campo"><span>Concursos que maneja</span><div class="reparto" style="margin:4px 0 0">${Object.keys(ENTREGABLES).map((x) => `<label class="chip" style="cursor:pointer"><input type="checkbox" name="cc" value="${x}" ${k?.concursos.includes(x) || (!k && x === "amateur-1") ? "checked" : ""}> ${esc(porId(x)?.nombre || x)}</label>`).join("")}</div></fieldset>
+      <fieldset class="campo"><span>Coordinador de sala · Entregas de</span><div class="reparto" style="margin:4px 0 0">${Object.keys(ENTREGABLES).map((x) => `<label class="chip" style="cursor:pointer"><input type="checkbox" name="cc" value="${x}" ${k?.concursos.includes(x) ? "checked" : ""}> ${esc(porId(x)?.nombre || x)}</label>`).join("")}</div></fieldset>
+      <fieldset class="campo"><span>Otras pestañas</span><div class="reparto" style="margin:4px 0 0"><label class="chip" style="cursor:pointer"><input type="checkbox" name="logistica" ${k?.logistica ? "checked" : ""}> Logística (presupuesto, gastos, comprobantes y reporte)</label></div></fieldset>
       <label class="campo"><span>Código de acceso ${k ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" value="${esc(k?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase"></label>
       <p class="ayuda" style="margin:0">Entra por el botón <b>Admin</b> de la portada con este código.</p>
       <p class="error"></p>
@@ -195,7 +196,7 @@ export function crearEntregas(ctx) {
     const f = $("form", m.el);
     $("[data-cancelar]", m.el).onclick = m.cerrar;
     $("[data-borrar]", m.el)?.addEventListener("click", async () => {
-      if (!(await confirmar("¿Quitar el acceso de este coordinador?", "Su código dejará de funcionar. Los equipos, tiempos y entregas no se borran.", { boton: "Quitar acceso", peligro: true }))) return;
+      if (!(await confirmar("¿Quitar este acceso?", "Su código dejará de funcionar. No se borra nada de lo que hizo (equipos, entregas ni logística).", { boton: "Quitar acceso", peligro: true }))) return;
       try { await api.adminCoordinador(ctx.codigo(), { id: k.id, borrar: true }); m.cerrar(); coords = null; await cargarCoords(v); aviso("Acceso quitado"); } catch (ex) { aviso(ex.message, "error"); }
     });
     f.onsubmit = async (ev) => {
@@ -203,8 +204,8 @@ export function crearEntregas(ctx) {
       const cod = f.cod.value.replace(/\s/g, "").toUpperCase();
       const concursos = $$("[name=cc]", f).filter((x) => x.checked).map((x) => x.value);
       try {
-        const r = await api.adminCoordinador(ctx.codigo(), { id: k?.id || null, nombre: f.nombre.value, concursos, codigoFijo: cod && cod !== k?.codigo ? cod : null });
-        m.cerrar(); coords = null; await cargarCoords(v); aviso(k ? "Coordinador guardado" : `Coordinador creado · código ${r.codigo}`);
+        const r = await api.adminCoordinador(ctx.codigo(), { id: k?.id || null, nombre: f.nombre.value, concursos, logistica: f.logistica.checked, codigoFijo: cod && cod !== k?.codigo ? cod : null });
+        m.cerrar(); coords = null; await cargarCoords(v); aviso(k ? "Acceso guardado" : `Acceso creado · código ${r.codigo}`);
       } catch (ex) { $(".error", f).textContent = ex.message; }
     };
   }
