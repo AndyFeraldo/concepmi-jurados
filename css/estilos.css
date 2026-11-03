@@ -1006,3 +1006,10 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
   .cob-panel{ position:static; order:-1; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); }
   .cob-resumen, .cob-grupo{ grid-column:1 / -1; }
 }
+
+/* Conocimientos: vínculo con el sistema del concurso */
+.conoc-vinculo{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 16px; margin-bottom:12px; border-radius:18px;
+  background:linear-gradient(120deg, rgba(31,203,234,.16), rgba(110,43,230,.22)); border:1px solid rgba(31,203,234,.5); }
+.conoc-vinculo > div{ flex:1; min-width:240px; display:grid; gap:3px; }
+.conoc-vinculo b{ display:flex; align-items:center; gap:6px; } .conoc-vinculo b svg{ width:1.1em; height:1.1em; color:var(--celeste); }
+.conoc-vinculo small{ color:var(--niebla); font-size:.82rem; }

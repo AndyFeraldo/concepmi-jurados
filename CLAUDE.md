@@ -56,7 +56,7 @@ cualquier cambio de base de datos, explica qué hace y confirma con el usuario.
 - Amateur I y II: retraso en la entrega = −10 % de la fase escrita. Walkover o descalificado = 0.
 - Proyectos: 5 jurados, con fase virtual (40) y presencial (60).
 - Barras: 4 niveles oficiales (Tabla 3.2). El total sobre 100 **solo ordena el ranking**, que se convierte a 50, 40, 30, 22, 15 y 10 pts. Desempate: criterio 3, luego 1, luego 2.
-- Conocimientos: el admin registra los puntos de cada enfrentamiento (0 a 35) y el rival. La suma va a la Copa, con un máximo de 70. El desglose está en el otro sistema.
+- Conocimientos: lo juega el **sistema del Concurso de Conocimientos** (repo `concepmi-vi`, carpeta `concurso-conocimientos`, misma base de datos; tablas sin prefijo `jur_`, como `enfrentamientos`: el panel **solo las lee**). En Admin → Resultados → Conocimientos: botón «Abrir Concurso de Conocimientos» y «Traer resultados del concurso» (`jur_admin_conocimientos`): vista previa con Nuevo/Cambia/Sin cambios, se salta los anulados, empareja nombres con las siglas o el nombre de `jur_delegaciones`, toma los 2 primeros enfrentamientos de cada delegación y, al **confirmar**, los guarda con `jur_admin_manual` (e1/e2 con puntos 0–35 y rival). Máximo 70 a la Copa. El moderador del concurso elige las delegaciones de un desplegable que sale de `jur_delegaciones_lista()` (guarda las siglas). El registro manual queda como respaldo.
 - Talent Show: el admin registra los likes de TikTok e Instagram. Se suman, se ordenan de mayor a menor y reciben 50, 40, 30, 22, 15 y 10 pts; no presentó = 0. Hay un campo opcional de desempate.
 - Gran Gymkana (máximo 80 pts):
   - **Sacos**: tablero de 16 rondas, una ganadora por ronda. Recibe 16, 13, 10, 7 y 4 pts.

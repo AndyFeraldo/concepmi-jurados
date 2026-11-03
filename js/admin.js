@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031705";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031705";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031705";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031705";
-import { exportarExcel } from "./excel.js?v=202611031705";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031705";
-import { crearLogistica } from "./admin-logistica.js?v=202611031705";
-import { crearEntregas } from "./admin-entregas.js?v=202611031705";
-import { crearCharlas } from "./admin-charlas.js?v=202611031705";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031705";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031705";
-import { salir } from "./app.js?v=202611031705";
+import { api, ES_DEMO } from "./api.js?v=202611031728";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031728";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031728";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031728";
+import { exportarExcel } from "./excel.js?v=202611031728";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031728";
+import { crearLogistica } from "./admin-logistica.js?v=202611031728";
+import { crearEntregas } from "./admin-entregas.js?v=202611031728";
+import { crearCharlas } from "./admin-charlas.js?v=202611031728";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031728";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031728";
+import { salir } from "./app.js?v=202611031728";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -270,16 +270,85 @@ export async function vistaAdmin(app, codigo) {
     conectarSanciones({ ...c, sanciones: ["walkover", "descalificado"] }, r);
   }
 
+  // ---------------- Vínculo con el sistema del Concurso de Conocimientos ----------------
+  const URL_CONOCIMIENTOS = "https://andyferaldo.github.io/concepmi-vi/concurso-conocimientos/";
+  const normal = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toUpperCase();
+  const delPorNombre = (n) => data.delegaciones.find((d) => normal(d.siglas) === normal(n) || normal(d.nombre) === normal(n));
+
+  // Arma, por delegación, sus 2 primeros enfrentamientos terminados (en orden de juego)
+  function planConocimientos(enfs) {
+    const por = new Map(), sinDel = new Set();
+    for (const e of enfs) {
+      const A = delPorNombre(e.nombre_a), B = delPorNombre(e.nombre_b);
+      if (!A) sinDel.add(e.nombre_a); if (!B) sinDel.add(e.nombre_b);
+      for (const [yo, pts, rival, rivalNom] of [[A, e.puntaje_a, B, e.nombre_b], [B, e.puntaje_b, A, e.nombre_a]]) {
+        if (!yo) continue;
+        if (!por.has(yo.id)) por.set(yo.id, []);
+        por.get(yo.id).push({ puntos: Math.round(Number(pts) || 0), rival: rival ? rival.id : String(rivalNom || ""), rivalTxt: rival ? rival.siglas || rival.nombre : rivalNom });
+      }
+    }
+    const filas = [...por.entries()].map(([did, ps]) => {
+      const d = del(did), usados = ps.slice(0, 2), datos = {};
+      usados.forEach((x, i) => { datos[`e${i + 1}`] = { puntos: x.puntos, rival: x.rival }; });
+      const prev = ajuste("conocimientos", did), prevD = prev.datos || {};
+      const igual = !prev.walkover && ["e1", "e2"].every((k) => (prevD[k]?.puntos ?? null) === (datos[k]?.puntos ?? null) && String(prevD[k]?.rival || "") === String(datos[k]?.rival || ""));
+      const total = usados.reduce((a, x) => a + x.puntos, 0);
+      return { d, ps, usados, datos, total, extra: ps.length - usados.length, fuera: usados.some((x) => x.puntos < 0 || x.puntos > 35),
+        estado: prev.valor == null && !prev.walkover ? "nuevo" : igual ? "igual" : "cambia" };
+    }).sort((a, b) => b.total - a.total);
+    return { filas, sinDel: [...sinDel].filter(Boolean) };
+  }
+
+  async function traerConocimientos(c) {
+    const m = modal(`<h2>Traer resultados del concurso</h2><div class="cargando" style="min-height:120px"><div class="giro"></div>Leyendo los enfrentamientos terminados…</div>`, { ancho: true });
+    let enfs;
+    try { enfs = await api.adminConocimientos(codigo); }
+    catch (e) { m.el.innerHTML = `<h2>Traer resultados del concurso</h2><div class="vacio"><b>No se pudo leer el concurso</b>${esc(e.message)}</div><div class="modal__acciones"><button class="btn" data-cerrar>Cerrar</button></div>`; $("[data-cerrar]", m.el).onclick = m.cerrar; return; }
+    const { filas, sinDel } = planConocimientos(enfs);
+    const aplicar = filas.filter((f) => f.estado !== "igual" && !f.fuera);
+    const etq = { nuevo: ["Nuevo", "chip--verde"], cambia: ["Cambia", "chip--ambar"], igual: ["Sin cambios", ""] };
+    const enfTxt = (x) => (x ? `<b>${x.puntos}</b> <small class="tenue">vs ${esc(x.rivalTxt || "—")}</small>` : `<span class="tenue">Pendiente</span>`);
+    m.el.innerHTML = `<h2>Traer resultados del concurso</h2>
+      <p class="ayuda" style="margin-top:0">Se leyeron <b>${enfs.length}</b> enfrentamiento${enfs.length === 1 ? "" : "s"} terminado${enfs.length === 1 ? "" : "s"} (los anulados no cuentan). Revisa y confirma: solo se actualizan las delegaciones marcadas como <b>Nuevo</b> o <b>Cambia</b>.</p>
+      ${sinDel.length ? `<div class="cerrado" style="margin:0 0 10px">${I.alerta}<span>Estos nombres del concurso <b>no coinciden con ninguna delegación</b> del panel y no se importan: <b>${sinDel.map(esc).join(", ")}</b>. Corrige el nombre en el concurso o crea la delegación con esas siglas.</span></div>` : ""}
+      ${filas.length ? `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Delegación</th><th class="num">Enfrentamiento 1</th><th class="num">Enfrentamiento 2</th><th class="num">Puntos Copa</th><th>Estado</th></tr></thead><tbody>
+        ${filas.map((f) => { const [t, cl] = etq[f.estado]; return `<tr><td><b>${esc(f.d?.siglas || f.d?.nombre || "—")}</b>${f.extra ? `<br><small class="chip chip--ambar log-tag">jugó ${f.ps.length}: se cuentan los 2 primeros</small>` : ""}</td>
+          <td class="num">${enfTxt(f.usados[0])}</td><td class="num">${enfTxt(f.usados[1])}</td><td class="num grande">${Math.min(70, f.total)}</td>
+          <td>${f.fuera ? `<span class="chip chip--rojo">Puntos fuera de 0–35</span>` : `<span class="chip ${cl}">${t}</span>`}</td></tr>`; }).join("")}
+      </tbody></table></div>` : `<div class="vacio"><b>Aún no hay enfrentamientos terminados</b>Cuando el moderador guarde un resultado en el concurso, aparecerá aquí.</div>`}
+      <p class="ayuda">Las delegaciones que no jugaron se quedan como están. Si registraste algo a mano para una delegación que sí jugó, se reemplaza por lo del concurso.</p>
+      <p class="error"></p>
+      <div class="modal__acciones"><button class="btn" data-cancelar>Cancelar</button>
+        <button class="btn btn--naranja" data-confirmar ${aplicar.length ? "" : "disabled"}>${I.check}${aplicar.length ? `Confirmar y pasar a la Copa (${aplicar.length})` : "Todo está al día"}</button></div>`;
+    $("[data-cancelar]", m.el).onclick = m.cerrar;
+    $("[data-confirmar]", m.el).onclick = async (ev) => {
+      const b = ev.currentTarget; b.disabled = true; let ok = 0;
+      for (const f of aplicar) {
+        try { await api.adminManual(codigo, c.id, f.d.id, f.datos, false); ok++; }
+        catch (e) { $(".error", m.el).textContent = `${f.d.siglas || f.d.nombre}: ${e.message}`; }
+      }
+      await recargar(true);
+      if (ok === aplicar.length) { m.cerrar(); lanzarConfeti(); aviso(`${ok} delegación${ok === 1 ? "" : "es"} actualizada${ok === 1 ? "" : "s"} en la Copa`); }
+      else { b.disabled = false; aviso(`Se actualizaron ${ok} de ${aplicar.length}`, "error"); }
+    };
+  }
+
   function resManual(c, r) {
     r.innerHTML = `
+      ${c.id === "conocimientos" ? `<div class="conoc-vinculo">
+        <div><b>${I.vivo} Vinculado al sistema del Concurso de Conocimientos</b><small>Haz el concurso en su página. Al terminar, pulsa <b>Traer resultados</b>, revisa y confirma: los puntos pasan solos a esta tabla y a la Copa.</small></div>
+        <a class="btn" href="${URL_CONOCIMIENTOS}" target="_blank" rel="noopener">${I.flecha}Abrir Concurso de Conocimientos</a>
+        <button class="btn btn--naranja" data-traer>${I.descargar}Traer resultados del concurso</button>
+      </div>` : ""}
       <button class="registro-cta" data-panel2>
         <span class="registro-cta__icono">${c.id === "talent" ? I.vivo : I.libro}</span>
-        <span><b>${c.id === "talent" ? "Registrar likes del Talent Show" : "Registrar enfrentamientos de Conocimientos"}</b>
-        <small>${c.id === "talent" ? "Elige la delegación, escribe sus likes de TikTok e Instagram y la tabla se ordena sola." : "Elige la delegación, registra sus 2 enfrentamientos y la tabla se llena al instante."}</small></span>
+        <span><b>${c.id === "talent" ? "Registrar likes del Talent Show" : "Registrar o corregir a mano (respaldo)"}</b>
+        <small>${c.id === "talent" ? "Elige la delegación, escribe sus likes de TikTok e Instagram y la tabla se ordena sola." : "Solo si algo falla en el sistema del concurso: elige la delegación y registra sus 2 enfrentamientos."}</small></span>
         ${I.flecha}
       </button>
       <div class="tabla-envoltura">${tablaManual(c)}</div>`;
     $("[data-panel2]", r).onclick = () => panelManual(c);
+    $("[data-traer]", r)?.addEventListener("click", () => traerConocimientos(c));
   }
 
   function tablaManual(c, { seleccion = null, clicable = false } = {}) {

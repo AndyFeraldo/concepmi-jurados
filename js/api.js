@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611031705";
-import { CONCURSOS, porId } from "./concursos.js?v=202611031705";
-import { TALLERES } from "./talleres.js?v=202611031705";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611031705";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611031728";
+import { CONCURSOS, porId } from "./concursos.js?v=202611031728";
+import { TALLERES } from "./talleres.js?v=202611031728";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611031728";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -43,6 +43,7 @@ const real = {
     rpc("jur_admin_tallerista", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_talleres: talleres, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
   adminTaller: (codigo, taller, abierto) => rpc("jur_admin_taller", { p_codigo: codigo, p_taller: taller, p_abierto: abierto }),
   adminTallerBorrar: (codigo, taller) => rpc("jur_admin_taller_borrar", { p_codigo: codigo, p_taller: taller }),
+  adminConocimientos: (codigo) => rpc("jur_admin_conocimientos", { p_codigo: codigo }),
   // Trivia de charlas
   quizBuscar: (dni) => rpc("jur_quiz_buscar", { p_dni: dni }),
   quizEstado: (charla, dni = null, token = null) => rpc("jur_quiz_estado", { p_charla: charla, p_dni: dni, p_token: token }),
@@ -131,7 +132,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611031705");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611031728");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -352,6 +353,12 @@ const demo = {
     if (fijo) t.codigo = fijo;
     guardar(); return { id: t.id, codigo: t.codigo }; },
   async adminTaller(codigo, taller, abierto) { await espera(); exigirAdmin(codigo); db().talleresAbiertos[taller] = abierto; guardar(); },
+  // Vista previa: simula enfrentamientos terminados del sistema de Conocimientos
+  async adminConocimientos(codigo) { await espera(); exigirAdmin(codigo); const ds = db().delegaciones; if (ds.length < 3) return [];
+    const s = (d) => d.siglas || d.nombre, t = Date.now();
+    return [{ id: "x1", creado: new Date(t - 3e6).toISOString(), nombre_a: s(ds[0]), nombre_b: s(ds[1]), puntaje_a: 28, puntaje_b: 15, ganador: "A" },
+      { id: "x2", creado: new Date(t - 2e6).toISOString(), nombre_a: s(ds[2]), nombre_b: s(ds[0]), puntaje_a: 12, puntaje_b: 25, ganador: "B" },
+      { id: "x3", creado: new Date(t - 1e6).toISOString(), nombre_a: "CATÓLICA", nombre_b: s(ds[1]), puntaje_a: 20, puntaje_b: 22, ganador: "B" }]; },
   async adminTallerBorrar(codigo, taller) { await espera(); exigirAdmin(codigo); const d = db(); d.ganadores = d.ganadores.filter((g) => g.taller_id !== taller); guardar(); },
   // ---- Trivia (vista previa: el tiempo lo lleva este navegador) ----
   async quizBuscar(dni) { await espera(); const a = db().asistentes.find((x) => x.dni === norm(dni)); if (!a) return null;
