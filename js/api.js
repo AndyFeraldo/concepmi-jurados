@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611031800";
-import { CONCURSOS, porId } from "./concursos.js?v=202611031800";
-import { TALLERES } from "./talleres.js?v=202611031800";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611031800";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611031922";
+import { CONCURSOS, porId } from "./concursos.js?v=202611031922";
+import { TALLERES } from "./talleres.js?v=202611031922";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611031922";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -44,6 +44,7 @@ const real = {
   adminTaller: (codigo, taller, abierto) => rpc("jur_admin_taller", { p_codigo: codigo, p_taller: taller, p_abierto: abierto }),
   adminTallerBorrar: (codigo, taller) => rpc("jur_admin_taller_borrar", { p_codigo: codigo, p_taller: taller }),
   adminConocimientos: (codigo) => rpc("jur_admin_conocimientos", { p_codigo: codigo }),
+  adminConocReiniciar: (codigo) => rpc("jur_admin_conoc_reiniciar", { p_codigo: codigo }),
   adminConocExportar: (codigo, enfrentamientos, detalle) => rpc("jur_admin_conoc_exportar", { p_codigo: codigo, p_enfrentamientos: enfrentamientos, p_detalle: detalle }),
   // Trivia de charlas
   quizBuscar: (dni) => rpc("jur_quiz_buscar", { p_dni: dni }),
@@ -133,7 +134,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611031800");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611031922");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -363,6 +364,7 @@ const demo = {
     return { historial, enfrentamientos: [{ id: "x1", creado: new Date(t - 3e6).toISOString(), nombre_a: s(ds[0]), nombre_b: s(ds[1]), puntaje_a: 28, puntaje_b: 15, ganador: "A" },
       { id: "x2", creado: new Date(t - 2e6).toISOString(), nombre_a: s(ds[2]), nombre_b: s(ds[0]), puntaje_a: 12, puntaje_b: 25, ganador: "B" },
       { id: "x3", creado: new Date(t - 1e6).toISOString(), nombre_a: "CATÓLICA", nombre_b: s(ds[1]), puntaje_a: 20, puntaje_b: 22, ganador: "B" }].map((e) => ({ ...e, exportado: exp(e.id) })) }; },
+  async adminConocReiniciar(codigo) { await espera(); exigirAdmin(codigo); db().conocExport = []; guardar(); },
   async adminConocExportar(codigo, enfrentamientos, detalle) { await espera(); exigirAdmin(codigo); const d = db(); d.conocExport ||= [];
     if (enfrentamientos.length) d.conocExport.push({ id: uid(), creado: new Date().toISOString(), enfrentamientos, detalle }); guardar(); },
   async adminTallerBorrar(codigo, taller) { await espera(); exigirAdmin(codigo); const d = db(); d.ganadores = d.ganadores.filter((g) => g.taller_id !== taller); guardar(); },

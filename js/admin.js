@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031800";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031800";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031800";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031800";
-import { exportarExcel } from "./excel.js?v=202611031800";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031800";
-import { crearLogistica } from "./admin-logistica.js?v=202611031800";
-import { crearEntregas } from "./admin-entregas.js?v=202611031800";
-import { crearCharlas } from "./admin-charlas.js?v=202611031800";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031800";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031800";
-import { salir } from "./app.js?v=202611031800";
+import { api, ES_DEMO } from "./api.js?v=202611031922";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031922";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031922";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031922";
+import { exportarExcel } from "./excel.js?v=202611031922";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031922";
+import { crearLogistica } from "./admin-logistica.js?v=202611031922";
+import { crearEntregas } from "./admin-entregas.js?v=202611031922";
+import { crearCharlas } from "./admin-charlas.js?v=202611031922";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031922";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031922";
+import { salir } from "./app.js?v=202611031922";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -347,6 +347,7 @@ export async function vistaAdmin(app, codigo) {
         <div><b>${I.vivo} Vinculado al sistema del Concurso de Conocimientos</b><small>Haz el concurso en su página. Al terminar, pulsa <b>Traer resultados</b>, revisa y confirma: los puntos pasan solos a esta tabla y a la Copa.</small></div>
         <a class="btn" href="${URL_CONOCIMIENTOS}" target="_blank" rel="noopener">${I.flecha}Abrir Concurso de Conocimientos</a>
         <button class="btn btn--naranja" data-traer>${I.descargar}Traer resultados del concurso</button>
+        <button class="btn btn--peligro" data-borrar-conoc>${I.basura}Borrar resultados</button>
         <div class="conoc-estado" data-conoc-estado><span class="tenue">Revisando exportaciones…</span></div>
       </div>` : ""}
       <button class="registro-cta" data-panel2>
@@ -358,14 +359,44 @@ export async function vistaAdmin(app, codigo) {
       <div class="tabla-envoltura">${tablaManual(c)}</div>`;
     $("[data-panel2]", r).onclick = () => panelManual(c);
     $("[data-traer]", r)?.addEventListener("click", () => traerConocimientos(c));
+    $("[data-borrar-conoc]", r)?.addEventListener("click", () => borrarConocimientos(c));
     if (c.id === "conocimientos") estadoConocimientos();
+  }
+
+  // Borrar resultados de Conocimientos en el panel (para pruebas). No toca el sistema del concurso.
+  function borrarConocimientos(c) {
+    const con = data.delegaciones.filter((d) => { const a = ajuste(c.id, d.id); return a.valor != null || a.walkover; });
+    const m = modal(`<h2>Borrar resultados de Conocimientos</h2>
+      ${con.length ? `<p class="ayuda" style="margin-top:0">Marca las delegaciones cuyo resultado quieres quitar de la tabla y de la Copa CONCEPMI.</p>
+      <div class="en-borrar">
+        <label class="chip" style="cursor:pointer;justify-self:start"><input type="checkbox" data-todas checked> <b>Todas (${con.length})</b></label>
+        <div class="reparto" style="margin:0">${con.map((d) => { const a = ajuste(c.id, d.id); return `<label class="chip" style="cursor:pointer"><input type="checkbox" name="dd" value="${d.id}" checked> ${esc(d.siglas || d.nombre)} · ${a.walkover ? "no se presentó" : `${a.valor} pts`}</label>`; }).join("")}</div>
+      </div>` : `<div class="vacio"><b>No hay resultados en la tabla</b>Igual puedes reiniciar las marcas de «exportado».</div>`}
+      <label class="chip" style="cursor:pointer;justify-self:start;margin-top:4px"><input type="checkbox" data-reiniciar ${con.length ? "checked" : "checked"}> Reiniciar también el historial y las marcas «✓ Exportado» del concurso</label>
+      <p>Los enfrentamientos guardados en el <b>sistema del Concurso de Conocimientos no se tocan</b>: si quieres que una prueba no vuelva a entrar, anúlala allá. Esto no se puede deshacer.</p>
+      <p class="error"></p>
+      <div class="modal__acciones"><button class="btn" data-cancelar>Cancelar</button><button class="btn btn--peligro" data-si>${I.basura}Borrar</button></div>`);
+    const todas = $("[data-todas]", m.el), cajas = $$("[name=dd]", m.el);
+    if (todas) { todas.onchange = () => cajas.forEach((x) => (x.checked = todas.checked)); cajas.forEach((x) => (x.onchange = () => (todas.checked = cajas.every((y) => y.checked)))); }
+    $("[data-cancelar]", m.el).onclick = m.cerrar;
+    $("[data-si]", m.el).onclick = async (ev) => {
+      const ids = cajas.filter((x) => x.checked).map((x) => x.value), reiniciar = $("[data-reiniciar]", m.el).checked;
+      if (!ids.length && !reiniciar) return ($(".error", m.el).textContent = "Marca al menos una delegación o el reinicio del historial.");
+      ev.currentTarget.disabled = true; let ok = 0;
+      for (const did of ids) { try { await api.adminManual(codigo, c.id, did, {}, false, true); ok++; } catch (e) { $(".error", m.el).textContent = e.message; } }
+      if (reiniciar) { try { await api.adminConocReiniciar(codigo); } catch (e) { $(".error", m.el).textContent = e.message; } }
+      await recargar(true); estadoConocimientos();
+      if (!$(".error", m.el).textContent) { m.cerrar(); aviso(`${ok ? `${ok} resultado${ok === 1 ? "" : "s"} borrado${ok === 1 ? "" : "s"}` : "Sin resultados borrados"}${reiniciar ? " · historial de exportaciones reiniciado" : ""}`); }
+      else ev.currentTarget.disabled = false;
+    };
   }
 
   // Estado visual: ¿todo exportado? + historial de exportaciones
   async function estadoConocimientos() {
     const caja = document.querySelector("[data-conoc-estado]"); if (!caja) return;
     let r; try { r = await api.adminConocimientos(codigo); } catch (e) { caja.innerHTML = `<span class="chip chip--rojo">No se pudo revisar: ${esc(e.message)}</span>`; return; }
-    const enfs = r.enfrentamientos || [], hist = r.historial || [], pend = enfs.filter((e) => !e.exportado).length;
+    const tiene = (n) => { const d = delPorNombre(n); return !d || ajuste("conocimientos", d.id).valor != null || ajuste("conocimientos", d.id).walkover; };
+    const enfs = r.enfrentamientos || [], hist = r.historial || [], pend = enfs.filter((e) => !e.exportado || !tiene(e.nombre_a) || !tiene(e.nombre_b)).length;
     const fecha = (t) => new Date(t).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
     caja.innerHTML = `${!enfs.length ? `<span class="chip">Aún no hay enfrentamientos terminados en el concurso</span>`
         : pend ? `<span class="chip chip--ambar">${pend} enfrentamiento${pend === 1 ? "" : "s"} nuevo${pend === 1 ? "" : "s"} sin exportar</span>`

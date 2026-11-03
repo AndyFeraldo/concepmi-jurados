@@ -3,12 +3,12 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611031800";
-import { ENTREGABLES } from "./entregables.js?v=202611031800";
-import { porId } from "./concursos.js?v=202611031800";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611031800";
-import { abrirEscenario } from "./escenario.js?v=202611031800";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031800";
+import { api } from "./api.js?v=202611031922";
+import { ENTREGABLES } from "./entregables.js?v=202611031922";
+import { porId } from "./concursos.js?v=202611031922";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611031922";
+import { abrirEscenario } from "./escenario.js?v=202611031922";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031922";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
