@@ -78,4 +78,4 @@ cualquier cambio de base de datos, explica qué hace y confirma con el usuario.
 - Primera prueba real después de publicar: entrar como admin, crear una delegación y un jurado de prueba y calificar. La conexión navegador → Supabase no se pudo probar desde claude.ai.
 - El usuario había registrado jurados en la vista previa de claude.ai, que no guarda en la nube. Para pasarlos a la base real se usa **Jurados → Importar respaldo**, que los crea con los mismos códigos ya enviados.
 - Bailetón: hoy el puesto sale del puntaje de rúbrica. Falta definir si debe ordenar primero por etapa alcanzada (TOP 3, TOP 5, etapa 1).
-- El código de administrador lo tiene el usuario. **No lo escribas en ningún archivo del repositorio**, porque es público.
+- El código de administrador lo tiene el usuario. **No lo escribas en ningún archivo del repositorio**, porque es público. En la puerta Admin el código se escribe **oculto (puntitos)** con un botón 👁 para mostrarlo, porque el usuario comparte pantalla; igual en «Cambiar mi código».

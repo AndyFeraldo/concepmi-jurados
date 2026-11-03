@@ -969,3 +969,8 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .en-borrar{ display:grid; gap:8px; padding:12px 14px; border:1px solid rgba(208,59,59,.45); border-radius:14px; background:rgba(208,59,59,.08); margin:4px 0 12px; }
 .en-borrar > div:not(.reparto){ display:grid; gap:1px; }
 .en-borrar small{ font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--tenue); font-weight:700; }
+/* Código del admin oculto (puntitos) con botón para mostrarlo */
+.codigo-caja{ position:relative; }
+.codigo-input--oculto{ padding-right:52px; padding-left:52px; }
+.codigo-ver{ position:absolute; right:8px; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:10px; font-size:1.15rem; display:grid; place-items:center; background:rgba(255,255,255,.06); border:1px solid var(--borde); cursor:pointer; }
+.codigo-ver:hover{ background:rgba(255,255,255,.12); }

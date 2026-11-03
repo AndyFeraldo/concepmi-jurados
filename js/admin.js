@@ -1,18 +1,18 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031254";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031254";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031254";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031254";
-import { exportarExcel } from "./excel.js?v=202611031254";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031254";
-import { crearLogistica } from "./admin-logistica.js?v=202611031254";
-import { crearEntregas } from "./admin-entregas.js?v=202611031254";
-import { crearCharlas } from "./admin-charlas.js?v=202611031254";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031254";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031254";
-import { salir } from "./app.js?v=202611031254";
+import { api, ES_DEMO } from "./api.js?v=202611031255";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611031255";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611031255";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611031255";
+import { exportarExcel } from "./excel.js?v=202611031255";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611031255";
+import { crearLogistica } from "./admin-logistica.js?v=202611031255";
+import { crearEntregas } from "./admin-entregas.js?v=202611031255";
+import { crearCharlas } from "./admin-charlas.js?v=202611031255";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611031255";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611031255";
+import { salir } from "./app.js?v=202611031255";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -764,8 +764,8 @@ export async function vistaAdmin(app, codigo) {
   // ---------------- Cambiar código de admin ----------------
   function cambiarClave() {
     const m = modal(`<h2>Cambiar mi código</h2><p style="margin:0;color:var(--niebla)">Mínimo 6 caracteres. Desde ahora entrarás con el nuevo código.</p>
-      <form class="form"><label class="campo"><span>Nuevo código</span><input name="n1" autocomplete="new-password" required></label>
-      <label class="campo"><span>Repite el nuevo código</span><input name="n2" autocomplete="new-password" required></label>
+      <form class="form"><label class="campo"><span>Nuevo código</span><input name="n1" type="password" autocomplete="new-password" required></label>
+      <label class="campo"><span>Repite el nuevo código</span><input name="n2" type="password" autocomplete="new-password" required></label>
       <p class="error"></p><div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--primario">Cambiar código</button></div></form>`);
     $("[data-cancelar]", m.el).onclick = m.cerrar;
     $("form", m.el).onsubmit = async (e) => {

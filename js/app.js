@@ -1,15 +1,15 @@
 // =========================================================
 // Panel de Jurados · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611031254";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031254";
-import { CONCURSOS } from "./concursos.js?v=202611031254";
-import { vistaJurado } from "./jurado.js?v=202611031254";
-import { vistaAdmin } from "./admin.js?v=202611031254";
-import { vistaTallerista } from "./tallerista.js?v=202611031254";
-import { vistaQuiz } from "./quiz.js?v=202611031254";
-import { vistaEquipo } from "./equipo.js?v=202611031254";
-import { vistaCoordinador } from "./coordinador.js?v=202611031254";
+import { api, ES_DEMO } from "./api.js?v=202611031255";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611031255";
+import { CONCURSOS } from "./concursos.js?v=202611031255";
+import { vistaJurado } from "./jurado.js?v=202611031255";
+import { vistaAdmin } from "./admin.js?v=202611031255";
+import { vistaTallerista } from "./tallerista.js?v=202611031255";
+import { vistaQuiz } from "./quiz.js?v=202611031255";
+import { vistaEquipo } from "./equipo.js?v=202611031255";
+import { vistaCoordinador } from "./coordinador.js?v=202611031255";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -104,7 +104,11 @@ function pedirCodigo(rol) {
     </div>
     <form>
       <label class="sr" for="cod">Código</label>
-      <input id="cod" class="codigo-input" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" autofocus>
+      <div class="codigo-caja">
+        <input id="cod" class="codigo-input ${esAdmin ? "codigo-input--oculto" : ""}" ${esAdmin ? 'type="password"' : ""} autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" autofocus>
+        ${esAdmin ? `<button type="button" class="codigo-ver" data-ver aria-label="Mostrar el código" title="Mostrar / ocultar">👁</button>` : ""}
+      </div>
+      ${esAdmin ? `<p class="ayuda" style="text-align:center;margin:6px 0 0">Tu código se ve como puntitos para que nadie lo lea si compartes pantalla.</p>` : ""}
       <p class="error" aria-live="polite"></p>
       <div class="modal__acciones" style="justify-content:stretch">
         <button type="button" class="btn" data-cancelar style="flex:1">Cancelar</button>
@@ -115,6 +119,9 @@ function pedirCodigo(rol) {
   const inp = m.el.querySelector("#cod");
   const err = m.el.querySelector(".error");
   m.el.querySelector("[data-cancelar]").onclick = () => m.cerrar();
+  // Mostrar u ocultar el código del admin (por defecto, oculto)
+  const ver = m.el.querySelector("[data-ver]");
+  if (ver) ver.onclick = () => { const oculto = inp.type === "password"; inp.type = oculto ? "text" : "password"; ver.textContent = oculto ? "🙈" : "👁"; ver.setAttribute("aria-label", oculto ? "Ocultar el código" : "Mostrar el código"); inp.focus(); };
   form.onsubmit = async (e) => {
     e.preventDefault();
     const codigo = inp.value.trim();
