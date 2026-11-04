@@ -1389,3 +1389,29 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .sala-show__lienzo video{ width:100%; height:100%; object-fit:contain; background:#000; }
 .sala-show__msg{ display:grid; gap:.6em; text-align:center; } .sala-show__msg b{ font-size:clamp(1.4rem, 3vw, 2.6rem); } .sala-show__msg span{ color:var(--niebla); }
 .sala-show__num{ position:absolute; right:14px; bottom:14px; z-index:2; padding:.25em .7em; border-radius:999px; background:rgba(5,3,26,.7); color:#E6DDFF; font-size:clamp(.7rem, 1.1vw, .95rem); }
+
+/* ---------- Accesos limitados: permisos por pestaña (js/permisos.js) ---------- */
+.perm-lista{ display:grid; gap:6px; margin-top:4px; }
+.perm-fila{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-radius:12px; background:rgba(10,5,40,.45); border:1px solid var(--borde); }
+.perm-fila__txt{ display:grid; min-width:0; } .perm-fila__txt small{ color:var(--tenue); font-size:.76rem; }
+.perm-segm button{ padding:.45em .9em; }
+.perm-segm button[data-nv="ver"].activo{ background:var(--celeste); color:#08202A; }
+.perm-resumen{ margin:0; padding:10px 12px; border-radius:12px; background:rgba(31,203,234,.08); border:1px dashed rgba(31,203,234,.4); font-size:.85rem; line-height:1.5; }
+@media (max-width:560px){ .perm-fila{ flex-direction:column; align-items:stretch; } .perm-segm{ justify-content:stretch; } .perm-segm button{ flex:1; } }
+.ro-aviso{ display:flex; align-items:center; gap:8px; margin:0 0 12px; padding:8px 14px; border-radius:12px; background:rgba(250,178,25,.1); border:1px solid rgba(250,178,25,.45); color:#FFE3A3; font-size:.88rem; }
+.ro-aviso[hidden]{ display:none; } .ro-aviso svg{ width:18px; height:18px; flex:none; }
+
+/* Modo «solo ver»: se esconden los botones que cambian datos (el servidor también los rechaza) */
+.ro-vivo [data-registrar],
+.ro-resultados [data-borrar-cal], .ro-resultados [data-panel], .ro-resultados [data-traer], .ro-resultados [data-borrar-conoc], .ro-resultados [data-quitar],
+.ro-jurados [data-crear], .ro-jurados [data-quitar], .ro-jurados [data-editar], .ro-jurados [data-importar], .ro-jurados [data-respaldo], .ro-jurados [data-regen], .ro-jurados .jurado__codigo, .ro-jurados label:has(> [name=codigos]),
+.ro-talleristas [data-crear], .ro-talleristas [data-quitar], .ro-talleristas [data-editar], .ro-talleristas [data-borrar-ganadores], .ro-talleristas [data-regen], .ro-talleristas .jurado__codigo,
+.ro-delegaciones .del-form, .ro-delegaciones [data-ed], .ro-delegaciones [data-bo],
+.ro-charlas [data-iniciar], .ro-charlas [data-parar], .ro-charlas [data-emergencia], .ro-charlas [data-reiniciar], .ro-charlas [data-confirmar], .ro-charlas [data-anular],
+.ro-charlas [data-borrar], .ro-charlas [data-guardar], .ro-charlas [data-inscritos], .ro-charlas [data-archivo], .ro-charlas label:has(> [data-archivo]), .ro-charlas [data-plantilla],
+.ro-logistica [data-ajustes], .ro-logistica [data-nuevo], .ro-logistica [data-nuevacat], .ro-logistica [data-nuevofondo], .ro-logistica [data-nuevogasto], .ro-logistica [data-nuevoprov],
+.ro-logistica [data-borrar], .ro-logistica [data-boradj], .ro-logistica [data-borcat], .ro-logistica [data-edfondo], .ro-logistica [data-edprov], .ro-logistica [data-gastofondo],
+.ro-logistica [data-pago], .ro-logistica [data-rencat], .ro-logistica [data-subcat], .ro-logistica [data-subit], .ro-logistica [data-bajcat], .ro-logistica [data-bajit], .ro-logistica [data-tcbox]{ display:none !important; }
+.ro-vivo [data-toggle], .ro-talleristas [data-taller], .ro-resultados [data-sancion], .ro-logistica [data-comprar], .ro-logistica .log-check{ pointer-events:none; }
+.ro-resultados [data-sancion]{ appearance:none; -webkit-appearance:none; }
+.perm-segm button[data-nv=""].activo{ background:rgba(255,255,255,.14); color:#fff; }

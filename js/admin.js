@@ -1,18 +1,20 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611032144";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611032144";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611032144";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611032144";
-import { exportarExcel } from "./excel.js?v=202611032144";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611032144";
-import { crearLogistica } from "./admin-logistica.js?v=202611032144";
-import { crearEntregas } from "./admin-entregas.js?v=202611032144";
-import { crearCharlas } from "./admin-charlas.js?v=202611032144";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611032144";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611032144";
-import { salir } from "./app.js?v=202611032144";
+import { api, ES_DEMO } from "./api.js?v=202611040040";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611040040";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611040040";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611040040";
+import { exportarExcel } from "./excel.js?v=202611040040";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611040040";
+import { crearLogistica } from "./admin-logistica.js?v=202611040040";
+import { crearEntregas } from "./admin-entregas.js?v=202611040040";
+import { crearCharlas } from "./admin-charlas.js?v=202611040040";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611040040";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611040040";
+import { puede, soloVer } from "./permisos.js?v=202611040040";
+import { ENTREGABLES } from "./entregables.js?v=202611040040";
+import { salir } from "./app.js?v=202611040040";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -27,9 +29,14 @@ const PESTANAS = [
 ];
 const CON_JURADO = CONCURSOS.filter((c) => c.jurados > 0);
 
-export async function vistaAdmin(app, codigo) {
+// acceso = null → administrador. Con acceso (código limitado) solo salen sus pestañas y, donde solo
+// puede ver, se esconden los botones de cambios (la base de datos también lo exige).
+export async function vistaAdmin(app, codigo, acceso = null) {
   let data = null, firma = "";
-  let pestana = "vivo", concursoSel = "proyectos";
+  const salaDe = acceso ? (acceso.concursos || []).filter((x) => ENTREGABLES[x]) : null;
+  const visibles = PESTANAS.filter((p) => !acceso || (p.id === "entregas" ? salaDe.length > 0 : puede(acceso, p.id, "ver")));
+  const editable = (id) => !acceso || id === "entregas" || id === "copa" || puede(acceso, id);
+  let pestana = visibles[0]?.id || "vivo", concursoSel = "proyectos";
   const vistos = new Set();
   let primera = true, temporizador = null, pausado = false;
 
@@ -40,7 +47,7 @@ export async function vistaAdmin(app, codigo) {
 
   const charlasUI = crearCharlas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), pausar: (p) => { pausado = p; } });
   const logisticaUI = crearLogistica({ codigo: () => codigo });
-  const entregasUI = crearEntregas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f) });
+  const entregasUI = crearEntregas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), ...(acceso ? { concursos: salaDe, coordinador: true } : {}) });
   const jur = (id) => data.jurados.find((j) => j.id === id);
   const tal = (id) => data.talleristas.find((t) => t.id === id);
   const ganador = (tid) => data.ganadores_talleres.find((g) => g.taller_id === tid);
@@ -54,29 +61,31 @@ export async function vistaAdmin(app, codigo) {
     <header class="barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI">
       <span class="sep"></span>
-      <div><div class="barra__titulo">Panel de Administrador</div><div class="barra__sub">VI CONCEPMI 2026</div></div>
+      <div><div class="barra__titulo">${acceso ? "Panel de acceso limitado" : "Panel de Administrador"}</div><div class="barra__sub">${acceso ? `${esc(acceso.nombre)} · ` : ""}VI CONCEPMI 2026</div></div>
       <div class="der">
         <span class="en-vivo" title="Se actualiza cada ${SEGUNDOS_REFRESCO} s"><span class="punto punto--vivo"></span>EN VIVO</span>
-        <button class="btn btn--mini btn--naranja" data-excel>${I.descargar}<span>Excel</span></button>
-        <button class="btn btn--mini btn--icono" data-clave title="Cambiar mi código" aria-label="Cambiar mi código">${I.llave}</button>
+        ${!acceso || puede(acceso, "copa", "ver") || puede(acceso, "resultados", "ver") ? `<button class="btn btn--mini btn--naranja" data-excel>${I.descargar}<span>Excel</span></button>` : ""}
+        ${acceso ? "" : `<button class="btn btn--mini btn--icono" data-clave title="Cambiar mi código" aria-label="Cambiar mi código">${I.llave}</button>`}
         <button class="btn btn--mini btn--icono" data-salir title="Salir" aria-label="Salir">${I.salir}</button>
       </div>
     </header>
     <main class="contenedor">
-      <div class="pestanas" role="tablist">${PESTANAS.map((p) => `<button class="pestana" role="tab" data-p="${p.id}" aria-selected="${p.id === pestana}">${I[p.icono]}${p.txt}</button>`).join("")}</div>
+      ${visibles.length > 1 ? `<div class="pestanas" role="tablist">${visibles.map((p) => `<button class="pestana" role="tab" data-p="${p.id}" aria-selected="${p.id === pestana}">${I[p.icono]}${p.txt}</button>`).join("")}</div>` : ""}
+      <p class="ro-aviso" data-ro-aviso hidden>${I.candado}<span><b>Solo lectura.</b> En esta pestaña puedes mirar, pero no hacer cambios.</span></p>
       <section id="vista"></section>
     </main>
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
     $$("[data-p]", app).forEach((b) => (b.onclick = () => { pestana = b.dataset.p; $$("[data-p]", app).forEach((x) => x.setAttribute("aria-selected", String(x === b))); pintar(); }));
-    $("[data-salir]", app).onclick = () => { clearInterval(temporizador); salir(); };
-    $("[data-excel]", app).onclick = () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } };
-    $("[data-clave]", app).onclick = cambiarClave;
+    $("[data-salir]", app).onclick = () => { clearInterval(temporizador); soloVer(null); salir(); };
+    if ($("[data-excel]", app)) $("[data-excel]", app).onclick = () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } };
+    if ($("[data-clave]", app)) $("[data-clave]", app).onclick = cambiarClave;
     pintar();
   }
 
   function pintar() {
     const v = $("#vista", app);
     if (!v) return;
+    const ro = !editable(pestana); soloVer(ro ? pestana : null); $("[data-ro-aviso]", app).hidden = !ro;
     ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones })[pestana](v);
   }
 
@@ -649,7 +658,7 @@ export async function vistaAdmin(app, codigo) {
         <p class="ayuda" style="margin-top:8px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611032144"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611040040"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
@@ -690,7 +699,7 @@ export async function vistaAdmin(app, codigo) {
     $("[data-cancelar]", m.el).onclick = m.cerrar;
     f.onsubmit = (ev) => {
       ev.preventDefault();
-      const porConcurso = f.orden.value === "concurso", conCodigo = f.codigos.checked;
+      const porConcurso = f.orden.value === "concurso", conCodigo = f.codigos.checked && data.jurados.some((j) => j.codigo);
       const w = window.open("", "_blank");
       if (!w) return aviso("Tu navegador bloqueó la ventana. Permite las ventanas emergentes para este sitio.", "error");
       m.cerrar();

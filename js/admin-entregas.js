@@ -3,14 +3,15 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611032144";
-import { ENTREGABLES } from "./entregables.js?v=202611032144";
-import { porId } from "./concursos.js?v=202611032144";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611032144";
-import { abrirEscenario } from "./escenario.js?v=202611032144";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611032144";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611032144";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611032144";
+import { api } from "./api.js?v=202611040040";
+import { ENTREGABLES } from "./entregables.js?v=202611040040";
+import { porId } from "./concursos.js?v=202611040040";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611040040";
+import { abrirEscenario } from "./escenario.js?v=202611040040";
+import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611040040";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611040040";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611040040";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611040040";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -105,7 +106,7 @@ export function crearEntregas(ctx) {
               ${tieneDatos(e) || e.estado === "enviado" ? `<button class="btn btn--mini btn--peligro" data-vaciar="${e.equipo_id}" title="Borrar lo que escribió este equipo">${I.basura}Borrar respuesta</button>` : ""}
               <button class="btn btn--mini btn--icono" data-editar="${x.id}" title="Editar equipo" aria-label="Editar equipo">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="6"><div class="vacio"><b>Aún no hay equipos</b>Usa «Crear equipos para las delegaciones» o «Nuevo equipo».</div></td></tr>`}
       </tbody></table></div>
-      ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Accesos limitados</h1><p>Personas con <b>su propio código</b> que entran por el botón <b>Admin</b> de la portada y solo ven lo que les asignes: <b>coordinadores de sala</b> (Entregas de su concurso, por ejemplo Amateur I) y <b>líder de logística</b> (solo la pestaña Logística). No pueden tocar calificaciones, jurados, la Copa ni nada más.</p></div>
+      ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Accesos limitados</h1><p>Personas de confianza con <b>su propio código</b> que entran por el botón <b>Admin</b> de la portada. Tú eliges, pestaña por pestaña, si <b>no la ve</b>, <b>solo la ve</b> o <b>puede editarla</b>, y de qué concursos maneja las Entregas. Ejemplos: coordinador de sala, líder de logística, relaciones públicas (ve jurados, talleristas y charlas).</p></div>
         <button class="btn btn--naranja" data-coord-nuevo>${I.mas}Nuevo acceso</button></div>
       <div data-coords>${pintarCoords()}</div>` : ""}`;
     pintarReloj(v);
@@ -255,11 +256,14 @@ export function crearEntregas(ctx) {
   }
   function pintarCoords() {
     if (!coords) return `<div class="cargando" style="min-height:80px"><div class="giro"></div></div>`;
-    if (!coords.length) return `<div class="vacio"><b>Aún no hay accesos limitados</b>Crea uno para un coordinador de sala o para tu líder de logística.</div>`;
-    return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Puede ver</th><th></th></tr></thead><tbody>
-      ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td><code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
-        <td>${k.concursos.map((x) => `<span class="chip">Entregas · ${esc(porId(x)?.nombre || x)}</span>`).join(" ")} ${k.logistica ? `<span class="chip chip--celeste">Logística</span>` : ""}</td>
-        <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>`;
+    if (!coords.length) return `<div class="vacio"><b>Aún no hay accesos limitados</b>Crea uno para un coordinador de sala, tu líder de logística o alguien de confianza que solo deba mirar.</div>`;
+    const chips = (k) => [...AREAS.filter((a) => nivel(k, a.id)).map((a) => `<span class="chip ${nivel(k, a.id) === "editar" ? "chip--ambar" : "chip--celeste"}">${esc(a.txt)} · ${nivel(k, a.id) === "editar" ? "edita" : "ve"}</span>`),
+      ...k.concursos.map((x) => `<span class="chip chip--ambar">Entregas · ${esc(porId(x)?.nombre || x)}</span>`)].join(" ") || `<span class="tenue">Nada asignado</span>`;
+    return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Permisos</th><th></th></tr></thead><tbody>
+      ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td style="white-space:nowrap"><code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
+        <td><div class="reparto" style="margin:0">${chips(k)}</div></td>
+        <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>
+      <p class="ayuda" style="margin-top:8px"><b>Ve</b> = mira la pestaña sin poder cambiar nada (y sin ver códigos de jurados ni talleristas). <b>Edita</b> = puede crear, cambiar y borrar en esa pestaña.</p>`;
   }
   function enlazarCoords(v) {
     if (!esAdmin) return;
@@ -268,15 +272,46 @@ export function crearEntregas(ctx) {
     $$("[data-copiar-coord]", v).forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copiarCoord); aviso("Código copiado"); } catch { aviso(`Código: ${b.dataset.copiarCoord}`); } }));
   }
   function formCoord(k, v) {
+    const per = { ...(k?.permisos || {}) }; if (k?.logistica && !per.logistica) per.logistica = "editar";
+    let sala = new Set(k?.concursos || []);
+    const fila = (a) => `<div class="perm-fila" data-area="${a.id}">
+        <div class="perm-fila__txt"><b>${esc(a.txt)}</b><small data-desc>${esc(per[a.id] === "editar" ? a.editar || a.ver : a.ver)}</small></div>
+        <div class="segm perm-segm" role="radiogroup" aria-label="${esc(a.txt)}">
+          <button type="button" data-nv="" class="${!per[a.id] ? "activo" : ""}">No ve</button>
+          <button type="button" data-nv="ver" class="${per[a.id] === "ver" ? "activo" : ""}">Ve</button>
+          ${a.editar ? `<button type="button" data-nv="editar" class="${per[a.id] === "editar" ? "activo" : ""}">Edita</button>` : ""}
+        </div></div>`;
     const m = modal(`<h2>${k ? "Editar acceso" : "Nuevo acceso limitado"}</h2><form class="form">
-      <label class="campo"><span>Nombre</span><input name="nombre" maxlength="120" required value="${esc(k?.nombre || "")}" placeholder="Nombre y apellido"></label>
-      <fieldset class="campo"><span>Coordinador de sala · Entregas de</span><div class="reparto" style="margin:4px 0 0">${Object.keys(ENTREGABLES).map((x) => `<label class="chip" style="cursor:pointer"><input type="checkbox" name="cc" value="${x}" ${k?.concursos.includes(x) ? "checked" : ""}> ${esc(porId(x)?.nombre || x)}</label>`).join("")}</div></fieldset>
-      <fieldset class="campo"><span>Otras pestañas</span><div class="reparto" style="margin:4px 0 0"><label class="chip" style="cursor:pointer"><input type="checkbox" name="logistica" ${k?.logistica ? "checked" : ""}> Logística (presupuesto, gastos, comprobantes y reporte)</label></div></fieldset>
+      <label class="campo"><span>Nombre</span><input name="nombre" maxlength="120" required value="${esc(k?.nombre || "")}" placeholder="Ej. Coordinador de Relaciones Públicas"></label>
+      <div class="campo"><span>Empezar desde una plantilla (opcional)</span><div class="reparto" style="margin:4px 0 0">${PLANTILLAS.map((t) => `<button type="button" class="btn btn--mini" data-plantilla="${t.id}" title="${esc(t.ayuda)}">${esc(t.txt)}</button>`).join("")}</div></div>
+      <div class="campo"><span>Pestañas del panel</span><div class="perm-lista">${AREAS.map(fila).join("")}</div></div>
+      <fieldset class="campo"><span>Entregas · coordinador de sala de</span><div class="reparto" style="margin:4px 0 0">${Object.keys(ENTREGABLES).map((x) => `<label class="chip" style="cursor:pointer"><input type="checkbox" name="cc" value="${x}" ${sala.has(x) ? "checked" : ""}> ${esc(porId(x)?.nombre || x)}</label>`).join("")}</div>
+        <small class="tenue">Maneja los equipos, códigos, tiempo oficial y pantalla del concurso que marques (no aplica sanciones).</small></fieldset>
+      <p class="perm-resumen" data-resumen></p>
       <label class="campo"><span>Código de acceso ${k ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" value="${esc(k?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase"></label>
-      <p class="ayuda" style="margin:0">Entra por el botón <b>Admin</b> de la portada con este código.</p>
+      <p class="ayuda" style="margin:0">Entra por el botón <b>Admin</b> de la portada con este código. Nunca puede crear otros accesos ni cambiar tu código.</p>
       <p class="error"></p>
-      <div class="modal__acciones" style="margin-top:0">${k ? `<button type="button" class="btn btn--peligro" data-borrar style="margin-right:auto">${I.basura}Quitar acceso</button>` : ""}<button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Guardar</button></div></form>`);
+      <div class="modal__acciones" style="margin-top:0">${k ? `<button type="button" class="btn btn--peligro" data-borrar style="margin-right:auto">${I.basura}Quitar acceso</button>` : ""}<button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Guardar</button></div></form>`, { ancho: true });
     const f = $("form", m.el);
+    const resumen = () => {
+      const ve = AREAS.filter((a) => per[a.id] === "ver").map((a) => a.txt), ed = AREAS.filter((a) => per[a.id] === "editar").map((a) => a.txt);
+      const cc = $$("[name=cc]", f).filter((x) => x.checked).map((x) => porId(x.value)?.nombre || x.value);
+      $("[data-resumen]", f).innerHTML = !ve.length && !ed.length && !cc.length ? "Elige al menos una pestaña o un concurso."
+        : [ve.length && `<b>Solo mira:</b> ${esc(ve.join(", "))}`, ed.length && `<b>Puede editar:</b> ${esc(ed.join(", "))}`, cc.length && `<b>Entregas de:</b> ${esc(cc.join(", "))}`].filter(Boolean).join("<br>");
+    };
+    const pintarFila = (id) => { const a = AREAS.find((x) => x.id === id), el = $(`[data-area="${id}"]`, f);
+      $$("[data-nv]", el).forEach((b) => b.classList.toggle("activo", b.dataset.nv === (per[id] || "")));
+      $("[data-desc]", el).textContent = per[id] === "editar" ? a.editar || a.ver : a.ver; };
+    $$("[data-area]", f).forEach((el) => $$("[data-nv]", el).forEach((b) => (b.onclick = () => { const id = el.dataset.area; if (b.dataset.nv) per[id] = b.dataset.nv; else delete per[id]; pintarFila(id); resumen(); })));
+    $$("[name=cc]", f).forEach((x) => (x.onchange = resumen));
+    $$("[data-plantilla]", f).forEach((b) => (b.onclick = () => {
+      const t = PLANTILLAS.find((x) => x.id === b.dataset.plantilla);
+      Object.keys(per).forEach((x) => delete per[x]); Object.assign(per, t.permisos); AREAS.forEach((a) => pintarFila(a.id));
+      if (!t.entregas) $$("[name=cc]", f).forEach((x) => (x.checked = false)); else if (!$$("[name=cc]", f).some((x) => x.checked)) aviso("Marca abajo el concurso de Entregas que coordina");
+      if (!f.nombre.value.trim() && t.id !== "lectura") f.nombre.placeholder = t.txt;
+      resumen();
+    }));
+    resumen();
     $("[data-cancelar]", m.el).onclick = m.cerrar;
     $("[data-borrar]", m.el)?.addEventListener("click", async () => {
       if (!(await confirmar("¿Quitar este acceso?", "Su código dejará de funcionar. No se borra nada de lo que hizo (equipos, entregas ni logística).", { boton: "Quitar acceso", peligro: true }))) return;
@@ -287,7 +322,7 @@ export function crearEntregas(ctx) {
       const cod = f.cod.value.replace(/\s/g, "").toUpperCase();
       const concursos = $$("[name=cc]", f).filter((x) => x.checked).map((x) => x.value);
       try {
-        const r = await api.adminCoordinador(ctx.codigo(), { id: k?.id || null, nombre: f.nombre.value, concursos, logistica: f.logistica.checked, codigoFijo: cod && cod !== k?.codigo ? cod : null });
+        const r = await api.adminCoordinador(ctx.codigo(), { id: k?.id || null, nombre: f.nombre.value, concursos, permisos: { ...per }, codigoFijo: cod && cod !== k?.codigo ? cod : null });
         m.cerrar(); coords = null; await cargarCoords(v); aviso(k ? "Acceso guardado" : `Acceso creado · código ${r.codigo}`);
       } catch (ex) { $(".error", f).textContent = ex.message; }
     };

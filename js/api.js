@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611032144";
-import { CONCURSOS, porId } from "./concursos.js?v=202611032144";
-import { TALLERES } from "./talleres.js?v=202611032144";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611032144";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611040040";
+import { CONCURSOS, porId } from "./concursos.js?v=202611040040";
+import { TALLERES } from "./talleres.js?v=202611040040";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611040040";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -118,8 +118,8 @@ const real = {
   adminEntregaVaciar: (codigo, equipo) => rpc("jur_admin_entrega_vaciar", { p_codigo: codigo, p_equipo: equipo }),
   coordDatos: (codigo) => rpc("jur_coord_datos", { p_codigo: codigo }),
   adminCoordinadores: (codigo) => rpc("jur_admin_coordinadores", { p_codigo: codigo }),
-  adminCoordinador: (codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, logistica = false }) =>
-    rpc("jur_admin_coordinador", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_borrar: borrar, p_codigo_fijo: codigoFijo, p_logistica: logistica }),
+  adminCoordinador: (codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, permisos = {} }) =>
+    rpc("jur_admin_coordinador", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_borrar: borrar, p_codigo_fijo: codigoFijo, p_permisos: permisos }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -172,7 +172,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611032144");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611040040");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -204,7 +204,8 @@ function db() {
   mem.equipos ||= mem.delegaciones.length ? [{ id: uid(), concurso_id: "amateur-2", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0001" }] : [];
   mem.entregas ||= {}; mem.tiempos ||= {};
   mem.coordinadores ||= [{ id: uid(), nombre: "Coordinador de prueba", codigo: "SALA01", concursos: ["amateur-1"] }];
-  if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true });
+  if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true, permisos: { logistica: "editar" } });
+  if (!mem.coordinadores.some((k) => k.codigo === "RRPP01")) mem.coordinadores.push({ id: uid(), nombre: "Relaciones públicas (prueba)", codigo: "RRPP01", concursos: [], permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" } });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "amateur-1")) mem.equipos.push({ id: uid(), concurso_id: "amateur-1", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0002" });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "proyectos")) mem.equipos.push({ id: uid(), concurso_id: "proyectos", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0004" });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "iathon")) mem.equipos.push({ id: uid(), concurso_id: "iathon", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0003" });
@@ -229,7 +230,13 @@ const presCfgRaw = (cid) => { const d = db(); d.presConfig ||= {}; return (d.pre
 const presCfg = (cid) => { const c = presCfgRaw(cid), s = (db().sorteos || {})[cid];
   return { ...c, ahora: new Date().toISOString(), puede: c.abierto && Date.now() <= Date.parse(c.limite), orden: s?.orden || [], sorteado: s?.creado || null }; };
 const presJson = (e) => { const p = (db().pres || {})[e.id] || {}; return { equipo_id: e.id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", ppt: p.ppt || null, pdf: p.pdf || null, video: p.video || null }; };
-const exigirLogistica = (c) => { if (norm(c) === db().admin) return; if (!(db().coordinadores || []).some((x) => x.codigo === norm(c) && x.logistica)) throw new Error("Este código no tiene acceso a Logística"); };
+// Permisos de los accesos limitados (igual que jur_exigir_permiso en la base)
+const accesoDe = (c) => (db().coordinadores || []).find((x) => x.codigo === norm(c));
+const nivelDe = (k, area) => k?.permisos?.[area] || (area === "logistica" && k?.logistica ? "editar" : "");
+const exigirPermiso = (c, area, que = "editar") => { if (norm(c) === db().admin) return; const k = accesoDe(c); if (!k) throw new Error("Código de administrador incorrecto");
+  const v = nivelDe(k, area); if (v === "editar" || (que === "ver" && v === "ver")) return;
+  throw new Error(que === "ver" ? "Tu acceso no incluye esta pestaña" : "Tu acceso es solo para ver: no puedes hacer cambios aquí"); };
+const exigirLogistica = (c) => exigirPermiso(c, "logistica", "editar");
 const exigirSala = (c, concurso) => { if (norm(c) === db().admin) return; const k = (db().coordinadores || []).find((x) => x.codigo === norm(c)); if (!k || !k.concursos.includes(concurso)) throw new Error("Este código no puede manejar las entregas de este concurso"); };
 const eqDe = (c) => { const e = (db().equipos || []).find((x) => x.codigo === norm(c)); if (!e) throw new Error("Código de equipo incorrecto"); return e; };
 const entJson = (e) => { const x = db().entregas[e.id] || {}; return { equipo_id: e.id, concurso_id: e.concurso_id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", lider: e.lider || "",
@@ -299,21 +306,27 @@ const demo = {
     Object.assign(r, { datos, total, comentario, actualizado: new Date().toISOString() });
     guardar(); return { id: r.id, total };
   },
-  async adminDatos(codigo) { await espera(150); exigirAdmin(codigo); const d = db();
+  async adminDatos(codigo) { await espera(150); const d = db(); const adm = norm(codigo) === d.admin, k = adm ? null : accesoDe(codigo);
+    if (!adm && !k) throw new Error("Código de administrador incorrecto");
+    const ve = (a) => adm || !!nivelDe(k, a), edita = (a) => adm || nivelDe(k, a) === "editar", cc = k?.concursos || [];
+    const verRes = ve("vivo") || ve("resultados") || ve("copa");
+    const sinCod = (x, a) => (edita(a) ? x : { ...x, codigo: null });
     return { concursos: CONCURSOS.map((c) => ({ id: c.id, abierto: d.abiertos[c.id] })), delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
-      jurados: d.jurados, calificaciones: [...d.calificaciones].sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)), ajustes: d.ajustes, borrados: d.borrados || [],
-      talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: d.talleristas, ganadores_talleres: d.ganadores,
+      jurados: d.jurados.filter((j) => ve("jurados") || verRes || j.concursos.some((c) => cc.includes(c))).map((j) => sinCod(j, "jurados")),
+      calificaciones: [...d.calificaciones].filter((x) => verRes || cc.includes(x.concurso_id)).sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)),
+      ajustes: d.ajustes.filter((x) => verRes || cc.includes(x.concurso_id)), borrados: verRes ? d.borrados || [] : [],
+      talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: ve("talleristas") ? d.talleristas.map((t) => sinCod(t, "talleristas")) : [], ganadores_talleres: ve("talleristas") || verRes ? d.ganadores : [],
       charlas: CHARLAS.map((c) => { const x = quizC(c.id); return { id: c.id, fase: quizFase(c.id), confirmado: x.confirmado || null, ganador_nombre: x.ganador_nombre || null, podio: x.podio || [],
         ganador_delegacion: x.ganador_delegacion || null, preguntas: d.preguntas[c.id].length, jugadores: d.jugadores.filter((j) => j.charla_id === c.id).length }; }),
       asistentes: { total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length } }; },
-  async adminDelegacion(codigo, id, nombre, siglas, borrar = false) { await espera(); exigirAdmin(codigo); const d = db();
+  async adminDelegacion(codigo, id, nombre, siglas, borrar = false) { await espera(); exigirPermiso(codigo, "delegaciones", "editar"); const d = db();
     if (borrar) { d.delegaciones = d.delegaciones.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.delegacion_id !== id); }
     else if (!String(nombre).trim()) throw new Error("Escribe el nombre de la delegación");
     else if (id) Object.assign(d.delegaciones.find((x) => x.id === id), { nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
     else d.delegaciones.push({ id: uid(), nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
     guardar(); },
   async adminJurado(codigo, { id = null, nombre = "", concursos = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
-    await espera(); exigirAdmin(codigo); const d = db();
+    await espera(); exigirPermiso(codigo, "jurados", "editar"); const d = db();
     if (borrar) { d.jurados = d.jurados.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.jurado_id !== id); guardar(); return null; }
     if (!String(nombre).trim()) throw new Error("Escribe el nombre completo del jurado");
     if (!concursos.length) throw new Error("Elige al menos un concurso");
@@ -330,13 +343,13 @@ const demo = {
     if (regen) j.codigo = nuevoCodigo();
     if (fijo) j.codigo = fijo;
     guardar(); return { id: j.id, codigo: j.codigo }; },
-  async adminAjuste(codigo, concurso, delegacion, a) { await espera(); exigirAdmin(codigo); const d = db();
+  async adminAjuste(codigo, concurso, delegacion, a) { await espera(); exigirPermiso(codigo, "resultados", "editar"); const d = db();
     let r = d.ajustes.find((x) => x.concurso_id === concurso && x.delegacion_id === delegacion);
     if (!r) { r = { concurso_id: concurso, delegacion_id: delegacion }; d.ajustes.push(r); }
     Object.assign(r, { retraso: !!a.retraso, walkover: !!a.walkover, descalificado: !!a.descalificado, valor: a.valor ?? null, nota: a.nota || "" }); guardar(); },
-  async adminConcurso(codigo, concurso, abierto) { await espera(); exigirAdmin(codigo); db().abiertos[concurso] = abierto; guardar(); },
+  async adminConcurso(codigo, concurso, abierto) { await espera(); exigirPermiso(codigo, "vivo", "editar"); db().abiertos[concurso] = abierto; guardar(); },
   async adminBorrarCalificaciones(codigo, ids, motivo) {
-    await espera(); exigirAdmin(codigo); const d = db();
+    await espera(); exigirPermiso(codigo, "resultados", "editar"); const d = db();
     if (String(motivo || "").trim().length < 4) throw new Error("Escribe el motivo del borrado");
     d.borrados = d.borrados || [];
     for (const x of d.calificaciones.filter((y) => ids.includes(y.id))) {
@@ -346,7 +359,7 @@ const demo = {
     const n = d.calificaciones.length; d.calificaciones = d.calificaciones.filter((y) => !ids.includes(y.id)); guardar(); return n - d.calificaciones.length;
   },
   async adminManual(codigo, concurso, delegacion, datos, noPresento = false, borrar = false) {
-    await espera(); exigirAdmin(codigo); const d = db();
+    await espera(); exigirPermiso(codigo, "resultados", "editar"); const d = db();
     if (borrar) { d.ajustes = d.ajustes.filter((a) => !(a.concurso_id === concurso && a.delegacion_id === delegacion)); guardar(); return; }
     let valor = null, limpio = {};
     if (!noPresento) {
@@ -382,7 +395,7 @@ const demo = {
     d.ganadores.push({ taller_id: taller, integrantes: integrantes.map((x) => ({ nombre: x.nombre.trim(), delegacion: x.delegacion })), tallerista: t.nombre, actualizado: new Date().toISOString() });
     guardar(); },
   async adminTallerista(codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
-    await espera(); exigirAdmin(codigo); const d = db();
+    await espera(); exigirPermiso(codigo, "talleristas", "editar"); const d = db();
     if (borrar) { d.talleristas = d.talleristas.filter((x) => x.id !== id); guardar(); return null; }
     if (!String(nombre).trim()) throw new Error("Escribe el nombre completo del tallerista");
     if (!talleres.length) throw new Error("Elige al menos un taller");
@@ -399,9 +412,9 @@ const demo = {
     if (regen) t.codigo = nuevoCodigo();
     if (fijo) t.codigo = fijo;
     guardar(); return { id: t.id, codigo: t.codigo }; },
-  async adminTaller(codigo, taller, abierto) { await espera(); exigirAdmin(codigo); db().talleresAbiertos[taller] = abierto; guardar(); },
+  async adminTaller(codigo, taller, abierto) { await espera(); exigirPermiso(codigo, "talleristas", "editar"); db().talleresAbiertos[taller] = abierto; guardar(); },
   // Vista previa: simula enfrentamientos terminados del sistema de Conocimientos
-  async adminConocimientos(codigo) { await espera(); exigirAdmin(codigo); const d0 = db(), ds = d0.delegaciones; d0.conocExport ||= [];
+  async adminConocimientos(codigo) { await espera(); exigirPermiso(codigo, "resultados", "editar"); const d0 = db(), ds = d0.delegaciones; d0.conocExport ||= [];
     const exp = (id) => d0.conocExport.filter((x) => x.enfrentamientos.includes(id)).map((x) => x.creado).sort().at(-1) || null;
     const historial = [...d0.conocExport].reverse().map((x) => ({ id: x.id, creado: x.creado, n: x.enfrentamientos.length, detalle: x.detalle }));
     if (ds.length < 3) return { enfrentamientos: [], historial };
@@ -409,10 +422,10 @@ const demo = {
     return { historial, enfrentamientos: [{ id: "x1", creado: new Date(t - 3e6).toISOString(), nombre_a: s(ds[0]), nombre_b: s(ds[1]), puntaje_a: 28, puntaje_b: 15, ganador: "A" },
       { id: "x2", creado: new Date(t - 2e6).toISOString(), nombre_a: s(ds[2]), nombre_b: s(ds[0]), puntaje_a: 12, puntaje_b: 25, ganador: "B" },
       { id: "x3", creado: new Date(t - 1e6).toISOString(), nombre_a: "CATÓLICA", nombre_b: s(ds[1]), puntaje_a: 20, puntaje_b: 22, ganador: "B" }].map((e) => ({ ...e, exportado: exp(e.id) })) }; },
-  async adminConocReiniciar(codigo) { await espera(); exigirAdmin(codigo); db().conocExport = []; guardar(); },
-  async adminConocExportar(codigo, enfrentamientos, detalle) { await espera(); exigirAdmin(codigo); const d = db(); d.conocExport ||= [];
+  async adminConocReiniciar(codigo) { await espera(); exigirPermiso(codigo, "resultados", "editar"); db().conocExport = []; guardar(); },
+  async adminConocExportar(codigo, enfrentamientos, detalle) { await espera(); exigirPermiso(codigo, "resultados", "editar"); const d = db(); d.conocExport ||= [];
     if (enfrentamientos.length) d.conocExport.push({ id: uid(), creado: new Date().toISOString(), enfrentamientos, detalle }); guardar(); },
-  async adminTallerBorrar(codigo, taller) { await espera(); exigirAdmin(codigo); const d = db(); d.ganadores = d.ganadores.filter((g) => g.taller_id !== taller); guardar(); },
+  async adminTallerBorrar(codigo, taller) { await espera(); exigirPermiso(codigo, "talleristas", "editar"); const d = db(); d.ganadores = d.ganadores.filter((g) => g.taller_id !== taller); guardar(); },
   // ---- Trivia (vista previa: el tiempo lo lleva este navegador) ----
   async quizBuscar(dni) { await espera(); const a = db().asistentes.find((x) => x.dni === norm(dni)); if (!a) return null;
     const d = db().delegaciones.find((x) => x.id === a.delegacion_id); return { nombre: a.nombre, codigo: a.codigo, delegacion: d ? { id: d.id, nombre: d.nombre, siglas: d.siglas } : null }; },
@@ -446,7 +459,7 @@ const demo = {
     const r = quizRanking(charla).find((x) => x.dni === norm(dni)); const mio = (c.podio || []).find((p) => p.dni === norm(dni));
     return { aciertos: r.aciertos, puesto: r.puesto, tiempo_ms: r.tiempo_ms, preguntas: d.preguntas[charla].length, jugadores: d.jugadores.filter((j) => j.charla_id === charla).length,
       confirmado: !!c.confirmado, ganador: c.ganador_nombre || null, pts: mio?.pts || 0 }; },
-  async adminQuiz(codigo, charla) { await espera(80); exigirAdmin(codigo); quizAvanzar(charla); const d = db(); const c = quizC(charla);
+  async adminQuiz(codigo, charla) { await espera(80); exigirPermiso(codigo, "charlas", "ver"); quizAvanzar(charla); const d = db(); const c = quizC(charla);
     const resp = d.respuestas.filter((r) => r.charla_id === charla);
     return { fase: quizFase(charla), ahora: new Date().toISOString(), seg: SEG_PREGUNTA, pausa: SEG_PAUSA, pregunta: c.pregunta || 0, inicio: c.pregunta_inicio || null,
       fin: c.pregunta_inicio ? new Date(Date.parse(c.pregunta_inicio) + SEG).toISOString() : null, confirmado: c.confirmado || null,
@@ -454,7 +467,7 @@ const demo = {
       preguntas: d.preguntas[charla].map((q, orden) => ({ orden, ...q })),
       respuestas: [...new Set(resp.map((r) => r.orden))].map((orden) => ({ orden, n: resp.filter((r) => r.orden === orden).length, bien: resp.filter((r) => r.orden === orden && r.correcta).length })),
       ranking: quizRanking(charla) }; },
-  async adminCharla(codigo, charla, accion) { await espera(); exigirAdmin(codigo); quizAvanzar(charla); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
+  async adminCharla(codigo, charla, accion) { await espera(); exigirPermiso(codigo, "charlas", "editar"); quizAvanzar(charla); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
     if (accion === "iniciar") { if (c.estado === "jugando") throw new Error("La trivia ya se inició");
       Object.assign(c, { estado: "jugando", pregunta: 0, pregunta_inicio: new Date(Date.now() + 5000).toISOString() }); }
     else if (accion === "detener") { if (c.confirmado) throw new Error("Primero anula el resultado confirmado");
@@ -467,23 +480,23 @@ const demo = {
       Object.assign(c, { podio: pod, ganador_dni: pod[0].dni, ganador_nombre: pod[0].nombre, ganador_delegacion: pod[0].delegacion_id, confirmado: new Date().toISOString() }); }
     else if (accion === "anular") Object.assign(c, { podio: [], ganador_dni: null, ganador_nombre: null, ganador_delegacion: null, confirmado: null });
     guardar(); },
-  async adminPreguntas(codigo, charla, preguntas) { await espera(); exigirAdmin(codigo);
+  async adminPreguntas(codigo, charla, preguntas) { await espera(); exigirPermiso(codigo, "charlas", "editar");
     if (quizC(charla).estado === "jugando") throw new Error("Reinicia la trivia antes de cambiar las preguntas");
     db().preguntas[charla] = preguntas.map((q) => ({ texto: q.texto, opciones: q.opciones, correcta: q.correcta })); guardar(); return preguntas.length; },
-  async adminAsistentes(codigo, filas) { await espera(); exigirAdmin(codigo); const d = db(); let n = 0;
+  async adminAsistentes(codigo, filas) { await espera(); exigirPermiso(codigo, "charlas", "editar"); const d = db(); let n = 0;
     for (const f of filas) { const dni = norm(f.dni); if (!dni || !String(f.nombre || "").trim()) continue;
       d.asistentes = d.asistentes.filter((a) => a.dni !== dni);
       d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "" }); n++; }
     guardar(); return { importados: n, total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length }; },
   // ---- Logística (vista previa) ----
-  async adminLogistica(codigo) { await espera(); exigirLogistica(codigo); const L = structuredClone(await logDemo()); L.archivos = L.archivos.map(({ datos, ...a }) => a); return L; },
+  async adminLogistica(codigo) { await espera(); exigirPermiso(codigo, "logistica", "ver"); const L = structuredClone(await logDemo()); L.archivos = L.archivos.map(({ datos, ...a }) => a); return L; },
   async adminLogOrden(codigo, tabla, ids) { await espera(80); exigirLogistica(codigo); const L = await logDemo(); const f = tabla === "categoria" ? L.categorias : L.items;
     ids.forEach((id, n) => { const r = f.find((x) => x.id === id); if (r) r.orden = n + 1; }); guardar(); },
   async adminLogArchivoSubir(codigo, { gasto = null, item = null, nombre, tipo, datos }) { await espera(); exigirLogistica(codigo); const L = await logDemo();
     if (datos.length > 7000000) throw new Error("El archivo pesa más de 5 MB. Comprime la imagen o el PDF.");
     const a = { id: uid(), gasto_id: gasto, item_id: item, nombre, tipo, tamano: Math.floor(datos.length * 3 / 4), datos, creado: new Date().toISOString() };
     L.archivos.push(a); guardar(); return a.id; },
-  async adminLogArchivo(codigo, id) { await espera(); exigirLogistica(codigo); const a = (await logDemo()).archivos.find((x) => x.id === id); return a ? { id: a.id, nombre: a.nombre, tipo: a.tipo, datos: a.datos } : null; },
+  async adminLogArchivo(codigo, id) { await espera(); exigirPermiso(codigo, "logistica", "ver"); const a = (await logDemo()).archivos.find((x) => x.id === id); return a ? { id: a.id, nombre: a.nombre, tipo: a.tipo, datos: a.datos } : null; },
   async adminLogArchivoBorrar(codigo, id) { await espera(); exigirLogistica(codigo); const L = await logDemo(); L.archivos = L.archivos.filter((x) => x.id !== id); guardar(); },
   async adminLogGuardar(codigo, tabla, datos) {
     await espera(); exigirLogistica(codigo); const L = await logDemo();
@@ -559,19 +572,20 @@ const demo = {
   async adminEntregaVaciar(codigo, equipo) { await espera(); const eq = db().equipos.find((e) => e.id === equipo); if (!eq) throw new Error("Ese equipo ya no existe"); exigirSala(codigo, eq.concurso_id);
     const x = db().entregas[equipo]; if (x) Object.assign(x, { datos: {}, estado: "borrador", enviado: null, tarde: false, actualizado: new Date().toISOString() }); guardar(); },
   async coordDatos(codigo) { await espera(); const d = db(); const k = (d.coordinadores || []).find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código de coordinador incorrecto");
-    return { coordinador: { id: k.id, nombre: k.nombre, concursos: k.concursos, logistica: !!k.logistica }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(({ id, nombre, siglas }) => ({ id, nombre, siglas })),
+    return { coordinador: { id: k.id, nombre: k.nombre, concursos: k.concursos, logistica: !!k.logistica, permisos: k.permisos || (k.logistica ? { logistica: "editar" } : {}) }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(({ id, nombre, siglas }) => ({ id, nombre, siglas })),
       jurados: d.jurados.filter((j) => j.concursos.some((c) => k.concursos.includes(c))).map(({ id, nombre, concursos }) => ({ id, nombre, concursos })),
       calificaciones: d.calificaciones.filter((c) => k.concursos.includes(c.concurso_id)), ajustes: d.ajustes.filter((a) => k.concursos.includes(a.concurso_id)) }; },
   async adminCoordinadores(codigo) { await espera(); exigirAdmin(codigo); return [...(db().coordinadores || [])].sort((a, b) => a.nombre.localeCompare(b.nombre)); },
-  async adminCoordinador(codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, logistica = false }) {
+  async adminCoordinador(codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, permisos = {} }) {
     await espera(); exigirAdmin(codigo); const d = db(); d.coordinadores ||= [];
     if (borrar) { d.coordinadores = d.coordinadores.filter((k) => k.id !== id); guardar(); return null; }
     if (String(nombre).trim().length < 2) throw new Error("Escribe el nombre");
-    if (!concursos.length && !logistica) throw new Error("Elige al menos un concurso o Logística");
+    permisos = Object.fromEntries(Object.entries(permisos || {}).filter(([, x]) => x === "ver" || x === "editar"));
+    if (!concursos.length && !Object.keys(permisos).length) throw new Error("Elige al menos una pestaña o un concurso de Entregas");
     const fijo = norm(codigoFijo); if (fijo && codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otro jurado, tallerista, equipo o coordinador");
     let k = id && d.coordinadores.find((x) => x.id === id);
     if (!k) { k = { id: uid(), codigo: nuevoCodigo() }; d.coordinadores.push(k); }
-    Object.assign(k, { nombre: String(nombre).trim(), concursos, logistica: !!logistica }); if (fijo) k.codigo = fijo;
+    Object.assign(k, { nombre: String(nombre).trim(), concursos, permisos, logistica: permisos.logistica === "editar" }); if (fijo) k.codigo = fijo;
     guardar(); return { id: k.id, codigo: k.codigo }; },
   // ---- Concurso de Proyectos (vista previa: los archivos quedan solo en esta pestaña) ----
   async equipoPresentacion(codigo) { await espera(); const e = eqDe(codigo); return { presentacion: presJson(e), config: presCfg(e.concurso_id) }; },

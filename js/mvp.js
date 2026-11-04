@@ -4,7 +4,7 @@
 // la ficha con el link + QR y puede abrir el MVP dentro de la pantalla o en otra pestaña.
 // Datos: { lider, solucion:{}, valor:{}, prompt:{}, mvp:{} }
 // =========================================================
-import { $, $$, esc, I } from "./ui.js?v=202611032144";
+import { $, $$, esc, I } from "./ui.js?v=202611040040";
 
 const IAS = ["ChatGPT", "Claude", "Gemini", "Perplexity", "Copilot", "DeepSeek", "Otra"];
 export const SECCIONES_MVP = [
