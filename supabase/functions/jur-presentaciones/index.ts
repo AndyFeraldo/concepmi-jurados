@@ -8,6 +8,7 @@
 //   { accion: "subir",     codigo, tipo: "ppt"|"pdf"|"video", nombre, tamano, ponencia?, ponente? } → { path, token }
 //   { accion: "confirmar", codigo, tipo, path, nombre, tamano, ponencia?, ponente? }                → { ok }
 //   { accion: "leer",      codigo, equipo | ponente, tipo, descargar?, ponencia? }                   → { url, nombre }
+//   { accion: "quitar",    codigo, equipo | ponente, tipos: ["pdf","ppt","video"], ponencia? }        → { ok, quitados } (admin/coordinador)
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
@@ -55,6 +56,14 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(r.path, 60 * 60 * 3, b.descargar ? { download: r.nombre } : undefined);
       if (error) throw new Error(error.message);
       return json({ url: data.signedUrl, nombre: r.nombre });
+    }
+    if (b.accion === "quitar") {
+      const r = pon
+        ? await rpc("jur_ponencia_quitar", { p_codigo: b.codigo, p_ponente: ponente, p_tipos: b.tipos })
+        : await rpc("jur_pres_quitar", { p_codigo: b.codigo, p_equipo: b.equipo, p_tipos: b.tipos });
+      const paths = (r?.paths as unknown as string[]) || [];
+      if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+      return json({ ok: true, quitados: paths.length });
     }
     return json({ error: "Acción no válida" }, 400);
   } catch (e) {

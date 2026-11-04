@@ -3,15 +3,16 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611041659";
-import { ENTREGABLES } from "./entregables.js?v=202611041659";
-import { porId } from "./concursos.js?v=202611041659";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611041659";
-import { abrirEscenario } from "./escenario.js?v=202611041659";
-import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611041659";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611041659";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611041659";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611041659";
+import { api } from "./api.js?v=202611042148";
+import { ENTREGABLES } from "./entregables.js?v=202611042148";
+import { porId } from "./concursos.js?v=202611042148";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611042148";
+import { abrirEscenario } from "./escenario.js?v=202611042148";
+import { quitarArchivos } from "./presentacion.js?v=202611042148";
+import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611042148";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611042148";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611042148";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611042148";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -192,7 +193,7 @@ export function crearEntregas(ctx) {
             <td><code class="en-codigo">${esc(x.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar="${esc(x.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
             <td>${celdaArchivos(pr, cfg.puede)}</td>
             <td><span class="chip ${cl}">${t}</span></td>
-            <td><button class="btn btn--mini btn--icono" data-editar="${x.id}" title="Editar equipo" aria-label="Editar equipo">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="6"><div class="vacio"><b>Aún no hay equipos</b>Usa «Crear equipos para las delegaciones» o «Nuevo equipo».</div></td></tr>`}
+            <td style="white-space:nowrap">${pr?.pdf || pr?.ppt || pr?.video ? `<button class="btn btn--mini btn--peligro" data-pres-quitar="${x.id}" title="Quitar los archivos que subió este equipo">${I.basura}Quitar archivos</button> ` : ""}<button class="btn btn--mini btn--icono" data-editar="${x.id}" title="Editar equipo" aria-label="Editar equipo">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="6"><div class="vacio"><b>Aún no hay equipos</b>Usa «Crear equipos para las delegaciones» o «Nuevo equipo».</div></td></tr>`}
       </tbody></table></div>
       ${esAdmin ? `<div class="cabeza"><div><h1 style="font-size:1.4rem">Accesos limitados</h1><p>Coordinadores de sala y líder de logística con su propio código (entran por el botón <b>Admin</b>).</p></div>
         <button class="btn btn--naranja" data-coord-nuevo>${I.mas}Nuevo acceso</button></div><div data-coords>${pintarCoords()}</div>` : ""}`;
@@ -202,6 +203,9 @@ export function crearEntregas(ctx) {
     const nombreE = (e) => nomDel(e.delegacion_id);
     const abrir = (eq, tipo) => abrirArchivo(ctx.codigo(), eq, tipo);
     $$("[data-pres-ver]", v).forEach((b) => (b.onclick = () => abrir(b.dataset.eq, b.dataset.presVer)));
+    $$("[data-pres-quitar]", v).forEach((b) => (b.onclick = () => { const x = E.equipos.find((y) => y.id === b.dataset.presQuitar);
+      quitarArchivos({ titulo: nomDel(x.entrega.delegacion_id), archivos: presDe(x.id), quitar: (tipos) => api.presQuitar(ctx.codigo(), x.id, tipos),
+        nota: "El equipo, su código, el nombre del proyecto y su turno se conservan. El equipo podrá volver a subir sus archivos mientras la entrega esté abierta.", listo: async () => { await cargar(); pintar(v); } }); }));
     $$("[data-copiar]", v).forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copiar); aviso("Código copiado"); } catch { aviso(`Código: ${b.dataset.copiar}`); } }));
     $("[data-nuevo]", v).onclick = () => formEquipo(null, v);
     $$("[data-editar]", v).forEach((b) => (b.onclick = () => formEquipo(E.equipos.find((x) => x.id === b.dataset.editar), v)));

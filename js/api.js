@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611041659";
-import { CONCURSOS, porId } from "./concursos.js?v=202611041659";
-import { TALLERES } from "./talleres.js?v=202611041659";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611041659";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611042148";
+import { CONCURSOS, porId } from "./concursos.js?v=202611042148";
+import { TALLERES } from "./talleres.js?v=202611042148";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611042148";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -71,6 +71,9 @@ const real = {
     await edge({ accion: "confirmar", ponencia: true, ponente, codigo, tipo, path, nombre: archivo.name, tamano: archivo.size });
   },
   ponenciaUrl: async (codigo, ponente, tipo, descargar = false) => (await edge({ accion: "leer", ponencia: true, codigo, ponente, tipo, descargar })).url,
+  // Quitar archivos subidos (admin o coordinador del concurso): no borra al equipo ni al ponente
+  presQuitar: (codigo, equipo, tipos) => edge({ accion: "quitar", codigo, equipo, tipos }),
+  ponenciaQuitar: (codigo, ponente, tipos) => edge({ accion: "quitar", ponencia: true, codigo, ponente, tipos }),
   datosJurado: (codigo) => rpc("jur_datos_jurado", { p_codigo: codigo }),
   calificar: (codigo, concurso, subprueba, delegacion, datos, comentario = "") =>
     rpc("jur_calificar", { p_codigo: codigo, p_concurso: concurso, p_subprueba: subprueba, p_delegacion: delegacion, p_datos: datos, p_comentario: comentario }),
@@ -184,7 +187,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611041659");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611042148");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -650,6 +653,10 @@ const demo = {
     if (archivo.size > 52428800) throw new Error("El archivo debe pesar como máximo 50 MB");
     for (let k = 1; k <= 10; k++) { await espera(50); alAvanzar?.(k / 10); }
     ARCHIVOS_DEMO.set(`p:${o.id}:${tipo}`, archivo); o[tipo] = { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() }; guardar(); },
+  async presQuitar(codigo, equipo, tipos) { await espera(); const e = db().equipos.find((x) => x.id === equipo); if (!e) throw new Error("Ese equipo ya no existe"); exigirSala(codigo, e.concurso_id);
+    const p = (db().pres || {})[equipo] || {}; let n = 0; for (const t of tipos) { if (p[t]) n++; delete p[t]; ARCHIVOS_DEMO.delete(`${equipo}:${t}`); } guardar(); return { ok: true, quitados: n }; },
+  async ponenciaQuitar(codigo, ponente, tipos) { await espera(); exigirPermiso(codigo, "charlas", "editar"); const o = (db().ponentes || []).find((x) => x.id === ponente); if (!o) throw new Error("Ese ponente ya no existe");
+    let n = 0; for (const t of tipos) { if (o[t]) n++; o[t] = null; ARCHIVOS_DEMO.delete(`p:${ponente}:${t}`); } guardar(); return { ok: true, quitados: n }; },
   async ponenciaUrl(codigo, ponente, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`p:${ponente}:${tipo}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
   async presUrl(codigo, equipo, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`${equipo}:${tipo}`);

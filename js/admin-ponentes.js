@@ -4,11 +4,12 @@
 // con la misma pantalla del Concurso de Proyectos (PDF dentro, puntero, cronómetro).
 // Permiso: el de la pestaña Charlas (ver / editar).
 // =========================================================
-import { api } from "./api.js?v=202611041659";
-import { CHARLAS } from "./charlas.js?v=202611041659";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611041659";
-import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611041659";
-import { $, $$, esc, I, aviso, modal, confirmar, avatar } from "./ui.js?v=202611041659";
+import { api } from "./api.js?v=202611042148";
+import { CHARLAS } from "./charlas.js?v=202611042148";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611042148";
+import { quitarArchivos } from "./presentacion.js?v=202611042148";
+import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611042148";
+import { $, $$, esc, I, aviso, modal, confirmar, avatar } from "./ui.js?v=202611042148";
 
 const charlaDe = (id) => CHARLAS.find((c) => c.id === id);
 function reducirFoto(file) {
@@ -93,10 +94,14 @@ export function crearPonentes(ctx) {
 
   function archivos(o, v) {
     const m = modal(`<h2>Archivos de ${esc(o.nombre)}</h2><p class="ayuda" style="margin-top:0">Normalmente los sube el ponente con su código. Si te los envió por correo, puedes subirlos tú aquí.</p><div data-caja>${htmlArchivos(o, { videoDespues: false })}</div>
-      <div class="modal__acciones"><button class="btn" data-cerrar>Cerrar</button></div>`, { ancho: true });
+      <div class="modal__acciones"><button class="btn btn--peligro" data-quitar-arch style="margin-right:auto" ${o.pdf || o.ppt || o.video ? "" : "hidden"}>${I.basura}Quitar archivos</button><button class="btn" data-cerrar>Cerrar</button></div>`, { ancho: true });
     const caja = $("[data-caja]", m.el);
+    $("[data-quitar-arch]", m.el).onclick = () => quitarArchivos({ titulo: o.nombre, archivos: o, quitar: (tipos) => api.ponenciaQuitar(ctx.codigo(), o.id, tipos),
+      nota: "El ponente y su código se conservan; podrá volver a subirlos.", listo: async () => { await cargar(); o = lista.find((x) => x.id === o.id) || o; caja.innerHTML = htmlArchivos(o, { videoDespues: false }); enlazar();
+        $("[data-quitar-arch]", m.el).hidden = !(o.pdf || o.ppt || o.video); pintar(v); } });
     const enlazar = () => conectarArchivos(caja, { subir: (tipo, f, p) => api.ponenciaSubir(ctx.codigo(), tipo, f, p, o.id), ver: (tipo) => abrirPonencia(ctx.codigo(), o.id, tipo),
-      listo: async () => { await cargar(); o = lista.find((x) => x.id === o.id) || o; caja.innerHTML = htmlArchivos(o, { videoDespues: false }); enlazar(); pintar(v); } });
+      listo: async () => { await cargar(); o = lista.find((x) => x.id === o.id) || o; caja.innerHTML = htmlArchivos(o, { videoDespues: false }); enlazar();
+        $("[data-quitar-arch]", m.el).hidden = !(o.pdf || o.ppt || o.video); pintar(v); } });
     enlazar();
     $("[data-cerrar]", m.el).onclick = m.cerrar;
   }

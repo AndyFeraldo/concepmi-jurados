@@ -7,10 +7,10 @@
 //  · Proyector: tarjeta «Expone ahora / Sigue» con turno, archivos y cronómetro 5 + 3 min.
 // Los archivos están en un espacio privado; se abren con enlaces temporales (api.presUrl).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611041659";
-import { ENTREGABLES } from "./entregables.js?v=202611041659";
-import { porId } from "./concursos.js?v=202611041659";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611041659";
+import { api, ES_DEMO } from "./api.js?v=202611042148";
+import { ENTREGABLES } from "./entregables.js?v=202611042148";
+import { porId } from "./concursos.js?v=202611042148";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611042148";
 
 const LIMA = "America/Lima";
 export const fechaLima = (t) => new Date(t).toLocaleString("es-PE", { timeZone: LIMA, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -350,3 +350,24 @@ export function htmlExpoPres(lista, i, { nombre, info }) {
   </div>`;
 }
 export const conectarExpoPres = (raiz, abrir) => $$("[data-pres-abrir]", raiz).forEach((b) => (b.onclick = () => abrir(b.dataset.eq, b.dataset.presAbrir)));
+
+// Ventana «Quitar archivos»: elige PDF / PPT / video y confirma. quitar(tipos) → promesa; listo() repinta.
+export function quitarArchivos({ titulo, archivos = {}, quitar, listo, nota = "" }) {
+  const hay = ["pdf", "ppt", "video"].filter((t) => archivos?.[t]);
+  if (!hay.length) return aviso("No hay archivos para quitar");
+  const nombre = { pdf: "PDF", ppt: "PowerPoint", video: "Video" };
+  const m = modal(`<h2>Quitar archivos</h2>
+    <div class="en-borrar"><div><small>De</small><b>${esc(titulo)}</b></div></div>
+    <div class="checks" style="margin:12px 0">${hay.map((t) => `<label class="check"><input type="checkbox" value="${t}" checked><span>${nombre[t]}<small>${esc(archivos[t].nombre)} · ${mb(archivos[t].tamano)}</small></span></label>`).join("")}</div>
+    <p>Los archivos marcados se <b>borran del sistema</b> y no se pueden recuperar. ${esc(nota)}</p>
+    <p class="error"></p>
+    <div class="modal__acciones"><button class="btn" data-cancelar>Cancelar</button><button class="btn btn--peligro" data-si>${I.basura}Quitar archivos</button></div>`);
+  $("[data-cancelar]", m.el).onclick = m.cerrar;
+  $("[data-si]", m.el).onclick = async (ev) => {
+    const tipos = $$(".checks input", m.el).filter((x) => x.checked).map((x) => x.value);
+    if (!tipos.length) { $(".error", m.el).textContent = "Marca al menos un archivo"; return; }
+    ev.currentTarget.disabled = true;
+    try { await quitar(tipos); m.cerrar(); aviso(tipos.length === 1 ? `${nombre[tipos[0]]} quitado` : `${tipos.length} archivos quitados`); await listo?.(); }
+    catch (e) { $(".error", m.el).textContent = e.message; ev.currentTarget.disabled = false; }
+  };
+}
