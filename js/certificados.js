@@ -9,11 +9,11 @@
 // ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
 // en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611042248";
-import { porId } from "./concursos.js?v=202611042248";
-import { CHARLAS } from "./charlas.js?v=202611042248";
-import { tallerPorId } from "./talleres.js?v=202611042248";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611042248";
+import { api } from "./api.js?v=202611042303";
+import { porId } from "./concursos.js?v=202611042303";
+import { CHARLAS } from "./charlas.js?v=202611042303";
+import { tallerPorId } from "./talleres.js?v=202611042303";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611042303";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
@@ -21,7 +21,7 @@ const EVENTO = "en el VI Congreso Nacional de Comunidades Estudiantiles del PMI 
 const CIERRE = ", aportando al desarrollo de los futuros líderes en gestión de proyectos del país.";
 export const AREAS_ORG = [
   { id: "DP", txt: "Dirección de Proyecto" }, { id: "PMO", txt: "PMO" }, { id: "Ventas", txt: "Ventas" },
-  { id: "RRPP", txt: "Relaciones Públicas" }, { id: "Marketing", txt: "Marketing" }, { id: "TI", txt: "Tecnologías de la Información" },
+  { id: "RRPP", txt: "Relaciones Públicas" }, { id: "Marketing", txt: "Marketing" }, { id: "Logistica", corto: "Logística", txt: "Logística" }, { id: "TI", txt: "Tecnologías de la Información" },
 ];
 const areaTxt = (id) => AREAS_ORG.find((a) => a.id === id)?.txt || id || "";
 const SECCIONES = {
@@ -49,8 +49,11 @@ export const textoRol = (p) => {
   return p.rol ? `como ${p.rol}` : "";
 };
 // Rellena la plantilla de la sección con los datos de la persona
-const llenar = (plantilla, p) => plantilla
-  .replace(/\{rol\}/g, textoRol(p)).replace(/\{area\}/g, areaTxt(p.area)).replace(/\{delegacion\}/g, p.delegacion || "")
+// Si falta el dato (sin área o sin universidad), se quita también la frase que lo acompaña («, en el área de …»)
+const sinDato = (t, v) => t.replace(new RegExp(`,?\\s*(?:en el área de|en representación de|en representación del|de la|del|de|por|en)?\\s*\\{${v}\\}`, "g"), "");
+const llenar = (plantilla, p) => [["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""]]
+  .reduce((t, [v, x]) => (x ? t.replace(new RegExp(`\\{${v}\\}`, "g"), x) : sinDato(t, v)), plantilla)
+  .replace(/\{rol\}/g, textoRol(p))
   .replace(/\s+,/g, ",").replace(/\s{2,}/g, " ").replace(/\(\s*\)/g, "").trim();
 
 // Nombre propio: «JUAN PÉREZ DE LA CRUZ» → «Juan Pérez de la Cruz»
@@ -252,7 +255,7 @@ export function crearCertificados(ctx) {
     function fila(p) {
       const fuera = quitados.has(p.id);
       const col = seccion === "invitados" ? `<td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS_INV[p.tipo]}</span></td><td class="cert-texto">${esc(textoRol(p) || "—")}</td>`
-        : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.id} · ${esc(a.txt)}</option>`).join("")}</select></td>`
+        : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></td>`
         : `<td class="cert-texto">${esc(p.delegacion || "—")}</td>`;
       return `<tr class="${fuera ? "cert-fuera" : ""}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${fuera ? "" : "checked"} aria-label="Incluir"></td>
         <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}${seccion === "organizadores" && !p.area ? ` <span class="chip chip--rojo log-tag">sin área</span>` : ""}</td>${col}
@@ -300,7 +303,7 @@ export function crearCertificados(ctx) {
     const org = seccion === "organizadores";
     importarExcel({
       titulo: org ? "Cargar voluntarios del equipo organizador" : "Cargar participantes inscritos",
-      ayuda: org ? "Excel con <b>nombre</b> y <b>apellido</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing o TI). Si no trae el área, la eliges después en la lista."
+      ayuda: org ? "Excel con <b>nombre</b> y <b>apellido</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing, Logística o TI). Si no trae el área, la eliges después en la lista."
         : "El mismo Excel de inscritos que usas en Charlas (por ejemplo, la hoja CONFIRMADOS). Toma el <b>nombre</b> y el <b>apellido</b> (o el nombre completo) y, si quieres, la <b>delegación</b> o universidad.",
       campos: [
         { id: "nombre", txt: "Nombre(s) o nombre completo", claves: /^(nombres?|nombre completo|nombres y apellidos|apellidos y nombres|participante|voluntario|integrante)\b/, requerido: true, nombre: true },
@@ -324,6 +327,7 @@ export function crearCertificados(ctx) {
     if (/venta|comercial/.test(x)) return "Ventas";
     if (/rrpp|relacion|rpp/.test(x)) return "RRPP";
     if (/marketing|mkt|publicidad/.test(x)) return "Marketing";
+    if (/logist/.test(x)) return "Logistica";
     if (/^ti$|tecnolog|sistemas|^it$/.test(x)) return "TI";
     return "";
   }
@@ -334,7 +338,7 @@ export function crearCertificados(ctx) {
       <label class="campo"><span>${inv ? "Nombre completo" : "Nombre(s)"}</span><input name="nombre" maxlength="80" required placeholder="Ej. María"></label>
       ${inv ? `<label class="campo"><span>Su participación fue «como…»</span><input name="rol" maxlength="120" placeholder="Ej. auspiciador oficial"></label>`
         : `<label class="campo"><span>Apellido(s)</span><input name="apellido" maxlength="80" placeholder="Ej. López Torres"></label>
-           ${org ? `<label class="campo"><span>Área</span><select name="area"><option value="">Elige…</option>${AREAS_ORG.map((a) => `<option value="${a.id}">${a.id} · ${esc(a.txt)}</option>`).join("")}</select></label>`
+           ${org ? `<label class="campo"><span>Área</span><select name="area"><option value="">Elige…</option>${AREAS_ORG.map((a) => `<option value="${a.id}">${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></label>`
              : `<label class="campo"><span>Delegación o universidad (opcional)</span><input name="delegacion" maxlength="120"></label>`}`}
       <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Agregar</button></div></form>`);
     const f = $("form", m.el); $("[data-cancelar]", m.el).onclick = m.cerrar;

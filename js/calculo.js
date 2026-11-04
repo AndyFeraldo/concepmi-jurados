@@ -3,9 +3,9 @@
 // Regla general: promedio de jurados, redondeado a entero,
 // sin superar nunca el máximo de las bases.
 // =========================================================
-import { CONCURSOS, porId } from "./concursos.js?v=202611042248";
-import { TALLERES, puntosTalleres } from "./talleres.js?v=202611042248";
-import { CHARLAS, puntosCharlas } from "./charlas.js?v=202611042248";
+import { CONCURSOS, porId } from "./concursos.js?v=202611042303";
+import { TALLERES, puntosTalleres } from "./talleres.js?v=202611042303";
+import { CHARLAS, puntosCharlas } from "./charlas.js?v=202611042303";
 
 export const redondear = (x) => Math.round(Number(x) + 1e-9);
 const prom = (a) => (a.length ? a.reduce((s, x) => s + Number(x), 0) / a.length : null);
