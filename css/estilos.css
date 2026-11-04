@@ -1525,3 +1525,36 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 /* Controles */
 .inau__ctrl{ position:absolute; left:50%; bottom:14px; z-index:8; translate:-50% 140%; opacity:0; transition:.25s; display:flex; flex-wrap:wrap; justify-content:center; gap:6px; padding:10px 12px; border-radius:16px; background:rgba(10,6,40,.92); border:1px solid rgba(169,139,255,.4); max-width:calc(100vw - 24px); }
 .inau--ctrl .inau__ctrl{ translate:-50% 0; opacity:1; }
+
+/* Inauguración · Freeze («A continuación»): pantalla quieta, sin animaciones */
+.inau--quieto *, .inau--quieto *::before, .inau--quieto *::after{ animation-play-state:paused !important; }
+.inau__freeze{ position:absolute; inset:0; z-index:7; display:grid; place-items:center; background:radial-gradient(ellipse at 50% 30%, #3A1AA8, #170D56 60%, #0B0630); }
+.inau__freeze[hidden]{ display:none; }
+.inau-freeze{ display:grid; justify-items:center; text-align:center; gap:1.6vh; padding:0 5vw; }
+.inau-freeze__logos{ display:flex; align-items:center; gap:2vw; margin-bottom:3vh; } .inau-freeze__logos img{ height:clamp(36px, 7vh, 70px); }
+.inau-freeze__logos span{ width:2px; height:clamp(30px, 6vh, 56px); background:rgba(255,210,122,.7); }
+.inau-freeze__pre{ margin:0; font-family:var(--neon); letter-spacing:.35em; text-transform:uppercase; color:var(--celeste); font-size:clamp(.9rem, 1.8vw, 1.5rem); }
+.inau-freeze h1{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(2.6rem, 7vw, 6.4rem); line-height:1; color:#FFD27A; }
+.inau-freeze h2{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(1.6rem, 3.8vw, 3.4rem); line-height:1.1; }
+.inau-freeze__quien{ margin:1vh 0 0; font-size:clamp(1.3rem, 2.8vw, 2.4rem); font-weight:700; }
+.inau-freeze__hora{ margin:0; color:#E6DDFF; font-size:clamp(1rem, 1.8vw, 1.5rem); }
+.inau-freeze__nota{ margin:3vh 0 0; color:#BFB4E8; letter-spacing:.12em; text-transform:uppercase; font-size:clamp(.75rem, 1.2vw, 1rem); }
+
+/* Charlas: la pantalla de proyectos con nombres de ponente (más largos que unas siglas) */
+.sala--ponencias .sala-portada__sigla{ font-size:clamp(2.4rem, 6.4vw, 6rem); line-height:1.05; text-wrap:balance; max-width:88vw; }
+.sala--ponencias .sala-show__quien b{ font-size:clamp(1rem, 2vw, 1.7rem); }
+.sala-portada__foto{ width:clamp(90px, 17vh, 170px); aspect-ratio:1; border-radius:50%; object-fit:cover; border:4px solid rgba(255,210,122,.8); box-shadow:0 12px 40px rgba(0,0,0,.45); margin-bottom:1vh; }
+.sala-orden__lista span small{ display:block; font-weight:500; color:var(--niebla); font-size:.62em; }
+
+/* Portada: puerta del ponente y pantalla del ponente */
+.puerta--ponente{ border-color:rgba(255,210,122,.55); box-shadow:0 18px 50px -14px rgba(255,210,122,.4); }
+.puerta--ponente::before{ background:#FFD27A; }
+.puerta--ponente:hover{ border-color:#FFD27A; box-shadow:0 24px 60px -12px rgba(255,210,122,.6); }
+.puerta--ponente .puerta__icono{ background:linear-gradient(135deg, #FFD27A, #FF7A00); box-shadow:0 10px 26px rgba(255,170,60,.5); }
+.puerta--ponente .puerta__ir{ color:#FFD27A; }
+.pon-cab{ display:flex; align-items:center; gap:16px; padding:16px; margin-bottom:12px; }
+.pon-cab .avatar{ width:72px; height:72px; font-size:1.4rem; } .pon-cab h1{ margin:0; font-size:1.5rem; } .pon-cab small{ color:var(--celeste); font-weight:700; letter-spacing:.1em; text-transform:uppercase; font-size:.7rem; } .pon-cab p{ margin:4px 0 0; color:var(--niebla); }
+.pon-charlas{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); margin-bottom:12px; }
+.pon-charla{ padding:14px 16px; } .pon-charla h3{ margin:4px 0; } .pon-charla p{ margin:0 0 8px; color:var(--niebla); }
+.ro-ponentes [data-crear], .ro-ponentes [data-editar], .ro-ponentes [data-quitar], .ro-ponentes [data-regen], .ro-ponentes .jurado__codigo, .ro-ponentes label:has(> [data-archivo]){ display:none !important; }
+.sala--ponencias .sala-orden__lista li{ flex-basis:clamp(240px, 26vw, 340px); }

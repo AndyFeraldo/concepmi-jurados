@@ -9,13 +9,14 @@ export const PUNTOS_CHARLA = PUNTOS_PODIO[0];
 export const SEG_PREGUNTA = 15;
 export const SEG_PAUSA = 3;
 
+// minPonencia + minPreguntas: tiempo del cronómetro en la pantalla de la ponencia (el resto queda para la trivia)
 export const CHARLAS = [
   { id: "c1", num: "I", color: "celeste", nombre: "Gestión de Proyectos", lema: "Conecta · Inspira · Potencia",
-    ponente: "Ing. Alexis Rodríguez", dia: "Día 1 · 24/11", hora: "10:15 – 11:30 a. m.", pilares: ["Ágil / Híbrido", "Gestión del valor", "PMBOK 8.ª ed."] },
+    ponente: "Ing. Alexis Rodríguez", dia: "Día 1 · 24/11", hora: "10:15 – 11:30 a. m.", minPonencia: 55, minPreguntas: 10, pilares: ["Ágil / Híbrido", "Gestión del valor", "PMBOK 8.ª ed."] },
   { id: "c2", num: "II", color: "naranja", nombre: "Networking y Liderazgo", lema: "Método · Valor · Resultados",
-    ponente: "Giovannie Escribens", dia: "Día 2 · 26/11", hora: "2:30 – 3:30 p. m.", pilares: ["Redes de alto valor", "Liderazgo transformacional", "Marca personal"] },
+    ponente: "Giovannie Escribens", dia: "Día 2 · 26/11", hora: "2:30 – 3:30 p. m.", minPonencia: 40, minPreguntas: 10, pilares: ["Redes de alto valor", "Liderazgo transformacional", "Marca personal"] },
   { id: "c3", num: "III", color: "violeta", nombre: "IA y Herramientas Tecnológicas", lema: "Automatiza · Analiza · Lidera",
-    ponente: "Aldo Mallma", dia: "Día 2 · 26/11", hora: "6:00 – 7:00 p. m.", pilares: ["IA generativa", "Automatización de procesos", "Datos y análisis"] },
+    ponente: "Aldo Mallma", dia: "Día 2 · 26/11", hora: "6:00 – 7:00 p. m.", minPonencia: 40, minPreguntas: 10, pilares: ["IA generativa", "Automatización de procesos", "Datos y análisis"] },
 ];
 export const charlaPorId = (id) => CHARLAS.find((c) => c.id === id);
 export const maxCopaCharlas = CHARLAS.length * PUNTOS_CHARLA;

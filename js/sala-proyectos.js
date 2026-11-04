@@ -3,7 +3,7 @@
 // puntero/clicker: → / PageDown / Espacio = siguiente, ← / PageUp = anterior, B o . = pantalla negra.
 // Si el equipo subió un video, se intercala como una «diapositiva» después de la que indicó y se reproduce solo.
 // El cronómetro (5 min de pitch + 3 de preguntas) queda listo y solo empieza al pulsar Iniciar (o la tecla T).
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611041632";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611041659";
 
 const PDFJS = new URL("../vendor/pdfjs/pdf.min.mjs", import.meta.url).href;
 const WORKER = new URL("../vendor/pdfjs/pdf.worker.min.mjs", import.meta.url).href;
@@ -31,23 +31,28 @@ const dos = (n) => String(n).padStart(2, "0");
 
 // equipos: [{ equipo_id, delegacion:{nombre, siglas}, proyecto, lider, pres:{pdf, ppt, video}, videoDespues }] ya en el orden del sorteo
 // url(equipo, tipo) → promesa con un enlace temporal · abrir(equipo, tipo) → descarga de respaldo
-export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso Nacional de Proyectos", minutos = { exp: 5, preg: 3 }, alCerrar }) {
+// Sirve también para las CHARLAS MAGISTRALES: textos cambia los rótulos y cada elemento puede traer
+// sus propios minutos ({ exp, preg }) y su foto (ponente).
+export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso Nacional de Proyectos", minutos = { exp: 5, preg: 3 }, alCerrar, textos = {}, clase = "", inicial = null }) {
   const N = equipos.length;
-  const FASES = { exp: { min: minutos.exp, txt: "Exposición" }, preg: { min: minutos.preg, txt: "Ronda de preguntas" } };
+  const T = { orden: "Orden oficial de presentación", exp: "Exposición", preg: "Ronda de preguntas", btnExp: "Pitch", btnPreg: "Preguntas",
+    corto: (k) => `Turno ${dos(k + 1)}`, portada: (k) => `Turno <b>${dos(k + 1)}</b> de ${dos(N)}`, cab: (k) => `Turno ${dos(k + 1)} de ${dos(N)}`, ...textos };
+  const FASES = { exp: { min: minutos.exp, txt: T.exp }, preg: { min: minutos.preg, txt: T.preg } };
+  const minDe = (f, k = i) => Number(equipos[k]?.minutos?.[f]) || FASES[f].min;
   const docs = new Map(); // equipo_id → { estado:"cargando"|"ok"|"error"|"sin", pdf, paginas, error }
-  let i = 0, modo = "orden", diapo = 0, negro = false;
-  let fase = "exp", restante = FASES.exp.min * 60, corriendo = false, fin = 0, avisado = false, sonado = false;
+  let i = Math.min(Math.max(inicial ?? 0, 0), Math.max(N - 1, 0)), modo = inicial == null ? "orden" : "portada", diapo = 0, negro = false;
+  let fase = "exp", restante = minDe("exp") * 60, corriendo = false, fin = 0, avisado = false, sonado = false;
   let tarea = null, ocultarT = null, reloj = null, cerrado = false;
 
   const el = document.createElement("div");
-  el.className = "sala";
+  el.className = `sala ${clase}`;
   el.innerHTML = `${fondoAnimado(26)}
     <div class="sala__vista" data-vista></div>
     <div class="sala__negro" data-negro hidden></div>
     <nav class="sala__ctrl" data-ctrl>
       <div class="sala__grupo">
         <button class="btn btn--mini" data-eq="-1" title="Equipo anterior">◀</button>
-        <select data-equipo aria-label="Delegación que expone">${equipos.map((e, k) => `<option value="${k}">Turno ${dos(k + 1)} · ${esc(e.delegacion?.siglas || e.delegacion?.nombre || "—")}</option>`).join("")}</select>
+        <select data-equipo aria-label="Delegación que expone">${equipos.map((e, k) => `<option value="${k}">${T.corto(k, e)} · ${esc(e.delegacion?.siglas || e.delegacion?.nombre || "—")}</option>`).join("")}</select>
         <button class="btn btn--mini" data-eq="1" title="Siguiente equipo">▶</button>
       </div>
       <div class="sala__grupo">
@@ -57,8 +62,8 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
       </div>
       <div class="sala__grupo">
         <button class="btn btn--mini btn--naranja" data-iniciar>${I.vivo}Iniciar</button>
-        <button class="btn btn--mini" data-fase="exp">Pitch ${FASES.exp.min}:00</button>
-        <button class="btn btn--mini" data-fase="preg">Preguntas ${FASES.preg.min}:00</button>
+        <button class="btn btn--mini" data-fase="exp">${T.btnExp} ${minDe("exp")}:00</button>
+        <button class="btn btn--mini" data-fase="preg">${T.btnPreg} ${minDe("preg")}:00</button>
         <button class="btn btn--mini" data-reset title="Volver a poner el tiempo completo">↺</button>
       </div>
       <div class="sala__grupo">
@@ -108,15 +113,15 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
 
   // ---------- Cronómetro ----------
   const seg = () => (corriendo ? Math.max(0, Math.ceil((fin - Date.now()) / 1000)) : restante);
-  function ponerFase(f) { fase = f; restante = FASES[f].min * 60; corriendo = false; avisado = sonado = false; pintarReloj(); pintarBotones(); }
+  function ponerFase(f) { fase = f; restante = minDe(f) * 60; corriendo = false; avisado = sonado = false; pintarReloj(); pintarBotones(); }
   function alternar() {
     preparar();
     if (corriendo) { restante = seg(); corriendo = false; }
-    else { if (restante <= 0) restante = FASES[fase].min * 60, sonado = avisado = false; fin = Date.now() + restante * 1000; corriendo = true; pitido(660, 0.1); }
+    else { if (restante <= 0) restante = minDe(fase) * 60, sonado = avisado = false; fin = Date.now() + restante * 1000; corriendo = true; pitido(660, 0.1); }
     pintarReloj(); pintarBotones();
   }
   function pintarReloj() {
-    const s = seg(), total = FASES[fase].min * 60;
+    const s = seg(), total = minDe(fase) * 60;
     if (s === 60 && corriendo && !avisado) { avisado = true; pitido(880, 0.12); }
     if (s === 0 && corriendo && !sonado) { sonado = true; corriendo = false; restante = 0; alarma(); pintarBotones(); }
     const cls = s === 0 ? "sala-t--fin" : s <= 60 ? "sala-t--alerta" : !corriendo ? "sala-t--espera" : "";
@@ -136,8 +141,8 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
       vista.innerHTML = `<main class="sala-orden">
         <img class="sala-orden__logo" src="${IMG.logo}" alt="VI CONCEPMI">
         <h1 class="sala-orden__tit">${esc(concurso)}</h1>
-        <p class="sala-orden__sub">Orden oficial de presentación</p>
-        <ol class="sala-orden__lista">${equipos.map((x, k) => `<li class="${k === i ? "ahora" : ""}" style="--i:${k}"><b>${dos(k + 1)}</b><span>${esc(siglaDe(x))}</span></li>`).join("") || "<li>Aún no hay equipos</li>"}</ol>
+        <p class="sala-orden__sub">${esc(T.orden)}</p>
+        <ol class="sala-orden__lista">${equipos.map((x, k) => `<li class="${k === i ? "ahora" : ""}" style="--i:${k}"><b>${T.num ? T.num(k, x) : dos(k + 1)}</b><span>${esc(siglaDe(x))}${T.detalle ? `<small>${esc(T.detalle(k, x))}</small>` : ""}</span></li>`).join("") || "<li>Aún no hay equipos</li>"}</ol>
       </main>`;
     } else if (modo === "portada") {
       const d = docs.get(e.equipo_id);
@@ -147,7 +152,8 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
       vista.innerHTML = `<main class="sala-portada">
         <header class="sala-portada__cab"><img src="${IMG.logo}" alt="VI CONCEPMI"><span>${esc(concurso)}</span></header>
         <div class="sala-portada__cuerpo">
-          <p class="sala-portada__turno">Turno <b>${dos(i + 1)}</b> de ${dos(N)}</p>
+          ${e.foto ? `<img class="sala-portada__foto" src="${esc(e.foto)}" alt="">` : ""}
+          <p class="sala-portada__turno">${T.portada(i, e)}</p>
           <h1 class="sala-portada__sigla">${esc(siglaDe(e))}</h1>
           ${e.delegacion?.siglas ? `<p class="sala-portada__nombre">${esc(nombreDe(e))}</p>` : ""}
           ${e.proyecto ? `<p class="sala-portada__proy">«${esc(e.proyecto)}»</p>` : ""}
@@ -163,7 +169,7 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
       vista.innerHTML = `<div class="sala-show">
         <header class="sala-show__cab">
           <img src="${IMG.logo}" alt="VI CONCEPMI">
-          <div class="sala-show__quien"><small>Turno ${dos(i + 1)} de ${dos(N)}</small><b>${esc(siglaDe(e))}</b>${e.proyecto ? `<span>${esc(e.proyecto)}</span>` : ""}</div>
+          <div class="sala-show__quien"><small>${T.cab(i, e)}</small><b>${esc(siglaDe(e))}</b>${e.proyecto ? `<span>${esc(e.proyecto)}</span>` : ""}</div>
           ${htmlReloj()}
         </header>
         <div class="sala-show__lienzo" data-lienzo>
@@ -208,8 +214,8 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
   }
 
   function pintarBotones() {
-    const b = $("[data-iniciar]", el); if (b) b.innerHTML = `${I.vivo}${corriendo ? "Pausar" : seg() === 0 ? "Reiniciar" : restante < FASES[fase].min * 60 ? "Continuar" : "Iniciar"}`;
-    $$("[data-fase]", el).forEach((x) => x.classList.toggle("activo", x.dataset.fase === fase));
+    const b = $("[data-iniciar]", el); if (b) b.innerHTML = `${I.vivo}${corriendo ? "Pausar" : seg() === 0 ? "Reiniciar" : restante < minDe(fase) * 60 ? "Continuar" : "Iniciar"}`;
+    $$("[data-fase]", el).forEach((x) => { x.classList.toggle("activo", x.dataset.fase === fase); x.textContent = `${x.dataset.fase === "exp" ? T.btnExp : T.btnPreg} ${minDe(x.dataset.fase)}:00`; });
     $$("[data-ir]", el).forEach((x) => x.classList.toggle("activo", x.dataset.ir === (modo === "slides" ? "diapos" : modo)));
     $("[data-equipo]", el).value = String(i);
     $("[data-ppt]", el).disabled = !equipos[i]?.pres?.ppt;

@@ -5,7 +5,8 @@
 // «¡Queda inaugurado!» con fanfarria y confeti).
 // El programa se guarda en este navegador (localStorage): ármalo en la laptop del proyector.
 // =========================================================
-import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado } from "./ui.js?v=202611041632";
+import { CHARLAS } from "./charlas.js?v=202611041659";
+import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado } from "./ui.js?v=202611041659";
 
 const CLAVE = "concepmi-inauguracion-v1";
 const TIPOS = {
@@ -56,7 +57,8 @@ function confeti() {
 }
 
 // ---------- Pestaña del admin: programa editable ----------
-export function crearInauguracion() {
+// ctx.abrirCharla(k): abre la pantalla de la charla magistral k (la usa el botón «Ir a la Charla I»)
+export function crearInauguracion(ctx = {}) {
   let P = leerPrograma();
   function vista(v) {
     const t = total(P), plan = aMin(P.fin) - aMin(P.inicio), dif = t - plan;
@@ -89,7 +91,7 @@ export function crearInauguracion() {
             <button class="btn btn--mini btn--icono btn--peligro" data-quita title="Quitar">${I.basura}</button>
           </div></article>`; }).join("")}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" data-agrega>${I.mas}Agregar bloque</button><button class="btn" data-base>${I.girar}Volver al programa sugerido</button></div>
-      <p class="ayuda">En el proyector: <b>→ / Espacio</b> pasa al siguiente bloque, <b>←</b> regresa, <b>R</b> muestra u oculta el reloj, <b>I</b> lanza «¡Queda inaugurado!». El reloj (sutil, en una esquina) cuenta el tiempo de cada bloque y dice si van <b>a tiempo</b> o con retraso respecto al plan. El programa se guarda en este navegador: ármalo en la laptop del proyector.</p>`;
+      <p class="ayuda">En el proyector: <b>→ / Espacio</b> pasa al siguiente bloque, <b>←</b> regresa, <b>R</b> muestra u oculta el reloj, <b>I</b> lanza «¡Queda inaugurado!», <b>Z</b> congela la pantalla («Freeze»: quieta, con «A continuación: Charla I») mientras el ponente se prepara y <b>C</b> abre la Charla I con su presentación. El reloj (sutil, en una esquina) cuenta el tiempo de cada bloque y dice si van <b>a tiempo</b> o con retraso respecto al plan. El programa se guarda en este navegador: ármalo en la laptop del proyector.</p>`;
     const cambia = () => { guardarPrograma(P); };
     $$("[data-g]", v).forEach((el) => (el.onchange = () => { P[el.dataset.g] = el.value.trim(); cambia(); vista(v); }));
     $$("[data-i]", v).forEach((art) => {
@@ -101,16 +103,17 @@ export function crearInauguracion() {
     });
     $("[data-agrega]", v).onclick = () => { P.bloques.push({ tipo: "palabras", titulo: "Nuevo bloque", quien: "", cargo: "", min: 3 }); cambia(); vista(v); };
     $("[data-base]", v).onclick = async () => { if (await confirmar("¿Volver al programa sugerido?", "Se reemplaza lo que editaste.", { boton: "Volver" })) { P = structuredClone(PROGRAMA_BASE); cambia(); vista(v); } };
-    $("[data-proyectar]", v).onclick = () => { if (!P.bloques.length) return aviso("Agrega al menos un bloque", "error"); abrirCeremonia(P); };
+    $("[data-proyectar]", v).onclick = () => { if (!P.bloques.length) return aviso("Agrega al menos un bloque", "error"); abrirCeremonia(P, ctx); };
   }
   return { vista };
 }
 
 // ---------- Pantalla del proyector ----------
-export function abrirCeremonia(P) {
+export function abrirCeremonia(P, ctx = {}) {
   const B = P.bloques, ini = aMin(P.inicio), fin = aMin(P.fin);
   const planIni = []; B.reduce((s, b, i) => { planIni[i] = s; return s + Number(b.min); }, 0); // minutos desde el inicio
-  let i = -1, t0 = null, tBloque = null, verReloj = true, celebrando = false, ocultarT = null;
+  let i = -1, t0 = null, tBloque = null, verReloj = true, celebrando = false, congelado = false, ocultarT = null;
+  const sig = CHARLAS[0];
 
   const el = document.createElement("div");
   el.className = "inau";
@@ -120,12 +123,25 @@ export function abrirCeremonia(P) {
     <main class="inau__vista" data-vista></main>
     <aside class="inau__reloj" data-reloj></aside>
     <div class="inau__celebra" data-celebra hidden></div>
+    <div class="inau__freeze" data-freeze hidden>
+      <div class="inau-freeze">
+        <div class="inau-freeze__logos"><img src="${IMG.club}" alt="PMI Lima Student Club"><span></span><img src="${IMG.logo}" alt="VI CONCEPMI"></div>
+        <p class="inau-freeze__pre">A continuación</p>
+        <h1>Charla magistral ${esc(sig?.num || "I")}</h1>
+        <h2>${esc(sig?.nombre || "")}</h2>
+        <p class="inau-freeze__quien">${esc(sig?.ponente || "")}</p>
+        <p class="inau-freeze__hora">${esc(sig?.dia || "")} · ${esc(sig?.hora || "")}</p>
+        <p class="inau-freeze__nota">En breve iniciamos · Gracias por acompañarnos</p>
+      </div>
+    </div>
     <nav class="inau__ctrl">
       <button class="btn btn--mini" data-ant>◀ Anterior</button>
       <button class="btn btn--mini btn--naranja" data-sig>Siguiente ▶</button>
       <button class="btn btn--mini" data-portada>Portada</button>
       <button class="btn btn--mini" data-ver-reloj>Reloj</button>
       <button class="btn btn--mini" data-inaugurar>★ ¡Queda inaugurado!</button>
+      <button class="btn btn--mini" data-congelar title="Tecla Z">❄ Freeze · A continuación</button>
+      ${ctx.abrirCharla ? `<button class="btn btn--mini btn--naranja" data-charla title="Tecla C">Ir a la Charla ${esc(sig?.num || "I")} ▶</button>` : ""}
       <button class="btn btn--mini" data-full>Pantalla completa</button>
       <button class="btn btn--mini btn--peligro" data-salir>Salir</button>
     </nav>`;
@@ -181,13 +197,22 @@ export function abrirCeremonia(P) {
     c.innerHTML = `<div class="inau-gran"><img src="${IMG.wolfito}" alt=""><p>Con gran orgullo</p><h1>¡Queda oficialmente<br>inaugurado el<br><b>VI CONCEPMI 2026</b>!</h1><span>Conecta · Inspira · Potencia</span></div>`;
     fanfarria(); confeti();
   }
+  function congelar(si = !congelado) {
+    congelado = si; $("[data-freeze]", el).hidden = !si; el.classList.toggle("inau--quieto", si);
+    if (si && celebrando) { celebrando = false; $("[data-celebra]", el).hidden = true; }
+    $("[data-congelar]", el).classList.toggle("activo", si);
+  }
+  function cerrar() { clearInterval(t); clearTimeout(ocultarT); document.removeEventListener("keydown", teclas, true); el.remove(); document.body.style.overflow = ""; }
+  function irCharla() { if (!ctx.abrirCharla) return; cerrar(); ctx.abrirCharla(0); }
   function teclas(e) {
     if (document.querySelector(".modal")) return;
     const k = e.key;
-    if (["ArrowRight", "PageDown", " ", "Enter"].includes(k)) { e.preventDefault(); if (celebrando) inaugurar(); else ir(i + 1); }
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(k)) { e.preventDefault(); if (congelado) return; if (celebrando) inaugurar(); else ir(i + 1); }
     else if (["ArrowLeft", "PageUp"].includes(k)) { e.preventDefault(); ir(i - 1); }
     else if (k === "r" || k === "R") { verReloj = !verReloj; pintarReloj(); }
     else if (k === "i" || k === "I") inaugurar();
+    else if (k === "z" || k === "Z") congelar();
+    else if (k === "c" || k === "C") irCharla();
     else if (k === "f" || k === "F") pantalla();
     else if (k === "F5" || (k === "Escape" && !document.fullscreenElement)) e.preventDefault();
   }
@@ -200,10 +225,12 @@ export function abrirCeremonia(P) {
   $("[data-portada]", el).onclick = () => { i = -1; pintar(); };
   $("[data-ver-reloj]", el).onclick = () => { verReloj = !verReloj; pintarReloj(); };
   $("[data-inaugurar]", el).onclick = inaugurar;
+  $("[data-congelar]", el).onclick = () => congelar();
+  $("[data-charla]", el)?.addEventListener("click", irCharla);
   $("[data-full]", el).onclick = pantalla;
   const t = setInterval(pintarReloj, 1000);
   $("[data-salir]", el).onclick = async () => { if (!(await confirmar("¿Salir de la ceremonia?", "Se cierra la pantalla del proyector.", { boton: "Salir" }))) return;
-    clearInterval(t); clearTimeout(ocultarT); document.removeEventListener("keydown", teclas, true); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); el.remove(); document.body.style.overflow = ""; };
+    cerrar(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
   pintar(); mostrar();
   document.documentElement.requestFullscreen?.().catch(() => {});
 }

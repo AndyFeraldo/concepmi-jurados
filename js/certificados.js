@@ -6,11 +6,11 @@
 // Todo se arma en el navegador: no se guarda nada en la base de datos
 // (los «otros» y los textos editados quedan en este navegador).
 // =========================================================
-import { api } from "./api.js?v=202611041632";
-import { porId } from "./concursos.js?v=202611041632";
-import { CHARLAS } from "./charlas.js?v=202611041632";
-import { tallerPorId } from "./talleres.js?v=202611041632";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611041632";
+import { api } from "./api.js?v=202611041659";
+import { porId } from "./concursos.js?v=202611041659";
+import { CHARLAS } from "./charlas.js?v=202611041659";
+import { tallerPorId } from "./talleres.js?v=202611041659";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611041659";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414

@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611041632";
-import { CONCURSOS, porId } from "./concursos.js?v=202611041632";
-import { TALLERES } from "./talleres.js?v=202611041632";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611041632";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611041659";
+import { CONCURSOS, porId } from "./concursos.js?v=202611041659";
+import { TALLERES } from "./talleres.js?v=202611041659";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611041659";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -59,6 +59,18 @@ const real = {
     await edge({ accion: "confirmar", codigo, tipo, path, nombre: archivo.name, tamano: archivo.size });
   },
   presUrl: async (codigo, equipo, tipo, descargar = false) => (await edge({ accion: "leer", codigo, equipo, tipo, descargar })).url,
+  // ---- Ponentes de las charlas magistrales ----
+  ponenteDatos: (codigo) => rpc("jur_ponente_datos", { p_codigo: codigo }),
+  ponenteGuardar: (codigo, titulo, videoDespues) => rpc("jur_ponente_guardar", { p_codigo: codigo, p_titulo: titulo, p_video_despues: videoDespues }),
+  adminPonentes: (codigo) => rpc("jur_admin_ponentes", { p_codigo: codigo }),
+  adminPonente: (codigo, { id = null, nombre = "", charlas = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, titulo = null }) =>
+    rpc("jur_admin_ponente", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_charlas: charlas, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo, p_titulo: titulo }),
+  async ponenciaSubir(codigo, tipo, archivo, alAvanzar, ponente = null) {
+    const { path, token } = await edge({ accion: "subir", ponencia: true, ponente, codigo, tipo, nombre: archivo.name, tamano: archivo.size });
+    await subirConProgreso(path, token, archivo, alAvanzar);
+    await edge({ accion: "confirmar", ponencia: true, ponente, codigo, tipo, path, nombre: archivo.name, tamano: archivo.size });
+  },
+  ponenciaUrl: async (codigo, ponente, tipo, descargar = false) => (await edge({ accion: "leer", ponencia: true, codigo, ponente, tipo, descargar })).url,
   datosJurado: (codigo) => rpc("jur_datos_jurado", { p_codigo: codigo }),
   calificar: (codigo, concurso, subprueba, delegacion, datos, comentario = "") =>
     rpc("jur_calificar", { p_codigo: codigo, p_concurso: concurso, p_subprueba: subprueba, p_delegacion: delegacion, p_datos: datos, p_comentario: comentario }),
@@ -172,7 +184,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611041632");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611041659");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -204,6 +216,7 @@ function db() {
   mem.equipos ||= mem.delegaciones.length ? [{ id: uid(), concurso_id: "amateur-2", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0001" }] : [];
   mem.entregas ||= {}; mem.tiempos ||= {};
   mem.coordinadores ||= [{ id: uid(), nombre: "Coordinador de prueba", codigo: "SALA01", concursos: ["amateur-1"] }];
+  mem.ponentes ||= CHARLAS.map((c, k) => ({ id: uid(), nombre: c.ponente, codigo: `PON00${k + 1}`, charlas: [c.id], descripcion: "", foto: "", titulo: "", video_despues: "", pdf: null, ppt: null, video: null }));
   if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true, permisos: { logistica: "editar" } });
   if (!mem.coordinadores.some((k) => k.codigo === "RRPP01")) mem.coordinadores.push({ id: uid(), nombre: "Relaciones públicas (prueba)", codigo: "RRPP01", concursos: [], permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" } });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "amateur-1")) mem.equipos.push({ id: uid(), concurso_id: "amateur-1", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0002" });
@@ -223,9 +236,10 @@ function db() {
 function guardar() { try { localStorage.setItem(CLAVE_DEMO, JSON.stringify(mem)); } catch { /* sin almacenamiento */ } }
 const exigirAdmin = (c) => { if (norm(c) !== db().admin) throw new Error("Código de administrador incorrecto"); };
 const juradoDe = (c) => { const j = db().jurados.find((x) => x.codigo === norm(c)); if (!j) throw new Error("Código de jurado incorrecto"); return j; };
-const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas, ...(db().equipos || []), ...(db().coordinadores || [])].some((x) => x.codigo === c && x.id !== excepto);
+const codigoUsado = (c, excepto = null) => [...db().jurados, ...db().talleristas, ...(db().equipos || []), ...(db().coordinadores || []), ...(db().ponentes || [])].some((x) => x.codigo === c && x.id !== excepto);
 // Admin, o coordinador asignado a ese concurso
 const ARCHIVOS_DEMO = new Map();
+const ponenteDe = (c) => { const o = (db().ponentes || []).find((x) => x.codigo === norm(c)); if (!o) throw new Error("Código de ponente incorrecto"); return o; };
 const presCfgRaw = (cid) => { const d = db(); d.presConfig ||= {}; return (d.presConfig[cid] ||= { limite: "2026-11-24T04:59:59.000Z", abierto: true }); };
 const presCfg = (cid) => { const c = presCfgRaw(cid), s = (db().sorteos || {})[cid];
   return { ...c, ahora: new Date().toISOString(), puede: c.abierto && Date.now() <= Date.parse(c.limite), orden: s?.orden || [], sorteado: s?.creado || null }; };
@@ -283,6 +297,7 @@ const demo = {
   async entrar(codigo) { await espera(400); if (norm(codigo) === db().admin) return { rol: "admin" }; const j = db().jurados.find((x) => x.codigo === norm(codigo)); if (j) return { rol: "jurado", nombre: j.nombre };
     const t = db().talleristas.find((x) => x.codigo === norm(codigo)); if (t) return { rol: "tallerista", nombre: t.nombre };
     const e = (db().equipos || []).find((x) => x.codigo === norm(codigo)); if (e) return { rol: "equipo", nombre: e.nombre };
+    const o = (db().ponentes || []).find((x) => x.codigo === norm(codigo)); if (o) return { rol: "ponente", nombre: o.nombre };
     const k = (db().coordinadores || []).find((x) => x.codigo === norm(codigo)); return k ? { rol: "coordinador", nombre: k.nombre } : null; },
   async datosJurado(codigo) { await espera(); const j = juradoDe(codigo); const d = db();
     return { jurado: { ...j }, delegaciones: d.delegaciones, abiertos: d.abiertos, calificaciones: d.calificaciones.filter((x) => x.jurado_id === j.id) }; },
@@ -607,6 +622,36 @@ const demo = {
     for (let k = 1; k <= 10; k++) { await espera(60); alAvanzar?.(k / 10); }
     ARCHIVOS_DEMO.set(`${e.id}:${tipo}`, archivo); const d = db(); d.pres ||= {};
     d.pres[e.id] = { ...(d.pres[e.id] || {}), [tipo]: { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() } }; guardar(); },
+  // ---- Ponentes (vista previa: los archivos quedan solo en esta pestaña) ----
+  async ponenteDatos(codigo) { await espera(); const o = ponenteDe(codigo); return { ponente: { ...o, codigo: null } }; },
+  async ponenteGuardar(codigo, titulo, videoDespues) { await espera(80); const o = ponenteDe(codigo); o.titulo = String(titulo || "").trim().slice(0, 160); o.video_despues = String(videoDespues || "").replace(/\D/g, "").slice(0, 3); guardar(); return { ok: true }; },
+  async adminPonentes(codigo) { await espera(); exigirPermiso(codigo, "charlas", "ver"); const ed = norm(codigo) === db().admin || nivelDe(accesoDe(codigo), "charlas") === "editar";
+    return (db().ponentes || []).map((o) => ({ ...o, codigo: ed ? o.codigo : null })); },
+  async adminPonente(codigo, { id = null, nombre = "", charlas = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, titulo = null }) {
+    await espera(); exigirPermiso(codigo, "charlas", "editar"); const d = db(); d.ponentes ||= [];
+    if (borrar) { d.ponentes = d.ponentes.filter((o) => o.id !== id); guardar(); return null; }
+    if (!String(nombre).trim()) throw new Error("Escribe el nombre completo del ponente");
+    if (!charlas.length) throw new Error("Elige al menos una charla");
+    const fijo = norm(codigoFijo); if (fijo && codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otra persona");
+    let o = id && d.ponentes.find((x) => x.id === id);
+    if (!o) { o = { id: uid(), codigo: nuevoCodigo(), titulo: "", video_despues: "", pdf: null, ppt: null, video: null, foto: "" }; d.ponentes.push(o); }
+    Object.assign(o, { nombre: String(nombre).trim(), charlas, descripcion: String(descripcion || "").slice(0, 400) });
+    if (foto != null) o.foto = foto; if (titulo != null) o.titulo = String(titulo).trim().slice(0, 160);
+    if (fijo) o.codigo = fijo; else if (nuevoCodigo) o.codigo = nuevoCodigo();
+    guardar(); return { id: o.id, codigo: o.codigo }; },
+  async ponenciaSubir(codigo, tipo, archivo, alAvanzar, ponente = null) {
+    await espera(); const d = db(); let o = (d.ponentes || []).find((x) => x.codigo === norm(codigo));
+    if (!o && ponente) { exigirPermiso(codigo, "charlas", "editar"); o = d.ponentes.find((x) => x.id === ponente); }
+    if (!o) throw new Error("Código de ponente incorrecto");
+    const ext = String(archivo.name).split(".").pop().toLowerCase();
+    if (tipo === "ppt" && !["pptx", "ppt"].includes(ext)) throw new Error("El archivo de PowerPoint debe ser .pptx o .ppt");
+    if (tipo === "pdf" && ext !== "pdf") throw new Error("La presentación debe ser un archivo .pdf");
+    if (tipo === "video" && !["mp4", "mov", "webm", "m4v"].includes(ext)) throw new Error("El video debe ser .mp4 (también se acepta .mov o .webm)");
+    if (archivo.size > 52428800) throw new Error("El archivo debe pesar como máximo 50 MB");
+    for (let k = 1; k <= 10; k++) { await espera(50); alAvanzar?.(k / 10); }
+    ARCHIVOS_DEMO.set(`p:${o.id}:${tipo}`, archivo); o[tipo] = { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() }; guardar(); },
+  async ponenciaUrl(codigo, ponente, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`p:${ponente}:${tipo}`);
+    if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
   async presUrl(codigo, equipo, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`${equipo}:${tipo}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
   reiniciar() { mem = semilla(); guardar(); },

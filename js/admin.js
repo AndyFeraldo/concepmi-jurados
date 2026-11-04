@@ -1,22 +1,23 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611041632";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611041632";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611041632";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611041632";
-import { exportarExcel } from "./excel.js?v=202611041632";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611041632";
-import { crearLogistica } from "./admin-logistica.js?v=202611041632";
-import { crearEntregas } from "./admin-entregas.js?v=202611041632";
-import { crearInauguracion } from "./inauguracion.js?v=202611041632";
-import { crearCertificados } from "./certificados.js?v=202611041632";
-import { crearCharlas } from "./admin-charlas.js?v=202611041632";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611041632";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611041632";
-import { puede, soloVer } from "./permisos.js?v=202611041632";
-import { ENTREGABLES } from "./entregables.js?v=202611041632";
-import { salir } from "./app.js?v=202611041632";
+import { api, ES_DEMO } from "./api.js?v=202611041659";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611041659";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611041659";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611041659";
+import { exportarExcel } from "./excel.js?v=202611041659";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611041659";
+import { crearLogistica } from "./admin-logistica.js?v=202611041659";
+import { crearEntregas } from "./admin-entregas.js?v=202611041659";
+import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611041659";
+import { crearInauguracion } from "./inauguracion.js?v=202611041659";
+import { crearCertificados } from "./certificados.js?v=202611041659";
+import { crearCharlas } from "./admin-charlas.js?v=202611041659";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611041659";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611041659";
+import { puede, soloVer } from "./permisos.js?v=202611041659";
+import { ENTREGABLES } from "./entregables.js?v=202611041659";
+import { salir } from "./app.js?v=202611041659";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -25,6 +26,7 @@ const PESTANAS = [
   { id: "jurados", txt: "Jurados", icono: "personas" },
   { id: "talleristas", txt: "Talleristas", icono: "pizarra" },
   { id: "charlas", txt: "Charlas", icono: "vivo" },
+  { id: "ponentes", txt: "Ponentes", icono: "personas", area: "charlas" },
   { id: "entregas", txt: "Entregas", icono: "lapiz" },
   { id: "logistica", txt: "Logística", icono: "caja" },
   { id: "delegaciones", txt: "Delegaciones", icono: "bandera" },
@@ -38,8 +40,9 @@ const CON_JURADO = CONCURSOS.filter((c) => c.jurados > 0);
 export async function vistaAdmin(app, codigo, acceso = null) {
   let data = null, firma = "";
   const salaDe = acceso ? (acceso.concursos || []).filter((x) => ENTREGABLES[x]) : null;
-  const visibles = PESTANAS.filter((p) => !acceso || (p.id === "entregas" ? salaDe.length > 0 : puede(acceso, p.id, "ver")));
-  const editable = (id) => !acceso || id === "entregas" || id === "copa" || puede(acceso, id);
+  const areaDe = (id) => PESTANAS.find((p) => p.id === id)?.area || id;
+  const visibles = PESTANAS.filter((p) => !acceso || (p.id === "entregas" ? salaDe.length > 0 : puede(acceso, areaDe(p.id), "ver")));
+  const editable = (id) => !acceso || id === "entregas" || id === "copa" || puede(acceso, areaDe(id));
   let pestana = visibles[0]?.id || "vivo", concursoSel = "proyectos";
   const vistos = new Set();
   let primera = true, temporizador = null, pausado = false;
@@ -52,7 +55,9 @@ export async function vistaAdmin(app, codigo, acceso = null) {
   const charlasUI = crearCharlas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), pausar: (p) => { pausado = p; } });
   const logisticaUI = crearLogistica({ codigo: () => codigo });
   const certificadosUI = crearCertificados({ codigo: () => codigo, data: () => data });
-  const inauguracionUI = crearInauguracion();
+  const ponentesUI = crearPonentes({ codigo: () => codigo });
+  // Desde la inauguración se pasa directo a la Charla I (hilo conductor del evento)
+  const inauguracionUI = crearInauguracion({ abrirCharla: async (k = 0) => { try { proyectarCharlas(codigo, await ponentesUI.lista(), k); } catch (e) { aviso(e.message, "error"); } } });
   const entregasUI = crearEntregas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), ...(acceso ? { concursos: salaDe, coordinador: true } : {}) });
   const jur = (id) => data.jurados.find((j) => j.id === id);
   const tal = (id) => data.talleristas.find((t) => t.id === id);
@@ -92,7 +97,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
     const v = $("#vista", app);
     if (!v) return;
     const ro = !editable(pestana); soloVer(ro ? pestana : null); $("[data-ro-aviso]", app).hidden = !ro;
-    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones, certificados: certificadosUI.vista, inauguracion: inauguracionUI.vista })[pestana](v);
+    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones, certificados: certificadosUI.vista, inauguracion: inauguracionUI.vista, ponentes: ponentesUI.vista })[pestana](v);
   }
 
   async function recargar(forzar = false) {
@@ -103,7 +108,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
       data = nuevo; firma = f;
       const ocupado = document.querySelector(".velo") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#vista", app)?.contains(document.activeElement));
       // La logística no depende de estos datos: no se repinta sola para no perder lo que estás viendo
-      if ((forzar || !ocupado) && !["logistica", "entregas", "certificados", "inauguracion"].includes(pestana)) pintar();
+      if ((forzar || !ocupado) && !["logistica", "entregas", "certificados", "inauguracion", "ponentes"].includes(pestana)) pintar();
     } catch { /* se reintenta en el siguiente ciclo */ }
   }
   // Ahorro de datos: no se actualiza si la pestaña del navegador está oculta, y en Logística y
@@ -666,7 +671,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
       ${data.delegaciones.length ? `<p class="ayuda" style="margin-top:12px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611041632"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611041659"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
