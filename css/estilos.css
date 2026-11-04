@@ -1434,3 +1434,94 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
   .barra .der{ margin-left:auto; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
   .barra .logo{ max-width:120px; height:auto; }
 }
+
+.copa-acciones{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+
+/* ---------- Ceremonia de inauguración (js/inauguracion.js) ---------- */
+.inau-resumen{ margin:0 0 12px; padding:10px 14px; border-radius:12px; font-size:.92rem; }
+.inau-resumen--ok{ background:rgba(22,163,74,.12); border:1px solid rgba(74,222,128,.45); color:#C9F7D8; }
+.inau-resumen--mal{ background:rgba(250,178,25,.1); border:1px solid rgba(250,178,25,.5); color:#FFE3A3; }
+.inau-datos{ display:grid; grid-template-columns:120px 120px 1fr 1fr; gap:10px; padding:14px; margin-bottom:12px; }
+.inau-lista{ display:grid; gap:8px; }
+.inau-bloque{ display:grid; grid-template-columns:96px 1fr auto; gap:12px; align-items:center; padding:12px 14px; }
+.inau-bloque__hora{ display:grid; text-align:center; } .inau-bloque__hora b{ font-family:var(--neon); font-weight:400; color:var(--oro, #FFD27A); font-size:1.05rem; } .inau-bloque__hora small{ color:var(--tenue); }
+.inau-bloque__campos{ display:grid; grid-template-columns:150px 1.4fr 1fr 1fr 70px; gap:8px; }
+.inau-bloque__campos .campo{ margin:0; }
+.inau-bloque__acc{ display:flex; gap:4px; }
+@media (max-width:900px){ .inau-datos{ grid-template-columns:1fr 1fr; } .inau-bloque{ grid-template-columns:1fr; } .inau-bloque__hora{ text-align:left; display:flex; gap:8px; align-items:baseline; } .inau-bloque__campos{ grid-template-columns:1fr 1fr; } .inau-ancho{ grid-column:1 / -1; } }
+
+.inau{ position:fixed; inset:0; z-index:75; overflow:hidden; isolation:isolate; cursor:none; color:#fff; display:grid; grid-template-rows:auto 1fr;
+  background:radial-gradient(ellipse at 50% 0%, #4A22C9 0%, #241070 45%, #0B0630 100%); }
+.inau--ctrl{ cursor:auto; }
+.inau .fondo, .inau .deco{ position:absolute; }
+.inau__aro{ position:absolute; left:50%; top:52%; width:min(120vh, 110vw); aspect-ratio:1; translate:-50% -50%; border-radius:50%; z-index:0; pointer-events:none;
+  background:conic-gradient(from 0deg, transparent 0 20%, rgba(255,210,122,.18) 25%, transparent 32% 70%, rgba(31,203,234,.16) 76%, transparent 84%);
+  mask:radial-gradient(circle, transparent 58%, #000 59%, #000 61%, transparent 62%); -webkit-mask:radial-gradient(circle, transparent 58%, #000 59%, #000 61%, transparent 62%); animation:inau-gira 40s linear infinite; }
+@keyframes inau-gira{ to{ rotate:360deg; } }
+.inau__cab{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center; gap:2vw; padding:3vh 3vw 0; }
+.inau__cab img{ height:clamp(34px, 7vh, 72px); width:auto; filter:drop-shadow(0 4px 18px rgba(0,0,0,.4)); }
+.inau__sep{ width:2px; height:clamp(30px, 6vh, 60px); background:linear-gradient(transparent, rgba(255,210,122,.8), transparent); }
+.inau__vista{ position:relative; z-index:2; display:grid; min-height:0; }
+
+/* Portada */
+.inau-portada{ display:grid; justify-items:center; align-content:center; text-align:center; gap:1.6vh; padding:2vh 4vw 6vh; position:relative; }
+.inau-portada__pre{ margin:0; font-family:var(--neon); letter-spacing:.22em; text-transform:uppercase; color:var(--celeste); font-size:clamp(.8rem, 1.5vw, 1.25rem); animation:subir .9s .1s both; }
+.inau-portada__tit{ margin:0; font-family:var(--neon); font-weight:400; line-height:.95; font-size:clamp(3.4rem, 10vw, 9.5rem);
+  background:linear-gradient(100deg, #fff 20%, #FFD27A 45%, #fff 55%, #FFE9B8 80%); background-size:250% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:subir 1s .3s both, inau-brillo 6s 1.4s ease-in-out infinite; filter:drop-shadow(0 8px 40px rgba(255,210,122,.25)); }
+.inau-portada__tit span{ display:block; font-size:.36em; letter-spacing:.18em; text-transform:uppercase; -webkit-text-fill-color:#E6DDFF; margin-bottom:.15em; }
+@keyframes inau-brillo{ 0%,100%{ background-position:100% 0; } 50%{ background-position:0 0; } }
+.inau-portada__linea{ display:flex; align-items:center; gap:1.4vw; animation:subir 1s .6s both; }
+.inau-portada__linea i{ width:clamp(40px, 10vw, 160px); height:2px; background:linear-gradient(90deg, transparent, #FFD27A); } .inau-portada__linea i:last-child{ transform:scaleX(-1); }
+.inau-portada__linea b{ font-family:var(--neon); font-weight:400; font-size:clamp(1.2rem, 2.6vw, 2.2rem); color:#FFD27A; letter-spacing:.08em; }
+.inau-portada__dato{ margin:0; color:#E6DDFF; font-size:clamp(.95rem, 1.8vw, 1.5rem); animation:subir 1s .8s both; }
+.inau-portada__lobo{ position:absolute; right:3vw; bottom:2vh; width:min(15vw, 190px); animation:inau-flota 5s ease-in-out infinite; filter:drop-shadow(0 14px 30px rgba(0,0,0,.5)); }
+@keyframes inau-flota{ 50%{ translate:0 -12px; } }
+
+/* Bloque en curso */
+.inau-bloq{ display:grid; grid-template-columns:1fr minmax(260px, 30vw); gap:3vw; align-items:center; padding:2vh 4vw 9vh; min-height:0; }
+.inau-bloq__centro{ display:grid; gap:2.2vh; animation:inau-entra .8s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes inau-entra{ from{ opacity:0; translate:0 30px; filter:blur(6px); } }
+.inau-bloq__tipo{ margin:0; display:flex; align-items:center; gap:.7em; font-family:var(--neon); letter-spacing:.2em; text-transform:uppercase; color:#FFD27A; font-size:clamp(.85rem, 1.6vw, 1.35rem); }
+.inau-bloq__tipo span{ display:grid; place-items:center; width:2em; height:2em; border-radius:50%; border:1px solid rgba(255,210,122,.6); background:rgba(255,210,122,.1); letter-spacing:0; }
+.inau-bloq__tit{ margin:0; font-family:var(--neon); font-weight:400; font-size:clamp(2.2rem, 5.4vw, 5.2rem); line-height:1.05; text-wrap:balance; text-shadow:0 8px 40px rgba(0,0,0,.35); }
+.inau-bloq__quien{ display:grid; gap:.3em; padding:1.6vh 1.6vw; border-left:4px solid var(--naranja); background:linear-gradient(90deg, rgba(255,122,0,.16), transparent); border-radius:0 14px 14px 0; width:max-content; max-width:100%; }
+.inau-bloq__quien b{ font-size:clamp(1.5rem, 3.4vw, 3rem); font-weight:700; }
+.inau-bloq__quien span{ color:#E6DDFF; font-size:clamp(.95rem, 1.7vw, 1.45rem); }
+.inau-prog{ list-style:none; margin:0; padding:1.6vh 1.2vw; display:grid; gap:.4vh; border-radius:20px; background:rgba(10,5,40,.55); border:1px solid rgba(169,139,255,.3); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.inau-prog li{ display:grid; grid-template-columns:auto 1fr; column-gap:.8em; padding:.7vh .6vw; border-radius:10px; color:#BFB4E8; font-size:clamp(.72rem, 1.05vw, .98rem); transition:.4s; }
+.inau-prog li em{ font-style:normal; font-variant-numeric:tabular-nums; color:#8F84C0; grid-row:span 2; padding-top:.1em; }
+.inau-prog li small{ grid-column:2; color:#8F84C0; font-size:.85em; }
+.inau-prog li.hecho{ opacity:.45; } .inau-prog li.hecho span::before{ content:"✓ "; color:#4ADE80; }
+.inau-prog li.ahora{ background:linear-gradient(90deg, rgba(255,122,0,.3), rgba(255,122,0,.05)); color:#fff; font-weight:600; box-shadow:inset 3px 0 0 var(--naranja); }
+.inau-prog li.ahora em{ color:#FFD27A; }
+@media (max-width:800px){ .inau-bloq{ grid-template-columns:1fr; } .inau-prog{ display:none; } }
+
+/* Reloj sutil */
+.inau__reloj{ position:absolute; left:2.2vw; bottom:2.4vh; z-index:4; display:flex; align-items:center; gap:.8em; padding:.55em .9em; border-radius:999px;
+  background:rgba(10,5,40,.5); border:1px solid rgba(255,255,255,.12); color:#CFC6F2; font-size:clamp(.7rem, 1vw, .9rem); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.inau__reloj[hidden]{ display:none; }
+.inau__reloj > b, .inau__reloj div > b{ font-family:var(--neon); font-weight:400; color:#fff; font-size:1.15em; font-variant-numeric:tabular-nums; }
+.inau__reloj div{ display:grid; line-height:1.2; } .inau__reloj span{ opacity:.8; }
+.inau__mini{ position:relative; width:2.8em; height:2.8em; display:grid; place-items:center; }
+.inau__mini svg{ position:absolute; inset:0; rotate:-90deg; } .inau__mini circle{ fill:none; stroke:rgba(255,255,255,.14); stroke-width:3; }
+.inau__mini circle.v{ stroke:var(--celeste); stroke-dasharray:100.5; stroke-dashoffset:calc(100.5 * var(--p)); transition:stroke-dashoffset 1s linear; stroke-linecap:round; }
+.inau__mini b{ font-size:.72em; font-variant-numeric:tabular-nums; }
+.inau__reloj--ultimo .inau__mini circle.v{ stroke:#FAB219; }
+.inau__reloj--pasado .inau__mini circle.v{ stroke:#FF6B81; } .inau__reloj--pasado .inau__mini b{ color:#FF9AAA; }
+
+/* ¡Queda inaugurado! */
+.inau__celebra{ position:absolute; inset:0; z-index:6; display:grid; place-items:center; background:radial-gradient(circle at 50% 45%, #3F1DB0, #0B0630 75%); animation:inau-aparece .6s both; }
+.inau__celebra[hidden]{ display:none; }
+@keyframes inau-aparece{ from{ opacity:0; } }
+.inau-gran{ display:grid; justify-items:center; text-align:center; gap:2vh; }
+.inau-gran img{ width:min(22vh, 220px); animation:inau-salta 1s cubic-bezier(.3,1.6,.5,1) both, inau-flota 4s 1s ease-in-out infinite; }
+@keyframes inau-salta{ from{ scale:0; rotate:-20deg; } }
+.inau-gran p{ margin:0; font-family:var(--neon); letter-spacing:.3em; text-transform:uppercase; color:var(--celeste); font-size:clamp(.9rem, 1.8vw, 1.5rem); animation:subir .8s .4s both; }
+.inau-gran h1{ margin:0; font-family:var(--neon); font-weight:400; line-height:1.05; font-size:clamp(2.4rem, 6.4vw, 6rem); animation:subir .9s .6s both; text-shadow:0 10px 50px rgba(255,210,122,.35); }
+.inau-gran h1 b{ font-weight:400; background:linear-gradient(100deg, #FFD27A, #FF7A00, #FFD27A); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.inau-gran span{ color:#E6DDFF; letter-spacing:.2em; text-transform:uppercase; font-size:clamp(.8rem, 1.4vw, 1.2rem); animation:subir .8s 1s both; }
+
+/* Controles */
+.inau__ctrl{ position:absolute; left:50%; bottom:14px; z-index:8; translate:-50% 140%; opacity:0; transition:.25s; display:flex; flex-wrap:wrap; justify-content:center; gap:6px; padding:10px 12px; border-radius:16px; background:rgba(10,6,40,.92); border:1px solid rgba(169,139,255,.4); max-width:calc(100vw - 24px); }
+.inau--ctrl .inau__ctrl{ translate:-50% 0; opacity:1; }
