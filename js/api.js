@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611042148";
-import { CONCURSOS, porId } from "./concursos.js?v=202611042148";
-import { TALLERES } from "./talleres.js?v=202611042148";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611042148";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611042209";
+import { CONCURSOS, porId } from "./concursos.js?v=202611042209";
+import { TALLERES } from "./talleres.js?v=202611042209";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611042209";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -63,6 +63,9 @@ const real = {
   ponenteDatos: (codigo) => rpc("jur_ponente_datos", { p_codigo: codigo }),
   ponenteGuardar: (codigo, titulo, videoDespues) => rpc("jur_ponente_guardar", { p_codigo: codigo, p_titulo: titulo, p_video_despues: videoDespues }),
   adminPonentes: (codigo) => rpc("jur_admin_ponentes", { p_codigo: codigo }),
+  // Programa de la inauguración guardado en la base (lo arma el admin y lo lee el operador de proyección)
+  programaLeer: (codigo, clave) => rpc("jur_programa_leer", { p_codigo: codigo, p_clave: clave }),
+  adminPrograma: (codigo, clave, datos) => rpc("jur_admin_programa", { p_codigo: codigo, p_clave: clave, p_datos: datos }),
   adminPonente: (codigo, { id = null, nombre = "", charlas = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, titulo = null }) =>
     rpc("jur_admin_ponente", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_charlas: charlas, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo, p_titulo: titulo }),
   async ponenciaSubir(codigo, tipo, archivo, alAvanzar, ponente = null) {
@@ -187,7 +190,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611042148");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611042209");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -221,6 +224,7 @@ function db() {
   mem.coordinadores ||= [{ id: uid(), nombre: "Coordinador de prueba", codigo: "SALA01", concursos: ["amateur-1"] }];
   mem.ponentes ||= CHARLAS.map((c, k) => ({ id: uid(), nombre: c.ponente, codigo: `PON00${k + 1}`, charlas: [c.id], descripcion: "", foto: "", titulo: "", video_despues: "", pdf: null, ppt: null, video: null }));
   if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true, permisos: { logistica: "editar" } });
+  if (!mem.coordinadores.some((k) => k.codigo === "PROY01")) mem.coordinadores.push({ id: uid(), nombre: "Laptop del auditorio (prueba)", codigo: "PROY01", concursos: [], permisos: { proyeccion: "ver" } });
   if (!mem.coordinadores.some((k) => k.codigo === "RRPP01")) mem.coordinadores.push({ id: uid(), nombre: "Relaciones públicas (prueba)", codigo: "RRPP01", concursos: [], permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" } });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "amateur-1")) mem.equipos.push({ id: uid(), concurso_id: "amateur-1", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0002" });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "proyectos")) mem.equipos.push({ id: uid(), concurso_id: "proyectos", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0004" });
@@ -254,6 +258,8 @@ const exigirPermiso = (c, area, que = "editar") => { if (norm(c) === db().admin)
   const v = nivelDe(k, area); if (v === "editar" || (que === "ver" && v === "ver")) return;
   throw new Error(que === "ver" ? "Tu acceso no incluye esta pestaña" : "Tu acceso es solo para ver: no puedes hacer cambios aquí"); };
 const exigirLogistica = (c) => exigirPermiso(c, "logistica", "editar");
+// El operador de proyección puede ver las entregas y manejar el tiempo de cualquier concurso (no crear ni borrar)
+const exigirVistaSala = (c, concurso) => { if (nivelDe(accesoDe(c), "proyeccion")) return; exigirSala(c, concurso); };
 const exigirSala = (c, concurso) => { if (norm(c) === db().admin) return; const k = (db().coordinadores || []).find((x) => x.codigo === norm(c)); if (!k || !k.concursos.includes(concurso)) throw new Error("Este código no puede manejar las entregas de este concurso"); };
 const eqDe = (c) => { const e = (db().equipos || []).find((x) => x.codigo === norm(c)); if (!e) throw new Error("Código de equipo incorrecto"); return e; };
 const entJson = (e) => { const x = db().entregas[e.id] || {}; return { equipo_id: e.id, concurso_id: e.concurso_id, delegacion_id: e.delegacion_id, nombre: e.nombre || "", lider: e.lider || "",
@@ -327,7 +333,7 @@ const demo = {
   async adminDatos(codigo) { await espera(150); const d = db(); const adm = norm(codigo) === d.admin, k = adm ? null : accesoDe(codigo);
     if (!adm && !k) throw new Error("Código de administrador incorrecto");
     const ve = (a) => adm || !!nivelDe(k, a), edita = (a) => adm || nivelDe(k, a) === "editar", cc = k?.concursos || [];
-    const verRes = ve("vivo") || ve("resultados") || ve("copa");
+    const verRes = ve("vivo") || ve("resultados") || ve("copa") || ve("proyeccion");
     const sinCod = (x, a) => (edita(a) ? x : { ...x, codigo: null });
     return { concursos: CONCURSOS.map((c) => ({ id: c.id, abierto: d.abiertos[c.id] })), delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       jurados: d.jurados.filter((j) => ve("jurados") || verRes || j.concursos.some((c) => cc.includes(c))).map((j) => sinCod(j, "jurados")),
@@ -477,7 +483,7 @@ const demo = {
     const r = quizRanking(charla).find((x) => x.dni === norm(dni)); const mio = (c.podio || []).find((p) => p.dni === norm(dni));
     return { aciertos: r.aciertos, puesto: r.puesto, tiempo_ms: r.tiempo_ms, preguntas: d.preguntas[charla].length, jugadores: d.jugadores.filter((j) => j.charla_id === charla).length,
       confirmado: !!c.confirmado, ganador: c.ganador_nombre || null, pts: mio?.pts || 0 }; },
-  async adminQuiz(codigo, charla) { await espera(80); exigirPermiso(codigo, "charlas", "ver"); quizAvanzar(charla); const d = db(); const c = quizC(charla);
+  async adminQuiz(codigo, charla) { await espera(80); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "ver"); quizAvanzar(charla); const d = db(); const c = quizC(charla);
     const resp = d.respuestas.filter((r) => r.charla_id === charla);
     return { fase: quizFase(charla), ahora: new Date().toISOString(), seg: SEG_PREGUNTA, pausa: SEG_PAUSA, pregunta: c.pregunta || 0, inicio: c.pregunta_inicio || null,
       fin: c.pregunta_inicio ? new Date(Date.parse(c.pregunta_inicio) + SEG).toISOString() : null, confirmado: c.confirmado || null,
@@ -485,7 +491,7 @@ const demo = {
       preguntas: d.preguntas[charla].map((q, orden) => ({ orden, ...q })),
       respuestas: [...new Set(resp.map((r) => r.orden))].map((orden) => ({ orden, n: resp.filter((r) => r.orden === orden).length, bien: resp.filter((r) => r.orden === orden && r.correcta).length })),
       ranking: quizRanking(charla) }; },
-  async adminCharla(codigo, charla, accion) { await espera(); exigirPermiso(codigo, "charlas", "editar"); quizAvanzar(charla); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
+  async adminCharla(codigo, charla, accion) { await espera(); if (!(nivelDe(accesoDe(codigo), "proyeccion") && ["iniciar", "detener", "confirmar"].includes(accion))) exigirPermiso(codigo, "charlas", "editar"); quizAvanzar(charla); const d = db(); const c = quizC(charla); const fase = quizFase(charla);
     if (accion === "iniciar") { if (c.estado === "jugando") throw new Error("La trivia ya se inició");
       Object.assign(c, { estado: "jugando", pregunta: 0, pregunta_inicio: new Date(Date.now() + 5000).toISOString() }); }
     else if (accion === "detener") { if (c.confirmado) throw new Error("Primero anula el resultado confirmado");
@@ -567,7 +573,7 @@ const demo = {
     Object.assign(x, { datos: tarde ? x.datos || {} : datos, estado: "enviado", enviado: new Date().toISOString(), tarde, actualizado: new Date().toISOString() }); guardar(); return { enviado: x.enviado, tarde }; },
   async juradoEntregas(codigo, concurso) { await espera(); const j = juradoDe(codigo); if (!j.concursos.includes(concurso)) throw new Error("No estás asignado a este concurso");
     return { tiempo: tiempoJson(concurso), entregas: db().equipos.filter((e) => e.concurso_id === concurso).map(entJson) }; },
-  async adminEntregas(codigo, concurso) { await espera(80); exigirSala(codigo, concurso);
+  async adminEntregas(codigo, concurso) { await espera(80); exigirVistaSala(codigo, concurso);
     return { tiempo: tiempoJson(concurso), equipos: db().equipos.filter((e) => e.concurso_id === concurso).map((e) => ({ id: e.id, codigo: e.codigo, entrega: entJson(e) })) }; },
   async adminEquipo(codigo, { id = null, concurso, delegacion, nombre = "", lider = "", borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
     await espera(); const d = db(); exigirSala(codigo, concurso); const previo = id && d.equipos.find((x) => x.id === id); if (previo) exigirSala(codigo, previo.concurso_id);
@@ -579,7 +585,7 @@ const demo = {
     if (!e) { e = { id: uid(), concurso_id: concurso, codigo: nuevoCodigo() }; d.equipos.push(e); }
     Object.assign(e, { delegacion_id: delegacion, nombre, lider }); if (regen) e.codigo = nuevoCodigo(); if (fijo) e.codigo = fijo;
     guardar(); return { id: e.id, codigo: e.codigo }; },
-  async adminTiempo(codigo, concurso, accion, minutos = 35) { await espera(); exigirSala(codigo, concurso); const d = db(); const t = (d.tiempos[concurso] ||= {});
+  async adminTiempo(codigo, concurso, accion, minutos = 35) { await espera(); exigirVistaSala(codigo, concurso); const d = db(); const t = (d.tiempos[concurso] ||= {});
     const ms = minutos * 60000;
     if (accion === "iniciar") Object.assign(t, { inicio: new Date().toISOString(), fin: new Date(Date.now() + ms).toISOString() });
     else if (accion === "extender") t.fin = new Date(Math.max(Date.parse(t.fin), Date.now()) + ms).toISOString();
@@ -607,7 +613,7 @@ const demo = {
     guardar(); return { id: k.id, codigo: k.codigo }; },
   // ---- Concurso de Proyectos (vista previa: los archivos quedan solo en esta pestaña) ----
   async equipoPresentacion(codigo) { await espera(); const e = eqDe(codigo); return { presentacion: presJson(e), config: presCfg(e.concurso_id) }; },
-  async adminPresentaciones(codigo, concurso) { await espera(80); exigirSala(codigo, concurso);
+  async adminPresentaciones(codigo, concurso) { await espera(80); exigirVistaSala(codigo, concurso);
     return { config: presCfg(concurso), equipos: db().equipos.filter((e) => e.concurso_id === concurso).map((e) => ({ id: e.id, codigo: e.codigo, pres: presJson(e) })) }; },
   async adminPresConfig(codigo, concurso, accion, limite = null) { await espera(); exigirSala(codigo, concurso); const c = presCfgRaw(concurso);
     if (accion === "limite") { if (!limite) throw new Error("Elige la nueva fecha límite"); c.limite = new Date(limite).toISOString(); c.abierto = true; }
@@ -628,7 +634,9 @@ const demo = {
   // ---- Ponentes (vista previa: los archivos quedan solo en esta pestaña) ----
   async ponenteDatos(codigo) { await espera(); const o = ponenteDe(codigo); return { ponente: { ...o, codigo: null } }; },
   async ponenteGuardar(codigo, titulo, videoDespues) { await espera(80); const o = ponenteDe(codigo); o.titulo = String(titulo || "").trim().slice(0, 160); o.video_despues = String(videoDespues || "").replace(/\D/g, "").slice(0, 3); guardar(); return { ok: true }; },
-  async adminPonentes(codigo) { await espera(); exigirPermiso(codigo, "charlas", "ver"); const ed = norm(codigo) === db().admin || nivelDe(accesoDe(codigo), "charlas") === "editar";
+  async programaLeer(codigo, clave) { await espera(); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "ver"); const x = (db().programas || {})[clave]; return x ? { datos: x.datos, actualizado: x.actualizado } : null; },
+  async adminPrograma(codigo, clave, datos) { await espera(60); exigirPermiso(codigo, "charlas", "editar"); const d = db(); d.programas ||= {}; d.programas[clave] = { datos, actualizado: new Date().toISOString() }; guardar(); return { ok: true }; },
+  async adminPonentes(codigo) { await espera(); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "ver"); const ed = norm(codigo) === db().admin || nivelDe(accesoDe(codigo), "charlas") === "editar";
     return (db().ponentes || []).map((o) => ({ ...o, codigo: ed ? o.codigo : null })); },
   async adminPonente(codigo, { id = null, nombre = "", charlas = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, titulo = null }) {
     await espera(); exigirPermiso(codigo, "charlas", "editar"); const d = db(); d.ponentes ||= [];

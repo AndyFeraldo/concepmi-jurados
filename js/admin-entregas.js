@@ -3,16 +3,16 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611042148";
-import { ENTREGABLES } from "./entregables.js?v=202611042148";
-import { porId } from "./concursos.js?v=202611042148";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611042148";
-import { abrirEscenario } from "./escenario.js?v=202611042148";
-import { quitarArchivos } from "./presentacion.js?v=202611042148";
-import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611042148";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611042148";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611042148";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611042148";
+import { api } from "./api.js?v=202611042209";
+import { ENTREGABLES } from "./entregables.js?v=202611042209";
+import { porId } from "./concursos.js?v=202611042209";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611042209";
+import { abrirEscenario } from "./escenario.js?v=202611042209";
+import { quitarArchivos } from "./presentacion.js?v=202611042209";
+import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611042209";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611042209";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611042209";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611042209";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 

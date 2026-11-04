@@ -1,16 +1,16 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611042148";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611042148";
-import { CONCURSOS } from "./concursos.js?v=202611042148";
-import { vistaJurado } from "./jurado.js?v=202611042148";
-import { vistaAdmin } from "./admin.js?v=202611042148";
-import { vistaTallerista } from "./tallerista.js?v=202611042148";
-import { vistaQuiz } from "./quiz.js?v=202611042148";
-import { vistaEquipo } from "./equipo.js?v=202611042148";
-import { vistaPonente } from "./ponente.js?v=202611042148";
-import { vistaCoordinador } from "./coordinador.js?v=202611042148";
+import { api, ES_DEMO } from "./api.js?v=202611042209";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611042209";
+import { CONCURSOS } from "./concursos.js?v=202611042209";
+import { vistaJurado } from "./jurado.js?v=202611042209";
+import { vistaAdmin } from "./admin.js?v=202611042209";
+import { vistaTallerista } from "./tallerista.js?v=202611042209";
+import { vistaQuiz } from "./quiz.js?v=202611042209";
+import { vistaEquipo } from "./equipo.js?v=202611042209";
+import { vistaPonente } from "./ponente.js?v=202611042209";
+import { vistaCoordinador } from "./coordinador.js?v=202611042209";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -76,6 +76,12 @@ function portada() {
             <span class="puerta__txt">Charlas magistrales: sube tu presentación (PDF y PPT) para proyectarla en el auditorio.</span>
             <span class="puerta__ir">Subir mi ponencia ${I.flecha}</span>
           </button>
+          <button class="puerta puerta--proyeccion" data-rol="proyeccion">
+            <span class="puerta__icono">${I.pizarra}</span>
+            <span class="puerta__nombre">Proyección</span>
+            <span class="puerta__txt">Laptop del auditorio: ceremonias, charlas, trivia y concursos en pantalla grande.</span>
+            <span class="puerta__ir">Abrir proyección ${I.flecha}</span>
+          </button>
           <button class="puerta puerta--admin" data-rol="admin">
             <span class="puerta__icono">${I.escudo}</span>
             <span class="puerta__nombre">Admin</span>
@@ -98,6 +104,7 @@ const ROLES = {
   tallerista: { titulo: "Acceso de tallerista", icono: "pizarra", fondo: "linear-gradient(135deg,#A98BFF,#6E2BE6)", btn: "btn--naranja", demo: "TAL001", boton: "Tallerista" },
   admin: { titulo: "Acceso de administrador", icono: "escudo", fondo: "linear-gradient(135deg,#1FCBEA,#6E2BE6)", btn: "btn--primario", demo: "ADMIN1 (o SALA01 para coordinador de sala)", boton: "Admin" },
   ponente: { titulo: "Acceso de ponente", icono: "vivo", fondo: "linear-gradient(135deg,#FFD27A,#FF7A00)", btn: "btn--naranja", demo: "PON001, PON002 o PON003", boton: "Ponente" },
+  proyeccion: { titulo: "Acceso de proyección", icono: "pizarra", fondo: "linear-gradient(135deg,#1FCBEA,#FF7A00)", btn: "btn--naranja", demo: "PROY01", boton: "Proyección" },
   coordinador: { boton: "Admin" },
 };
 
@@ -140,7 +147,7 @@ function pedirCodigo(rol) {
     try {
       const r = await api.entrar(codigo);
       // El coordinador de sala entra por la misma puerta del admin
-      const valido = r && (r.rol === rol || (rol === "admin" && r.rol === "coordinador"));
+      const valido = r && (r.rol === rol || ((rol === "admin" || rol === "proyeccion") && r.rol === "coordinador"));
       if (!valido) {
         err.textContent = r ? `Ese código es de ${r.rol === "admin" ? "administrador" : r.rol}. Usa el botón ${ROLES[r.rol]?.boton || ""}.` : "Código incorrecto. Revisa e inténtalo otra vez.";
         inp.classList.remove("temblor"); void inp.offsetWidth; inp.classList.add("temblor"); inp.select();

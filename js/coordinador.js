@@ -5,14 +5,15 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611042148";
-import { crearEntregas } from "./admin-entregas.js?v=202611042148";
-import { crearLogistica } from "./admin-logistica.js?v=202611042148";
-import { ENTREGABLES } from "./entregables.js?v=202611042148";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611042148";
-import { usaPanel, puede, soloVer } from "./permisos.js?v=202611042148";
-import { vistaAdmin } from "./admin.js?v=202611042148";
-import { salir } from "./app.js?v=202611042148";
+import { api, ES_DEMO } from "./api.js?v=202611042209";
+import { crearEntregas } from "./admin-entregas.js?v=202611042209";
+import { crearLogistica } from "./admin-logistica.js?v=202611042209";
+import { ENTREGABLES } from "./entregables.js?v=202611042209";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611042209";
+import { vistaProyeccion } from "./proyeccion.js?v=202611042209";
+import { usaPanel, puede, soloVer, esProyeccion } from "./permisos.js?v=202611042209";
+import { vistaAdmin } from "./admin.js?v=202611042209";
+import { salir } from "./app.js?v=202611042209";
 
 export async function vistaCoordinador(app, codigo) {
   let data = null;
@@ -22,6 +23,7 @@ export async function vistaCoordinador(app, codigo) {
 
   const k = data.coordinador;
   // Con pestañas del admin (jurados, charlas, etc.) usa el panel completo, limitado a sus permisos
+  if (esProyeccion(k)) return vistaProyeccion(app, codigo, k);
   if (usaPanel(k)) return vistaAdmin(app, codigo, k);
   const concursos = k.concursos.filter((x) => ENTREGABLES[x]);
   const recargar = async () => { try { data = await api.coordDatos(codigo); } catch { /* sigue con lo cargado */ } };

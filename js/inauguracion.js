@@ -5,8 +5,9 @@
 // «¡Queda inaugurado!» con fanfarria y confeti).
 // El programa se guarda en este navegador (localStorage): ármalo en la laptop del proyector.
 // =========================================================
-import { CHARLAS } from "./charlas.js?v=202611042148";
-import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado } from "./ui.js?v=202611042148";
+import { api } from "./api.js?v=202611042209";
+import { CHARLAS } from "./charlas.js?v=202611042209";
+import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado } from "./ui.js?v=202611042209";
 
 const CLAVE = "concepmi-inauguracion-v1";
 const TIPOS = {
@@ -58,9 +59,15 @@ function confeti() {
 
 // ---------- Pestaña del admin: programa editable ----------
 // ctx.abrirCharla(k): abre la pantalla de la charla magistral k (la usa el botón «Ir a la Charla I»)
+// ctx.codigo(): para guardar el programa en la base y que la laptop del proyector lo vea igual
+export async function cargarPrograma(codigo) {
+  try { const r = await api.programaLeer(codigo, "inauguracion"); if (r?.datos?.bloques?.length) { guardarPrograma(r.datos); return r.datos; } } catch { /* usa la copia local */ }
+  return leerPrograma();
+}
 export function crearInauguracion(ctx = {}) {
-  let P = leerPrograma();
-  function vista(v) {
+  let P = leerPrograma(), cargado = false, subirT = null;
+  async function vista(v) {
+    if (!cargado && ctx.codigo) { cargado = true; P = await cargarPrograma(ctx.codigo()); }
     const t = total(P), plan = aMin(P.fin) - aMin(P.inicio), dif = t - plan;
     let acum = aMin(P.inicio);
     v.innerHTML = `
@@ -91,8 +98,9 @@ export function crearInauguracion(ctx = {}) {
             <button class="btn btn--mini btn--icono btn--peligro" data-quita title="Quitar">${I.basura}</button>
           </div></article>`; }).join("")}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" data-agrega>${I.mas}Agregar bloque</button><button class="btn" data-base>${I.girar}Volver al programa sugerido</button></div>
-      <p class="ayuda">En el proyector: <b>→ / Espacio</b> pasa al siguiente bloque, <b>←</b> regresa, <b>R</b> muestra u oculta el reloj, <b>I</b> lanza «¡Queda inaugurado!», <b>Z</b> congela la pantalla («Freeze»: quieta, con «A continuación: Charla I») mientras el ponente se prepara y <b>C</b> abre la Charla I con su presentación. El reloj (sutil, en una esquina) cuenta el tiempo de cada bloque y dice si van <b>a tiempo</b> o con retraso respecto al plan. El programa se guarda en este navegador: ármalo en la laptop del proyector.</p>`;
-    const cambia = () => { guardarPrograma(P); };
+      <p class="ayuda">En el proyector: <b>→ / Espacio</b> pasa al siguiente bloque, <b>←</b> regresa, <b>R</b> muestra u oculta el reloj, <b>I</b> lanza «¡Queda inaugurado!», <b>Z</b> congela la pantalla («Freeze»: quieta, con «A continuación: Charla I») mientras el ponente se prepara y <b>C</b> abre la Charla I con su presentación. El reloj (sutil, en una esquina) cuenta el tiempo de cada bloque y dice si van <b>a tiempo</b> o con retraso respecto al plan. El programa se guarda en la nube: lo armas aquí y la laptop del proyector (acceso de Proyección) lo ve igual.</p>`;
+    const cambia = () => { guardarPrograma(P); if (!ctx.codigo) return; clearTimeout(subirT);
+      subirT = setTimeout(async () => { try { await api.adminPrograma(ctx.codigo(), "inauguracion", P); } catch (e) { aviso(`No se guardó en la nube: ${e.message}`, "error"); } }, 500); };
     $$("[data-g]", v).forEach((el) => (el.onchange = () => { P[el.dataset.g] = el.value.trim(); cambia(); vista(v); }));
     $$("[data-i]", v).forEach((art) => {
       const i = Number(art.dataset.i), b = P.bloques[i];
