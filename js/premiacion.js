@@ -6,7 +6,7 @@
 //  4. Campeona: fanfarria, lluvia de confeti y Wolfitos bailando · podio final
 // Avanza con Espacio / → / clic en «Siguiente», o en modo Automático.
 // =========================================================
-import { $, esc, I, IMG, fondoAnimado } from "./ui.js?v=202611040220";
+import { $, esc, I, IMG, fondoAnimado } from "./ui.js?v=202611040224";
 
 const METAL = {
   3: { clase: "bronce", txt: "3.er LUGAR", medalla: "Medalla de bronce", colores: ["#CD7F32", "#E8A96B", "#8C4A1E", "#FFD2A6"] },

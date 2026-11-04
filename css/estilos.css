@@ -244,7 +244,8 @@ body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-i
 .seccion-titulo{ font-family:var(--neon); font-weight:400; font-size:1.15rem; margin:30px 0 12px; color:var(--niebla); }
 
 /* Pestañas */
-.pestanas{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px; scrollbar-width:none; }
+.pestanas{ display:flex; flex-wrap:wrap; gap:8px; padding-bottom:4px; margin-bottom:18px; }
+.pestanas > .pestana{ flex:none; }
 .pestanas::-webkit-scrollbar{ display:none; }
 .pestana{ display:inline-flex; align-items:center; gap:.5em; padding:.6em 1.05em; border-radius:12px; border:1px solid var(--borde); background:rgba(255,255,255,.04);
   font-weight:600; font-size:.88rem; white-space:nowrap; color:var(--niebla); transition:background .2s, border-color .2s, color .2s; }
@@ -1425,3 +1426,11 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cert-tipo--ponente{ border-color:rgba(169,139,255,.6); color:#D6C8FF; } .cert-tipo--organizador{ border-color:rgba(250,178,25,.5); color:#FFE3A3; }
 .cert-previa{ border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.4); }
 .cert-previa canvas{ display:block; width:100%; height:auto; }
+
+/* Barra superior en celular: que no se salga de la pantalla */
+@media (max-width:560px){
+  .barra{ flex-wrap:wrap; row-gap:8px; }
+  .barra .sep, .barra .en-vivo{ display:none; }
+  .barra .der{ margin-left:auto; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+  .barra .logo{ max-width:120px; height:auto; }
+}

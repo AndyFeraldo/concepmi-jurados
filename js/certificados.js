@@ -6,11 +6,11 @@
 // Todo se arma en el navegador: no se guarda nada en la base de datos
 // (los «otros» y los textos editados quedan en este navegador).
 // =========================================================
-import { api } from "./api.js?v=202611040220";
-import { porId } from "./concursos.js?v=202611040220";
-import { CHARLAS } from "./charlas.js?v=202611040220";
-import { tallerPorId } from "./talleres.js?v=202611040220";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611040220";
+import { api } from "./api.js?v=202611040224";
+import { porId } from "./concursos.js?v=202611040224";
+import { CHARLAS } from "./charlas.js?v=202611040224";
+import { tallerPorId } from "./talleres.js?v=202611040224";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611040224";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
@@ -128,8 +128,8 @@ export function crearCertificados(ctx) {
         <div class="pestanas pestanas--sub" style="margin:0">${["todos", ...Object.keys(TIPOS)].map((t) => `<button class="pestana" data-f="${t}" aria-selected="${t === filtro}">${t === "todos" ? "Todos" : TIPOS[t].txt} <small>${cuenta(t)}</small></button>`).join("")}</div>
         <input class="log-buscar" data-buscar placeholder="Buscar por nombre, concurso o taller…" value="${esc(busca)}">
       </div>
-      <div class="tabla-envoltura"><table class="tabla cert-tabla"><thead><tr><th style="width:36px"><input type="checkbox" data-todas ${lista.length && lista.every((p) => el.includes(p)) ? "checked" : ""} aria-label="Elegir todos"></th><th>Nombre</th><th>Rol</th><th>Texto del certificado</th><th></th></tr></thead><tbody>
-        ${lista.map((p) => `<tr class="${el.includes(p) ? "" : "cert-fuera"}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${el.some((x) => x.id === p.id) ? "checked" : ""} aria-label="Incluir"></td>
+      <div class="tabla-envoltura"><table class="tabla cert-tabla"><thead><tr><th style="width:36px"><input type="checkbox" data-todas ${lista.length && lista.every((p) => el.some((x) => x.id === p.id)) ? "checked" : ""} aria-label="Elegir todos"></th><th>Nombre</th><th>Rol</th><th>Texto del certificado</th><th></th></tr></thead><tbody>
+        ${lista.map((p) => `<tr class="${el.some((x) => x.id === p.id) ? "" : "cert-fuera"}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${el.some((x) => x.id === p.id) ? "checked" : ""} aria-label="Incluir"></td>
           <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}</td>
           <td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS[p.tipo].uno}</span></td>
           <td class="cert-texto">${esc(textoRol(p) || p.texto.slice(0, 90) + "…")}</td>
