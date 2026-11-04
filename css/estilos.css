@@ -1588,3 +1588,12 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .puertas:has(> .puerta:nth-child(6)){ grid-template-columns:repeat(3, minmax(0, 310px)); }
 @media (max-width:900px){ .puertas:has(> .puerta:nth-child(6)){ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 @media (max-width:560px){ .puertas:has(> .puerta:nth-child(6)){ grid-template-columns:1fr; } }
+/* Certificados: secciones, configuración e importación */
+.cert-secciones{ margin:0 0 12px; }
+.cert-cfg{ display:grid; gap:10px; padding:14px 16px; margin:0 0 12px; }
+.cert-cfg__cinta{ display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; } .cert-cfg__cinta .campo{ flex:0 1 260px; margin:0; }
+.cert-cfg .campo{ margin:0; } .cert-cfg textarea{ min-height:70px; }
+.cert-cfg__acc{ display:flex; gap:8px; flex-wrap:wrap; }
+.cert-barra__acc{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+.cert-map{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); margin:10px 0 4px; }
+.cert-tabla .mini-select{ min-width:220px; }

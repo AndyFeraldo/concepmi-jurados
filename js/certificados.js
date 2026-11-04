@@ -1,30 +1,43 @@
 // =========================================================
-// Pestaña CERTIFICADOS del admin: arma el certificado oficial (img/certificado-base.jpg)
-// para jurados, talleristas, ponentes, equipo organizador y otras personas que agregues.
-// Cambia el nombre y el texto según el rol (jurado de qué concurso, tallerista de qué taller…).
-// Vista previa, PDF individual, ZIP con un PDF por persona o un solo PDF para imprimir.
-// Todo se arma en el navegador: no se guarda nada en la base de datos
-// (los «otros» y los textos editados quedan en este navegador).
+// Pestaña CERTIFICADOS del admin. Usa el certificado oficial con firmas (img/certificado-base.jpg,
+// sin el nombre ni el texto) y escribe encima el nombre, el texto y la cinta («de participación»,
+// «equipo organizador»…). Tres secciones:
+//   1. Invitados: jurados, talleristas y ponentes (salen solos de la base de datos)
+//   2. Equipo organizador: voluntarios cargados de un Excel, con su área (DP, PMO, Ventas, RRPP, Marketing, TI)
+//   3. Participantes: inscritos cargados de un Excel
+// En cada sección: texto y cinta personalizables, vista previa editable, PDF individual,
+// ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
+// en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611042209";
-import { porId } from "./concursos.js?v=202611042209";
-import { CHARLAS } from "./charlas.js?v=202611042209";
-import { tallerPorId } from "./talleres.js?v=202611042209";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611042209";
+import { api } from "./api.js?v=202611042248";
+import { porId } from "./concursos.js?v=202611042248";
+import { CHARLAS } from "./charlas.js?v=202611042248";
+import { tallerPorId } from "./talleres.js?v=202611042248";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611042248";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
-const EVENTO = "en el VI Congreso Nacional de Comunidades Estudiantiles del PMI - VI CONCEPMI 2026, realizado los días 24 y 26 de noviembre de 2026 en la Universidad Nacional Mayor de San Marcos, Lima – Perú, aportando al desarrollo de los futuros líderes en gestión de proyectos del país.";
-const TIPOS = {
-  jurado: { txt: "Jurados", uno: "Jurado" },
-  tallerista: { txt: "Talleristas", uno: "Tallerista" },
-  ponente: { txt: "Ponentes", uno: "Ponente" },
-  organizador: { txt: "Equipo organizador", uno: "Organizador" },
-  otro: { txt: "Otros", uno: "Otro" },
+const EVENTO = "en el VI Congreso Nacional de Comunidades Estudiantiles del PMI - VI CONCEPMI 2026, realizado los días 24 y 26 de noviembre de 2026 en la Universidad Nacional Mayor de San Marcos, Lima – Perú";
+const CIERRE = ", aportando al desarrollo de los futuros líderes en gestión de proyectos del país.";
+export const AREAS_ORG = [
+  { id: "DP", txt: "Dirección de Proyecto" }, { id: "PMO", txt: "PMO" }, { id: "Ventas", txt: "Ventas" },
+  { id: "RRPP", txt: "Relaciones Públicas" }, { id: "Marketing", txt: "Marketing" }, { id: "TI", txt: "Tecnologías de la Información" },
+];
+const areaTxt = (id) => AREAS_ORG.find((a) => a.id === id)?.txt || id || "";
+const SECCIONES = {
+  invitados: { txt: "Invitados", sub: "Jurados, talleristas y ponentes", cinta: "de participación", carpeta: "Invitados",
+    plantilla: `Por su valiosa participación {rol} ${EVENTO}${CIERRE}`, vars: "{rol} = «como jurado en …», «como tallerista del taller …» o «como ponente de la charla magistral …»" },
+  organizadores: { txt: "Equipo organizador", sub: "Voluntarios del VI CONCEPMI", cinta: "equipo organizador", carpeta: "Equipo organizador",
+    plantilla: `Por su valioso compromiso y trabajo como parte del equipo organizador, en el área de {area}, ${EVENTO}${CIERRE}`, vars: "{area} = el área del voluntario (por ejemplo «Marketing»)" },
+  participantes: { txt: "Participantes", sub: "Inscritos al congreso", cinta: "de participación", carpeta: "Participantes",
+    plantilla: `Por su participación como asistente ${EVENTO}${CIERRE}`, vars: "{delegacion} = su universidad o delegación (si el Excel la trae)" },
 };
-const CLAVE = "concepmi-certificados-v1";
+const TIPOS_INV = { jurado: "Jurado", tallerista: "Tallerista", ponente: "Ponente", otro: "Otro" };
+
+const CLAVE = "concepmi-certificados-v2";
 const leer = () => { try { return JSON.parse(localStorage.getItem(CLAVE)) || {}; } catch { return {}; } };
-const escribir = (x) => { try { localStorage.setItem(CLAVE, JSON.stringify(x)); } catch { /* sin almacenamiento */ } };
+const escribir = (x) => { try { localStorage.setItem(CLAVE, JSON.stringify(x)); } catch { aviso("No se pudo guardar en este navegador (lista muy grande)", "error"); } };
+const uid = () => Math.random().toString(36).slice(2, 10);
 
 // «A», «A y B», «A, B y C»
 const unir = (l) => (l.length < 2 ? l.join("") : `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}`);
@@ -33,16 +46,22 @@ export const textoRol = (p) => {
   if (p.tipo === "jurado") return `como jurado en ${unir(p.items.map(conArticulo))}`;
   if (p.tipo === "tallerista") return p.items.length > 1 ? `como tallerista de los talleres ${unir(p.items.map((t) => `«${t}»`))}` : `como tallerista del taller «${p.items[0] || ""}»`;
   if (p.tipo === "ponente") return `como ponente de la charla magistral ${unir(p.items.map((t) => `«${t}»`))}`;
-  if (p.tipo === "organizador") return "como parte del equipo organizador";
   return p.rol ? `como ${p.rol}` : "";
 };
-export const textoBase = (p) => `Por su valiosa participación${textoRol(p) ? ` ${textoRol(p)}` : ""} ${EVENTO}`;
+// Rellena la plantilla de la sección con los datos de la persona
+const llenar = (plantilla, p) => plantilla
+  .replace(/\{rol\}/g, textoRol(p)).replace(/\{area\}/g, areaTxt(p.area)).replace(/\{delegacion\}/g, p.delegacion || "")
+  .replace(/\s+,/g, ",").replace(/\s{2,}/g, " ").replace(/\(\s*\)/g, "").trim();
+
+// Nombre propio: «JUAN PÉREZ DE LA CRUZ» → «Juan Pérez de la Cruz»
+const MINUS = new Set(["de", "del", "la", "las", "los", "y", "e", "da", "do", "dos", "van", "von"]);
+export const nombrePropio = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase()
+  .split(" ").map((w, i) => (i && MINUS.has(w) ? w : w.replace(/(^|[-'])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()))).join(" ");
 
 // ---------- Dibujo en lienzo ----------
 let fondo = null;
-const cargarFondo = () => (fondo ||= new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error("No se pudo cargar la plantilla del certificado")); im.src = BASE; }));
+const cargarFondo = () => (fondo ||= new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => { fondo = null; rej(new Error("No se pudo cargar la plantilla del certificado")); }; im.src = BASE; }));
 const fuentes = () => Promise.all([document.fonts.load(`italic 700 ${Math.round(100 * K)}px "Playfair Display"`), document.fonts.load(`400 ${Math.round(32 * K)}px Poppins`)]).catch(() => {});
-
 function lineas(ctx, texto, ancho) {
   const out = []; let l = "";
   for (const w of texto.split(/\s+/)) { const t = l ? `${l} ${w}` : w; if (ctx.measureText(t).width > ancho && l) { out.push(l); l = w; } else l = t; }
@@ -54,15 +73,23 @@ export async function dibujar(p, lienzo = document.createElement("canvas")) {
   const ctx = lienzo.getContext("2d");
   ctx.drawImage(im, 0, 0, ANCHO, ALTO);
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  // Cinta: la plantilla dice «de participación»; si es otra, se pinta encima
+  const cinta = (p.cinta || "de participación").trim();
+  if (cinta.toLowerCase() !== "de participación") {
+    ctx.fillStyle = "#501CA6"; ctx.fillRect(826 * K, 389 * K, 384 * K, 62 * K);
+    let c = 46 * K; ctx.fillStyle = "#fff";
+    do { ctx.font = `400 ${c}px Poppins, sans-serif`; c -= 1; } while (ctx.measureText(cinta).width > 372 * K && c > 24 * K);
+    ctx.fillText(cinta, 1017 * K, 436 * K);
+  }
   // Nombre: cursiva morada sobre la línea, se achica si es muy largo
   let t = 104 * K; ctx.fillStyle = "#4A1AA6";
   do { ctx.font = `italic 700 ${t}px "Playfair Display", Georgia, serif`; t -= 4; } while (ctx.measureText(p.nombre).width > 1040 * K && t > 40 * K);
   ctx.fillText(p.nombre, 1017 * K, 652 * K);
-  // Texto: hasta 5 líneas entre la línea del nombre y las firmas
+  // Texto: entre la línea del nombre y las firmas (hasta 5 líneas, se achica si hace falta)
   let f = 33 * K, ls;
-  do { ctx.font = `400 ${f}px Poppins, sans-serif`; ls = lineas(ctx, p.texto, 1540 * K); f -= 1; } while (ls.length * f * 1.08 > 200 * K && f > 22 * K);
+  do { ctx.font = `400 ${f}px Poppins, sans-serif`; ls = lineas(ctx, p.texto, 1540 * K); f -= 1; } while (ls.length * f * 1.07 > 150 * K && f > 20 * K);
   f += 1; ctx.fillStyle = "#3A3A46";
-  const alto = f * 1.07, y0 = 812 * K - ((ls.length - 1) * alto) / 2;
+  const alto = f * 1.07, y0 = 788 * K - ((ls.length - 1) * alto) / 2;
   ls.forEach((l, i) => ctx.fillText(l, 1009 * K, y0 + i * alto));
   return lienzo;
 }
@@ -89,107 +116,263 @@ export function pdfDeImagenes(imgs) {
   return new Blob(partes, { type: "application/pdf" });
 }
 const bajar = (blob, nombre) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
-const archivo = (p) => `Certificado - ${p.nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\\/:*?"<>|]+/g, "").trim()}.pdf`; // sin tildes en el nombre del archivo (algunos navegadores las rechazan)
+const sinTildes = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "");
+const archivo = (p) => `Certificado - ${sinTildes(p.nombre).replace(/[\\/:*?"<>|]+/g, "").trim()}.pdf`; // sin tildes en el nombre del archivo (algunos navegadores las rechazan)
 const cargarJSZip = () => window.JSZip ? Promise.resolve(window.JSZip) : new Promise((res, rej) => { const s = document.createElement("script"); s.src = "vendor/jszip.min.js"; s.onload = () => res(window.JSZip); s.onerror = () => rej(new Error("No se pudo cargar el compresor ZIP")); document.head.append(s); });
+
+// ---------- Importar Excel (voluntarios o inscritos) ----------
+// campos: [{ id, txt, claves: /regex de encabezados/, requerido }]
+function leerLibro(file) {
+  return new Promise((res, rej) => {
+    if (!window.XLSX) return rej(new Error("El lector de Excel aún no cargó. Espera un segundo e inténtalo otra vez."));
+    const fr = new FileReader();
+    fr.onload = () => { try { res(window.XLSX.read(fr.result, { type: "array" })); } catch { rej(new Error("No se pudo leer el archivo. ¿Es un Excel (.xlsx) o CSV?")); } };
+    fr.onerror = () => rej(new Error("No se pudo abrir el archivo")); fr.readAsArrayBuffer(file);
+  });
+}
+function importarExcel({ titulo, ayuda, campos, alImportar }) {
+  let libro = null, hoja = "", filas = [], fila0 = 0, cols = {};
+  const m = modal(`<h2>${esc(titulo)}</h2><p class="ayuda" style="margin-top:0">${ayuda}</p>
+    <label class="btn btn--naranja" style="cursor:pointer;justify-self:start">${I.descargar}Elegir archivo Excel<input type="file" accept=".xlsx,.xls,.csv" hidden data-archivo></label>
+    <div data-paso></div>`, { ancho: true });
+  const paso = $("[data-paso]", m.el);
+  const norm = (s) => sinTildes(String(s || "")).toLowerCase().trim();
+  function detectar() {
+    // fila de encabezados: la primera (de las 10 primeras) donde coincide algún campo
+    fila0 = Math.max(0, filas.slice(0, 10).findIndex((f) => f.some((c) => campos.some((k) => k.claves.test(norm(c))))));
+    const enc = filas[fila0] || [];
+    cols = {}; campos.forEach((k) => { const i = enc.findIndex((c) => k.claves.test(norm(c)) && !Object.values(cols).includes(enc.indexOf(c))); cols[k.id] = i; });
+  }
+  // ¿La columna del nombre trae «Apellidos y Nombres»? (los apellidos van primero)
+  const alReves = () => /^apellidos? y nombres?/.test(norm((filas[fila0] || [])[cols.nombre]));
+  function pintar() {
+    const enc = filas[fila0] || [], datos = filas.slice(fila0 + 1).filter((f) => f.some((c) => String(c).trim()));
+    const sel = (k) => `<label class="campo"><span>${esc(k.txt)}${k.requerido ? "" : " (opcional)"}</span><select data-col="${k.id}"><option value="-1">${k.requerido ? "Elige la columna…" : "(no usar)"}</option>${enc.map((t, i) => `<option value="${i}" ${cols[k.id] === i ? "selected" : ""}>${esc(t || `Columna ${i + 1}`)}</option>`).join("")}</select></label>`;
+    const val = (f, id) => (cols[id] >= 0 ? String(f[cols[id]] ?? "").trim() : "");
+    const muestra = datos.slice(0, 4).map((f) => campos.map((k) => val(f, k.id)).filter(Boolean).join(" · ")).filter(Boolean);
+    paso.innerHTML = `${libro.SheetNames.length > 1 ? `<label class="campo"><span>Hoja</span><select data-hoja>${libro.SheetNames.map((n) => `<option ${n === hoja ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>` : ""}
+      <div class="cert-map">${campos.map(sel).join("")}</div>
+      <label class="check" style="margin:6px 0"><input type="checkbox" data-propio checked><span>Corregir mayúsculas de los nombres<small>«JUAN PÉREZ» → «Juan Pérez»</small></span></label>
+      ${alReves() ? `<label class="check" style="margin:6px 0"><input type="checkbox" data-invertir checked><span>Poner el nombre antes de los apellidos<small>«García Rojas Pedro» → «Pedro García Rojas» (toma las 2 primeras palabras como apellidos)</small></span></label>` : ""}
+      <p class="ayuda" style="margin:4px 0"><b>${datos.length}</b> filas encontradas${muestra.length ? `. Ejemplo: ${muestra.map(esc).join(" | ")}` : ""}</p>
+      <div class="modal__acciones" style="margin-top:6px"><button class="btn" data-cancelar>Cancelar</button><button class="btn" data-agregar>Agregar a la lista</button><button class="btn btn--naranja" data-reemplazar>${I.check}Reemplazar la lista</button></div>`;
+    $("[data-hoja]", paso)?.addEventListener("change", (e) => { hoja = e.target.value; filas = window.XLSX.utils.sheet_to_json(libro.Sheets[hoja], { header: 1, defval: "", raw: false }); detectar(); pintar(); });
+    $$("[data-col]", paso).forEach((s) => (s.onchange = () => { cols[s.dataset.col] = Number(s.value); pintar(); }));
+    $("[data-cancelar]", paso).onclick = m.cerrar;
+    const hacer = (reemplazar) => {
+      const falta = campos.find((k) => k.requerido && !(cols[k.id] >= 0));
+      if (falta) return aviso(`Elige la columna de «${falta.txt}»`, "error");
+      const propio = $("[data-propio]", paso).checked, invertir = $("[data-invertir]", paso)?.checked;
+      const voltear = (v) => { const w = String(v).trim().split(/\s+/); return w.length >= 3 ? [...w.slice(2), ...w.slice(0, 2)].join(" ") : v; };
+      const lista = datos.map((f) => Object.fromEntries(campos.map((k) => {
+        if (k.id !== "nombre" && cols[k.id] === cols.nombre) return [k.id, ""]; // misma columna: no repetir
+        let v = val(f, k.id); if (k.id === "nombre" && invertir) v = voltear(v);
+        return [k.id, propio && k.nombre ? nombrePropio(v) : v]; }))).filter((x) => campos.some((k) => k.nombre && x[k.id]));
+      if (!lista.length) return aviso("No se encontró ningún nombre en esa columna", "error");
+      alImportar(lista, reemplazar); m.cerrar();
+    };
+    $("[data-agregar]", paso).onclick = () => hacer(false);
+    $("[data-reemplazar]", paso).onclick = () => hacer(true);
+  }
+  $("[data-archivo]", m.el).onchange = async (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    try {
+      libro = await leerLibro(f);
+      hoja = libro.SheetNames.find((n) => /confirm|inscrit|volunt|lista/i.test(n)) || libro.SheetNames[0];
+      filas = window.XLSX.utils.sheet_to_json(libro.Sheets[hoja], { header: 1, defval: "", raw: false });
+      detectar(); pintar();
+    } catch (ex) { aviso(ex.message, "error"); }
+  };
+}
 
 // ---------- Pestaña ----------
 export function crearCertificados(ctx) {
-  let filtro = "todos", busca = "", coords = null;
-  const marcados = new Set(), quitados = new Set();
-  const guardado = leer(); guardado.otros ||= []; guardado.editados ||= {};
-  const guardar = () => escribir(guardado);
+  let seccion = "invitados", filtro = "todos", busca = "", ponentes = null;
+  const quitados = new Set();
+  const g = leer();
+  g.config ||= {}; g.editados ||= {}; g.otros ||= []; g.organizadores ||= []; g.participantes ||= [];
+  // Migra los «otros» de la versión anterior (concepmi-certificados-v1)
+  if (!g.migrado) { try { const v1 = JSON.parse(localStorage.getItem("concepmi-certificados-v1")); if (v1?.otros?.length) g.otros.push(...v1.otros); } catch { /* nada */ } g.migrado = true; }
+  const guardar = () => escribir(g);
+  const cfg = (s) => ({ cinta: SECCIONES[s].cinta, plantilla: SECCIONES[s].plantilla, ...(g.config[s] || {}) });
 
-  function personas() {
+  function invitados() {
     const d = ctx.data(), l = [];
     d.jurados.forEach((j) => { const items = j.concursos.map((c) => porId(c)?.nombre).filter(Boolean); if (items.length) l.push({ id: `j:${j.id}`, tipo: "jurado", nombre: j.nombre, items }); });
     d.talleristas.forEach((t) => { const items = (t.talleres || []).map((x) => tallerPorId(x)?.nombre).filter(Boolean); if (items.length) l.push({ id: `t:${t.id}`, tipo: "tallerista", nombre: t.nombre, items }); });
-    const pon = new Map(); CHARLAS.forEach((c) => { if (!c.ponente) return; const x = pon.get(c.ponente) || { id: `p:${c.id}`, tipo: "ponente", nombre: c.ponente, items: [] }; x.items.push(c.nombre); pon.set(c.ponente, x); });
-    l.push(...pon.values());
-    (coords || []).forEach((k) => l.push({ id: `o:${k.id}`, tipo: "organizador", nombre: k.nombre, items: [] }));
-    guardado.otros.forEach((o) => l.push({ ...o, tipo: "otro", items: [] }));
-    return l.map((p) => { const e = guardado.editados[p.id] || {}; return { ...p, nombre: e.nombre || p.nombre, texto: e.texto || textoBase(p), editado: !!(e.nombre || e.texto) }; });
+    if (ponentes?.length) ponentes.forEach((o) => { const items = o.charlas.map((c) => CHARLAS.find((x) => x.id === c)?.nombre).filter(Boolean); if (items.length) l.push({ id: `p:${o.id}`, tipo: "ponente", nombre: o.nombre, items }); });
+    else { const pon = new Map(); CHARLAS.forEach((c) => { if (!c.ponente) return; const x = pon.get(c.ponente) || { id: `p:${c.id}`, tipo: "ponente", nombre: c.ponente, items: [] }; x.items.push(c.nombre); pon.set(c.ponente, x); }); l.push(...pon.values()); }
+    g.otros.forEach((o) => l.push({ ...o, tipo: "otro", items: [] }));
+    return l;
   }
-  const visibles = () => personas().filter((p) => (filtro === "todos" || p.tipo === filtro) && (!busca || `${p.nombre} ${p.items.join(" ")} ${p.rol || ""}`.toLowerCase().includes(busca)));
-  const elegidos = () => visibles().filter((p) => !quitados.has(p.id) && (p.tipo !== "organizador" || marcados.has(p.id)));
+  // Personas de la sección con nombre, texto y cinta listos para dibujar
+  function personas(s = seccion) {
+    const c = cfg(s);
+    const base = s === "invitados" ? invitados()
+      : s === "organizadores" ? g.organizadores.map((o) => ({ ...o, id: `o:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido].filter(Boolean).join(" ") }))
+      : g.participantes.map((o) => ({ ...o, id: `a:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido].filter(Boolean).join(" ") }));
+    return base.map((p) => { const e = g.editados[p.id] || {}; return { ...p, seccion: s, nombre: e.nombre || p.nombre, texto: e.texto || llenar(c.plantilla, p), cinta: c.cinta, editado: !!(e.nombre || e.texto) }; });
+  }
+  const visibles = () => personas().filter((p) => (seccion !== "invitados" || filtro === "todos" || p.tipo === filtro)
+    && (!busca || sinTildes(`${p.nombre} ${(p.items || []).join(" ")} ${p.area || ""} ${p.delegacion || ""} ${p.rol || ""}`).toLowerCase().includes(busca)));
+  const elegidos = () => visibles().filter((p) => !quitados.has(p.id));
 
   async function vista(v) {
-    if (!coords) { try { coords = await api.adminCoordinadores(ctx.codigo()); } catch { coords = []; } }
+    if (!ponentes) { try { ponentes = await api.adminPonentes(ctx.codigo()); } catch { ponentes = []; } }
     pintar(v);
   }
   function pintar(v) {
-    const todas = personas(), lista = visibles(), el = elegidos();
-    const cuenta = (t) => todas.filter((p) => t === "todos" || p.tipo === t).length;
+    const S = SECCIONES[seccion], c = cfg(seccion), lista = visibles(), el = elegidos(), todas = personas();
+    const n = (s) => personas(s).length;
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Certificados</h1><p>El certificado oficial con el nombre y el texto de cada persona según su rol: <b>jurado</b> (de qué concurso), <b>tallerista</b> (de qué taller), <b>ponente</b> (de qué charla) y más. Revisa la lista, mira la vista previa y descarga.</p></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-otro>${I.mas}Agregar persona</button>
-          <button class="btn" data-uno ${el.length ? "" : "disabled"}>${I.descargar}Un solo PDF (${el.length})</button>
-          <button class="btn btn--naranja" data-zip ${el.length ? "" : "disabled"}>${I.descargar}Descargar PDFs (${el.length}) · ZIP</button></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Certificados</h1><p>El certificado oficial con las firmas, el nombre de cada persona y el texto según su rol. Elige la sección, revisa la lista, mira la vista previa y descarga.</p></div></div>
+      <div class="pestanas pestanas--sub cert-secciones">${Object.entries(SECCIONES).map(([k, x]) => `<button class="pestana" data-sec="${k}" aria-selected="${k === seccion}">${esc(x.txt)} <small>${esc(x.sub)} · ${n(k)}</small></button>`).join("")}</div>
+      <section class="tarjeta cert-cfg">
+        <div class="cert-cfg__cinta"><label class="campo"><span>Cinta del certificado</span><input data-cinta maxlength="28" value="${esc(c.cinta)}"></label>
+          <div class="reparto" style="margin:0">${["de participación", "equipo organizador", "de reconocimiento"].map((t) => `<button class="btn btn--mini ${t === c.cinta ? "btn--naranja" : ""}" data-cinta-rapida="${t}">${t}</button>`).join("")}</div></div>
+        <label class="campo"><span>Texto del certificado <small class="tenue">(variables: ${esc(S.vars)})</small></span><textarea data-plantilla rows="3" maxlength="700">${esc(c.plantilla)}</textarea></label>
+        <div class="cert-cfg__acc"><button class="btn btn--mini" data-restaurar-cfg>${I.girar}Texto original</button><button class="btn btn--mini" data-muestra ${todas.length ? "" : "disabled"}>${I.vivo}Ver cómo queda</button></div>
+      </section>
       <div class="cert-barra">
-        <div class="pestanas pestanas--sub" style="margin:0">${["todos", ...Object.keys(TIPOS)].map((t) => `<button class="pestana" data-f="${t}" aria-selected="${t === filtro}">${t === "todos" ? "Todos" : TIPOS[t].txt} <small>${cuenta(t)}</small></button>`).join("")}</div>
-        <input class="log-buscar" data-buscar placeholder="Buscar por nombre, concurso o taller…" value="${esc(busca)}">
+        ${seccion === "invitados" ? `<div class="pestanas pestanas--sub" style="margin:0">${["todos", ...Object.keys(TIPOS_INV)].map((t) => `<button class="pestana" data-f="${t}" aria-selected="${t === filtro}">${t === "todos" ? "Todos" : TIPOS_INV[t] + "s"} <small>${todas.filter((p) => t === "todos" || p.tipo === t).length}</small></button>`).join("")}</div>` : ""}
+        <input class="log-buscar" data-buscar placeholder="Buscar por nombre${seccion === "organizadores" ? " o área" : seccion === "participantes" ? " o delegación" : ", concurso o taller"}…" value="${esc(busca)}">
+        <div class="cert-barra__acc">
+          ${seccion === "invitados" ? `<button class="btn" data-otro>${I.mas}Agregar persona</button>` : `<button class="btn" data-importar>${I.descargar}Cargar Excel</button><button class="btn" data-nuevo>${I.mas}Agregar</button>${todas.length ? `<button class="btn btn--peligro" data-vaciar>${I.basura}Vaciar lista</button>` : ""}`}
+          <button class="btn" data-uno ${el.length ? "" : "disabled"}>${I.descargar}Un solo PDF (${el.length})</button>
+          <button class="btn btn--naranja" data-zip ${el.length ? "" : "disabled"}>${I.descargar}Descargar PDFs (${el.length}) · ZIP</button>
+        </div>
       </div>
-      <div class="tabla-envoltura"><table class="tabla cert-tabla"><thead><tr><th style="width:36px"><input type="checkbox" data-todas ${lista.length && lista.every((p) => el.some((x) => x.id === p.id)) ? "checked" : ""} aria-label="Elegir todos"></th><th>Nombre</th><th>Rol</th><th>Texto del certificado</th><th></th></tr></thead><tbody>
-        ${lista.map((p) => `<tr class="${el.some((x) => x.id === p.id) ? "" : "cert-fuera"}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${el.some((x) => x.id === p.id) ? "checked" : ""} aria-label="Incluir"></td>
-          <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}</td>
-          <td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS[p.tipo].uno}</span></td>
-          <td class="cert-texto">${esc(textoRol(p) || p.texto.slice(0, 90) + "…")}</td>
-          <td style="white-space:nowrap"><button class="btn btn--mini" data-ver="${esc(p.id)}">${I.vivo}Vista previa</button> <button class="btn btn--mini btn--icono" data-pdf="${esc(p.id)}" title="Descargar su PDF" aria-label="Descargar su PDF">${I.descargar}</button>
-            ${p.tipo === "otro" ? `<button class="btn btn--mini btn--icono btn--peligro" data-borrar-otro="${esc(p.id)}" title="Quitar de la lista" aria-label="Quitar">${I.basura}</button>` : ""}</td></tr>`).join("")
-          || `<tr><td colspan="5"><div class="vacio"><b>No hay personas aquí</b>Crea jurados o talleristas en sus pestañas, o usa «Agregar persona».</div></td></tr>`}
+      <div class="tabla-envoltura"><table class="tabla cert-tabla"><thead><tr><th style="width:36px"><input type="checkbox" data-todas ${lista.length && lista.every((p) => !quitados.has(p.id)) ? "checked" : ""} aria-label="Elegir todos"></th>
+        <th>Nombre</th><th>${seccion === "invitados" ? "Rol" : seccion === "organizadores" ? "Área" : "Delegación"}</th>${seccion === "invitados" ? "<th>Texto del certificado</th>" : ""}<th></th></tr></thead><tbody>
+        ${lista.slice(0, 400).map((p) => fila(p)).join("") || `<tr><td colspan="5"><div class="vacio"><b>${seccion === "invitados" ? "No hay personas aquí" : "La lista está vacía"}</b>${seccion === "invitados" ? "Crea jurados, talleristas o ponentes en sus pestañas, o usa «Agregar persona»." : seccion === "organizadores" ? "Usa «Cargar Excel» con la lista de voluntarios (nombre, apellido y área) o «Agregar»." : "Usa «Cargar Excel» con la lista de inscritos (por ejemplo, la hoja CONFIRMADOS) o «Agregar»."}</div></td></tr>`}
       </tbody></table></div>
-      <p class="ayuda">Salen todos los <b>jurados</b> y <b>talleristas</b> creados, los <b>ponentes</b> de las 3 charlas y los <b>accesos limitados</b> (equipo organizador, desmarcados al inicio). Con «Agregar persona» sumas a quien quieras (voluntarios, auspiciadores…) con su propio rol. El nombre y el texto se pueden corregir en la vista previa.</p>`;
-    const buscar = $("[data-buscar]", v);
-    buscar.oninput = () => { busca = buscar.value.trim().toLowerCase(); pintar(v); const b = $("[data-buscar]", v); b.focus(); b.setSelectionRange(b.value.length, b.value.length); };
-    $$("[data-f]", v).forEach((b) => (b.onclick = () => { filtro = b.dataset.f; pintar(v); }));
-    const marcar = (p, si) => { if (p.tipo === "organizador") { if (si) marcados.add(p.id); else marcados.delete(p.id); } else if (si) quitados.delete(p.id); else quitados.add(p.id); };
-    $$("[data-sel]", v).forEach((c) => (c.onchange = () => { marcar(lista.find((p) => p.id === c.dataset.sel), c.checked); pintar(v); }));
-    $("[data-todas]", v).onchange = (e) => { lista.forEach((p) => marcar(p, e.target.checked)); pintar(v); };
+      ${lista.length > 400 ? `<p class="ayuda">Se muestran 400 de ${lista.length}. Usa el buscador para encontrar a alguien; la descarga incluye a todos los marcados.</p>` : ""}
+      <p class="ayuda">${seccion === "invitados" ? "Los jurados, talleristas y ponentes salen solos de sus pestañas. Con «Agregar persona» sumas a quien quieras (auspiciadores, invitados…) con su propio rol." : "La lista se guarda en este navegador. "}El nombre y el texto de cada persona se pueden corregir en su vista previa.</p>`;
+
+    function fila(p) {
+      const fuera = quitados.has(p.id);
+      const col = seccion === "invitados" ? `<td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS_INV[p.tipo]}</span></td><td class="cert-texto">${esc(textoRol(p) || "—")}</td>`
+        : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.id} · ${esc(a.txt)}</option>`).join("")}</select></td>`
+        : `<td class="cert-texto">${esc(p.delegacion || "—")}</td>`;
+      return `<tr class="${fuera ? "cert-fuera" : ""}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${fuera ? "" : "checked"} aria-label="Incluir"></td>
+        <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}${seccion === "organizadores" && !p.area ? ` <span class="chip chip--rojo log-tag">sin área</span>` : ""}</td>${col}
+        <td style="white-space:nowrap"><button class="btn btn--mini" data-ver="${esc(p.id)}">${I.vivo}Vista previa</button> <button class="btn btn--mini btn--icono" data-pdf="${esc(p.id)}" title="Descargar su PDF" aria-label="Descargar su PDF">${I.descargar}</button>
+          ${p.tipo === "otro" || seccion !== "invitados" ? `<button class="btn btn--mini btn--icono btn--peligro" data-borrar="${esc(p.id)}" title="Quitar de la lista" aria-label="Quitar">${I.basura}</button>` : ""}</td></tr>`;
+    }
+
     const por = (id) => personas().find((p) => p.id === id);
+    const repintar = () => pintar(v);
+    $$("[data-sec]", v).forEach((b) => (b.onclick = () => { seccion = b.dataset.sec; filtro = "todos"; busca = ""; repintar(); }));
+    $$("[data-f]", v).forEach((b) => (b.onclick = () => { filtro = b.dataset.f; repintar(); }));
+    const buscar = $("[data-buscar]", v);
+    buscar.oninput = () => { busca = sinTildes(buscar.value.trim()).toLowerCase(); repintar(); const b = $("[data-buscar]", v); b.focus(); b.setSelectionRange(b.value.length, b.value.length); };
+    // Configuración de la sección
+    const ponCfg = (x) => { g.config[seccion] = { ...(g.config[seccion] || {}), ...x }; guardar(); };
+    $("[data-cinta]", v).onchange = (e) => { ponCfg({ cinta: e.target.value.trim() || SECCIONES[seccion].cinta }); repintar(); };
+    $$("[data-cinta-rapida]", v).forEach((b) => (b.onclick = () => { ponCfg({ cinta: b.dataset.cintaRapida }); repintar(); }));
+    $("[data-plantilla]", v).onchange = (e) => { ponCfg({ plantilla: e.target.value.trim() || SECCIONES[seccion].plantilla }); repintar(); };
+    $("[data-restaurar-cfg]", v).onclick = () => { delete g.config[seccion]; guardar(); repintar(); aviso("Texto y cinta originales"); };
+    $("[data-muestra]", v).onclick = () => { const p = el[0] || todas[0]; if (p) previa(p, v); };
+    // Selección
+    $$("[data-sel]", v).forEach((c) => (c.onchange = () => { if (c.checked) quitados.delete(c.dataset.sel); else quitados.add(c.dataset.sel); repintar(); }));
+    $("[data-todas]", v).onchange = (e) => { lista.forEach((p) => (e.target.checked ? quitados.delete(p.id) : quitados.add(p.id))); repintar(); };
+    // Filas
+    $$("[data-area]", v).forEach((s) => (s.onchange = () => { const o = g.organizadores.find((x) => x.id === s.dataset.area); if (o) { o.area = s.value; guardar(); repintar(); } }));
     $$("[data-ver]", v).forEach((b) => (b.onclick = () => previa(por(b.dataset.ver), v)));
     $$("[data-pdf]", v).forEach((b) => (b.onclick = async () => { const p = por(b.dataset.pdf); b.disabled = true; try { bajar(pdfDeImagenes([await jpeg(await dibujar(p))]), archivo(p)); } catch (e) { aviso(e.message, "error"); } b.disabled = false; }));
-    $$("[data-borrar-otro]", v).forEach((b) => (b.onclick = async () => { if (!(await confirmar("¿Quitar a esta persona de la lista?", "Solo se quita de los certificados.", { boton: "Quitar", peligro: true }))) return;
-      guardado.otros = guardado.otros.filter((o) => o.id !== b.dataset.borrarOtro); delete guardado.editados[b.dataset.borrarOtro]; guardar(); pintar(v); }));
-    $("[data-otro]", v).onclick = () => formOtro(v);
+    $$("[data-borrar]", v).forEach((b) => (b.onclick = () => {
+      const id = b.dataset.borrar, [pre, oid] = [id.slice(0, 1), id.slice(2)];
+      if (pre === "x") g.otros = g.otros.filter((o) => o.id !== id); else if (pre === "o") g.organizadores = g.organizadores.filter((o) => o.id !== oid); else g.participantes = g.participantes.filter((o) => o.id !== oid);
+      delete g.editados[id]; guardar(); repintar();
+    }));
+    $("[data-otro]", v)?.addEventListener("click", () => formPersona(v));
+    $("[data-nuevo]", v)?.addEventListener("click", () => formPersona(v));
+    $("[data-importar]", v)?.addEventListener("click", () => importar(v));
+    $("[data-vaciar]", v)?.addEventListener("click", async () => {
+      if (!(await confirmar("¿Vaciar la lista?", `Se quitan las ${todas.length} personas de «${esc(S.txt)}» de este navegador. Puedes volver a cargar el Excel.`, { boton: "Vaciar", peligro: true }))) return;
+      g[seccion] = []; Object.keys(g.editados).filter((k) => k.startsWith(seccion === "organizadores" ? "o:" : "a:")).forEach((k) => delete g.editados[k]); guardar(); repintar();
+    });
     $("[data-zip]", v).onclick = () => generar(elegidos(), "zip");
     $("[data-uno]", v).onclick = () => generar(elegidos(), "uno");
   }
 
-  function formOtro(v) {
-    const m = modal(`<h2>Agregar persona</h2><form class="form">
-      <label class="campo"><span>Nombre completo</span><input name="nombre" maxlength="80" required placeholder="Ej. María López Torres"></label>
-      <label class="campo"><span>Su participación fue «como…»</span><input name="rol" maxlength="120" placeholder="Ej. voluntaria del área de logística"></label>
-      <p class="ayuda" style="margin:0">Quedará: «Por su valiosa participación como <i>voluntaria del área de logística</i> en el VI Congreso…». Se guarda en este navegador.</p>
+  function importar(v) {
+    const org = seccion === "organizadores";
+    importarExcel({
+      titulo: org ? "Cargar voluntarios del equipo organizador" : "Cargar participantes inscritos",
+      ayuda: org ? "Excel con <b>nombre</b> y <b>apellido</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing o TI). Si no trae el área, la eliges después en la lista."
+        : "El mismo Excel de inscritos que usas en Charlas (por ejemplo, la hoja CONFIRMADOS). Toma el <b>nombre</b> y el <b>apellido</b> (o el nombre completo) y, si quieres, la <b>delegación</b> o universidad.",
+      campos: [
+        { id: "nombre", txt: "Nombre(s) o nombre completo", claves: /^(nombres?|nombre completo|nombres y apellidos|apellidos y nombres|participante|voluntario|integrante)\b/, requerido: true, nombre: true },
+        { id: "apellido", txt: "Apellido(s)", claves: /^(apellidos?|apellido paterno|ap\.? paterno)\b/, nombre: true },
+        org ? { id: "area", txt: "Área", claves: /^(area|área|cargo|equipo|comite|comité)\b/ } : { id: "delegacion", txt: "Delegación o universidad", claves: /^(delegacion|universidad|institucion|casa de estudios|siglas)\b/ },
+      ],
+      alImportar: (filas, reemplazar) => {
+        const lista = filas.map((f) => ({ id: uid(), nombre: f.nombre, apellido: f.apellido || "", ...(org ? { area: areaDe(f.area) } : { delegacion: f.delegacion || "" }) }));
+        if (reemplazar) { g[seccion] = lista; Object.keys(g.editados).filter((k) => k.startsWith(org ? "o:" : "a:")).forEach((k) => delete g.editados[k]); }
+        else g[seccion].push(...lista);
+        guardar(); quitados.clear(); pintar(v); aviso(`${lista.length} persona${lista.length === 1 ? "" : "s"} cargada${lista.length === 1 ? "" : "s"}`);
+      },
+    });
+  }
+  // «Relaciones Públicas», «rrpp», «R.R.P.P.» → «RRPP»…
+  function areaDe(t) {
+    const x = sinTildes(String(t || "")).toLowerCase().replace(/[^a-z]/g, "");
+    if (!x) return "";
+    if (/^(dp|direcc|director)/.test(x)) return "DP";
+    if (/pmo/.test(x)) return "PMO";
+    if (/venta|comercial/.test(x)) return "Ventas";
+    if (/rrpp|relacion|rpp/.test(x)) return "RRPP";
+    if (/marketing|mkt|publicidad/.test(x)) return "Marketing";
+    if (/^ti$|tecnolog|sistemas|^it$/.test(x)) return "TI";
+    return "";
+  }
+
+  function formPersona(v) {
+    const inv = seccion === "invitados", org = seccion === "organizadores";
+    const m = modal(`<h2>${inv ? "Agregar persona" : org ? "Agregar voluntario" : "Agregar participante"}</h2><form class="form">
+      <label class="campo"><span>${inv ? "Nombre completo" : "Nombre(s)"}</span><input name="nombre" maxlength="80" required placeholder="Ej. María"></label>
+      ${inv ? `<label class="campo"><span>Su participación fue «como…»</span><input name="rol" maxlength="120" placeholder="Ej. auspiciador oficial"></label>`
+        : `<label class="campo"><span>Apellido(s)</span><input name="apellido" maxlength="80" placeholder="Ej. López Torres"></label>
+           ${org ? `<label class="campo"><span>Área</span><select name="area"><option value="">Elige…</option>${AREAS_ORG.map((a) => `<option value="${a.id}">${a.id} · ${esc(a.txt)}</option>`).join("")}</select></label>`
+             : `<label class="campo"><span>Delegación o universidad (opcional)</span><input name="delegacion" maxlength="120"></label>`}`}
       <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Agregar</button></div></form>`);
     const f = $("form", m.el); $("[data-cancelar]", m.el).onclick = m.cerrar;
-    f.onsubmit = (e) => { e.preventDefault(); const nombre = f.nombre.value.trim(); if (nombre.length < 2) return;
-      guardado.otros.push({ id: `x:${Date.now().toString(36)}`, nombre, rol: f.rol.value.trim() }); guardar(); m.cerrar(); filtro = "otro"; pintar(v); aviso("Persona agregada"); };
+    f.onsubmit = (e) => {
+      e.preventDefault(); const nombre = f.nombre.value.trim(); if (nombre.length < 2) return;
+      if (inv) g.otros.push({ id: `x:${uid()}`, nombre, rol: f.rol.value.trim() });
+      else g[seccion].push({ id: uid(), nombre, apellido: f.apellido.value.trim(), ...(org ? { area: f.area.value } : { delegacion: f.delegacion.value.trim() }) });
+      guardar(); m.cerrar(); if (inv) filtro = "otro"; pintar(v); aviso("Agregado");
+    };
   }
 
   function previa(p, v) {
-    const m = modal(`<h2>Vista previa · ${esc(TIPOS[p.tipo].uno)}</h2>
+    const m = modal(`<h2>Vista previa · ${esc(SECCIONES[p.seccion].txt)}</h2>
       <div class="cert-previa"><canvas data-lienzo></canvas></div>
       <form class="form" style="margin-top:12px">
         <label class="campo"><span>Nombre en el certificado</span><input name="nombre" maxlength="80" value="${esc(p.nombre)}"></label>
-        <label class="campo"><span>Texto</span><textarea name="texto" rows="4" maxlength="600">${esc(p.texto)}</textarea></label>
+        <label class="campo"><span>Texto (solo para esta persona)</span><textarea name="texto" rows="4" maxlength="700">${esc(p.texto)}</textarea></label>
         <div class="modal__acciones" style="margin-top:0">${p.editado ? `<button type="button" class="btn" data-restaurar style="margin-right:auto">${I.girar}Volver al texto automático</button>` : ""}
           <button type="button" class="btn" data-cerrar>Cerrar</button><button type="button" class="btn" data-guardar>${I.check}Guardar cambios</button><button type="button" class="btn btn--naranja" data-pdf>${I.descargar}Descargar PDF</button></div></form>`, { ancho: true });
     const f = $("form", m.el), cv = $("[data-lienzo]", m.el);
-    const actual = () => ({ ...p, nombre: f.nombre.value.trim() || p.nombre, texto: f.texto.value.trim() || textoBase(p) });
+    const actual = () => ({ ...p, nombre: f.nombre.value.trim() || p.nombre, texto: f.texto.value.trim() || p.texto });
     let t = null; const redibujar = () => { clearTimeout(t); t = setTimeout(() => dibujar(actual(), cv).catch((e) => aviso(e.message, "error")), 150); };
     f.nombre.oninput = redibujar; f.texto.oninput = redibujar; dibujar(actual(), cv).catch((e) => aviso(e.message, "error"));
     $("[data-cerrar]", m.el).onclick = m.cerrar;
     $("[data-guardar]", m.el).onclick = () => {
-      const a = actual(); delete guardado.editados[p.id];
-      const auto = personas().find((x) => x.id === p.id); // sin cambios guardados = texto automático
+      const a = actual(); delete g.editados[p.id];
+      const auto = personas(p.seccion).find((x) => x.id === p.id) || p; // sin cambios guardados = texto automático
       const e = {}; if (a.nombre !== auto.nombre) e.nombre = a.nombre; if (a.texto !== auto.texto) e.texto = a.texto;
-      if (Object.keys(e).length) guardado.editados[p.id] = e; guardar(); m.cerrar(); pintar(v); aviso("Cambios guardados");
+      if (Object.keys(e).length) g.editados[p.id] = e; guardar(); m.cerrar(); pintar(v); aviso("Cambios guardados");
     };
-    $("[data-restaurar]", m.el)?.addEventListener("click", () => { delete guardado.editados[p.id]; guardar(); m.cerrar(); pintar(v); aviso("Texto automático"); });
+    $("[data-restaurar]", m.el)?.addEventListener("click", () => { delete g.editados[p.id]; guardar(); m.cerrar(); pintar(v); aviso("Texto automático"); });
     $("[data-pdf]", m.el).onclick = async () => { try { bajar(pdfDeImagenes([await jpeg(await dibujar(actual()))]), archivo(actual())); } catch (e) { aviso(e.message, "error"); } };
   }
 
   async function generar(lista, modo) {
     if (!lista.length) return;
+    const sinArea = seccion === "organizadores" ? lista.filter((p) => !p.area).length : 0;
+    if (sinArea && !(await confirmar("Hay voluntarios sin área", `${sinArea} de ${lista.length} no tienen área: su texto saldrá sin ella. ¿Generar igual?`, { boton: "Generar igual" }))) return;
     const m = modal(`<h2>Generando certificados</h2><p data-prog>Preparando…</p><div class="progreso"><i data-barra style="width:0%"></i></div>`);
     try {
       const cv = document.createElement("canvas"), hojas = [];
@@ -198,15 +381,17 @@ export function crearCertificados(ctx) {
         hojas.push({ p: lista[i], img: await jpeg(await dibujar(lista[i], cv)) });
         await new Promise((r) => setTimeout(r, 0));
       }
-      if (modo === "uno") bajar(pdfDeImagenes(hojas.map((h) => h.img)), `Certificados VI CONCEPMI 2026 (${lista.length}).pdf`);
+      const S = SECCIONES[seccion];
+      if (modo === "uno") bajar(pdfDeImagenes(hojas.map((h) => h.img)), `Certificados ${S.carpeta} VI CONCEPMI 2026 (${lista.length}).pdf`);
       else {
         const JSZip = await cargarJSZip(), zip = new JSZip(), usados = new Set();
         for (const h of hojas) {
-          let n = `${TIPOS[h.p.tipo].txt}/${archivo(h.p)}`; for (let k = 2; usados.has(n); k++) n = `${TIPOS[h.p.tipo].txt}/${archivo(h.p).replace(/\.pdf$/, ` (${k}).pdf`)}`;
+          const sub = seccion === "invitados" ? `${TIPOS_INV[h.p.tipo]}s/` : seccion === "organizadores" && h.p.area ? `${sinTildes(areaTxt(h.p.area))}/` : "";
+          let n = `${S.carpeta}/${sub}${archivo(h.p)}`; for (let k = 2; usados.has(n); k++) n = `${S.carpeta}/${sub}${archivo(h.p).replace(/\.pdf$/, ` (${k}).pdf`)}`;
           usados.add(n); zip.file(n, pdfDeImagenes([h.img]));
         }
         $("[data-prog]", m.el).textContent = "Comprimiendo…";
-        bajar(await zip.generateAsync({ type: "blob" }), `Certificados VI CONCEPMI 2026.zip`);
+        bajar(await zip.generateAsync({ type: "blob" }), `Certificados ${S.carpeta} VI CONCEPMI 2026.zip`);
       }
       m.cerrar(); aviso(`${lista.length} certificado${lista.length === 1 ? "" : "s"} listo${lista.length === 1 ? "" : "s"}`);
     } catch (e) { m.cerrar(); aviso(e.message, "error"); }
