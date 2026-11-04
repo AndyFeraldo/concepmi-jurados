@@ -5,14 +5,14 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611040040";
-import { crearEntregas } from "./admin-entregas.js?v=202611040040";
-import { crearLogistica } from "./admin-logistica.js?v=202611040040";
-import { ENTREGABLES } from "./entregables.js?v=202611040040";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611040040";
-import { usaPanel, puede, soloVer } from "./permisos.js?v=202611040040";
-import { vistaAdmin } from "./admin.js?v=202611040040";
-import { salir } from "./app.js?v=202611040040";
+import { api, ES_DEMO } from "./api.js?v=202611040220";
+import { crearEntregas } from "./admin-entregas.js?v=202611040220";
+import { crearLogistica } from "./admin-logistica.js?v=202611040220";
+import { ENTREGABLES } from "./entregables.js?v=202611040220";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611040220";
+import { usaPanel, puede, soloVer } from "./permisos.js?v=202611040220";
+import { vistaAdmin } from "./admin.js?v=202611040220";
+import { salir } from "./app.js?v=202611040220";
 
 export async function vistaCoordinador(app, codigo) {
   let data = null;

@@ -1415,3 +1415,13 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .ro-vivo [data-toggle], .ro-talleristas [data-taller], .ro-resultados [data-sancion], .ro-logistica [data-comprar], .ro-logistica .log-check{ pointer-events:none; }
 .ro-resultados [data-sancion]{ appearance:none; -webkit-appearance:none; }
 .perm-segm button[data-nv=""].activo{ background:rgba(255,255,255,.14); color:#fff; }
+
+/* ---------- Certificados (js/certificados.js) ---------- */
+.cert-barra{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin:0 0 12px; }
+.cert-barra .log-buscar{ flex:1 1 260px; max-width:380px; }
+.cert-tabla td{ vertical-align:middle; } .cert-texto{ color:var(--niebla); font-size:.86rem; max-width:520px; }
+.cert-fuera{ opacity:.45; }
+.cert-tipo--jurado{ border-color:rgba(255,122,0,.5); color:#FFC48A; } .cert-tipo--tallerista{ border-color:rgba(31,203,234,.5); color:#9BEFFF; }
+.cert-tipo--ponente{ border-color:rgba(169,139,255,.6); color:#D6C8FF; } .cert-tipo--organizador{ border-color:rgba(250,178,25,.5); color:#FFE3A3; }
+.cert-previa{ border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+.cert-previa canvas{ display:block; width:100%; height:auto; }

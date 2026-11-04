@@ -1,20 +1,21 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611040040";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611040040";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611040040";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611040040";
-import { exportarExcel } from "./excel.js?v=202611040040";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611040040";
-import { crearLogistica } from "./admin-logistica.js?v=202611040040";
-import { crearEntregas } from "./admin-entregas.js?v=202611040040";
-import { crearCharlas } from "./admin-charlas.js?v=202611040040";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611040040";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611040040";
-import { puede, soloVer } from "./permisos.js?v=202611040040";
-import { ENTREGABLES } from "./entregables.js?v=202611040040";
-import { salir } from "./app.js?v=202611040040";
+import { api, ES_DEMO } from "./api.js?v=202611040220";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611040220";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611040220";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611040220";
+import { exportarExcel } from "./excel.js?v=202611040220";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611040220";
+import { crearLogistica } from "./admin-logistica.js?v=202611040220";
+import { crearEntregas } from "./admin-entregas.js?v=202611040220";
+import { crearCertificados } from "./certificados.js?v=202611040220";
+import { crearCharlas } from "./admin-charlas.js?v=202611040220";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611040220";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611040220";
+import { puede, soloVer } from "./permisos.js?v=202611040220";
+import { ENTREGABLES } from "./entregables.js?v=202611040220";
+import { salir } from "./app.js?v=202611040220";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -26,6 +27,7 @@ const PESTANAS = [
   { id: "entregas", txt: "Entregas", icono: "lapiz" },
   { id: "logistica", txt: "Logística", icono: "caja" },
   { id: "delegaciones", txt: "Delegaciones", icono: "bandera" },
+  { id: "certificados", txt: "Certificados", icono: "libro" },
 ];
 const CON_JURADO = CONCURSOS.filter((c) => c.jurados > 0);
 
@@ -47,6 +49,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
 
   const charlasUI = crearCharlas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), pausar: (p) => { pausado = p; } });
   const logisticaUI = crearLogistica({ codigo: () => codigo });
+  const certificadosUI = crearCertificados({ codigo: () => codigo, data: () => data });
   const entregasUI = crearEntregas({ codigo: () => codigo, data: () => data, recargar: (f) => recargar(f), ...(acceso ? { concursos: salaDe, coordinador: true } : {}) });
   const jur = (id) => data.jurados.find((j) => j.id === id);
   const tal = (id) => data.talleristas.find((t) => t.id === id);
@@ -86,7 +89,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
     const v = $("#vista", app);
     if (!v) return;
     const ro = !editable(pestana); soloVer(ro ? pestana : null); $("[data-ro-aviso]", app).hidden = !ro;
-    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones })[pestana](v);
+    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones, certificados: certificadosUI.vista })[pestana](v);
   }
 
   async function recargar(forzar = false) {
@@ -97,7 +100,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
       data = nuevo; firma = f;
       const ocupado = document.querySelector(".velo") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#vista", app)?.contains(document.activeElement));
       // La logística no depende de estos datos: no se repinta sola para no perder lo que estás viendo
-      if ((forzar || !ocupado) && !["logistica", "entregas"].includes(pestana)) pintar();
+      if ((forzar || !ocupado) && !["logistica", "entregas", "certificados"].includes(pestana)) pintar();
     } catch { /* se reintenta en el siguiente ciclo */ }
   }
   // Ahorro de datos: no se actualiza si la pestaña del navegador está oculta, y en Logística y
@@ -658,7 +661,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
         <p class="ayuda" style="margin-top:8px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611040040"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611040220"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
