@@ -1597,3 +1597,18 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cert-barra__acc{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
 .cert-map{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); margin:10px 0 4px; }
 .cert-tabla .mini-select{ min-width:220px; }
+
+/* Certificados · Ganadores (top 3 por concurso) */
+.cert-gan{ padding:14px 16px; margin:0 0 12px; display:grid; gap:8px; }
+.cert-gan__cab{ display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; } .cert-gan__cab h3{ margin:0 0 4px; }
+.cert-gan__grid{ display:grid; gap:8px; }
+.cert-gan__c{ border:1px solid var(--borde); border-radius:12px; padding:8px 12px; background:rgba(10,5,40,.4); }
+.cert-gan__c > summary{ cursor:pointer; display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:4px 0; }
+.cert-gan__c[open] > summary{ margin-bottom:8px; }
+.cert-gan__fila{ display:grid; grid-template-columns:90px minmax(180px, 260px) 1fr auto; gap:8px; align-items:start; padding:8px 0; border-top:1px dashed var(--borde); }
+.cert-gan__fila .mini-select{ width:100%; }
+.cert-gan__nombres{ display:flex; flex-wrap:wrap; gap:6px; }
+.cert-gan__n{ display:inline-flex; align-items:center; gap:2px; background:rgba(255,255,255,.06); border:1px solid var(--borde); border-radius:10px; padding:2px 2px 2px 8px; }
+.cert-gan__n input{ background:transparent; border:0; color:#fff; font:inherit; font-size:.88rem; width:clamp(140px, 18vw, 230px); }
+.cert-gan__nuevo{ flex:1 1 200px; min-width:180px; background:rgba(10,5,40,.6); border:1px dashed var(--borde); border-radius:10px; color:#fff; font:inherit; font-size:.88rem; padding:.4em .7em; }
+@media (max-width:760px){ .cert-gan__fila{ grid-template-columns:1fr 1fr; } .cert-gan__nombres{ grid-column:1 / -1; } }

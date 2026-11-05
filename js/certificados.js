@@ -9,11 +9,12 @@
 // ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
 // en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611042303";
-import { porId } from "./concursos.js?v=202611042303";
-import { CHARLAS } from "./charlas.js?v=202611042303";
-import { tallerPorId } from "./talleres.js?v=202611042303";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611042303";
+import { api } from "./api.js?v=202611050052";
+import { resultados } from "./calculo.js?v=202611050052";
+import { porId, CONCURSOS } from "./concursos.js?v=202611050052";
+import { CHARLAS } from "./charlas.js?v=202611050052";
+import { tallerPorId } from "./talleres.js?v=202611050052";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611050052";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
@@ -30,8 +31,14 @@ const SECCIONES = {
   organizadores: { txt: "Equipo organizador", sub: "Voluntarios del VI CONCEPMI", cinta: "equipo organizador", carpeta: "Equipo organizador",
     plantilla: `Por su valioso compromiso y trabajo como parte del equipo organizador, en el área de {area}, ${EVENTO}${CIERRE}`, vars: "{area} = el área del voluntario (por ejemplo «Marketing»)" },
   participantes: { txt: "Participantes", sub: "Inscritos al congreso", cinta: "de participación", carpeta: "Participantes",
-    plantilla: `Por su participación como asistente ${EVENTO}${CIERRE}`, vars: "{delegacion} = su universidad o delegación (si el Excel la trae)" },
+    plantilla: `Por su participación como asistente, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`, vars: "{delegacion} = su universidad o delegación (si a alguien le falta, esa frase se quita sola)" },
+  ganadores: { txt: "Ganadores", sub: "Top 3 de cada concurso", cinta: "de reconocimiento", carpeta: "Ganadores",
+    plantilla: `Por haber obtenido el {puesto} en {concurso}, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`, vars: "{puesto} = primer, segundo o tercer lugar · {concurso} = el concurso · {delegacion} = su delegación" },
 };
+// Texto de participantes de la versión anterior (sin delegación): si no lo cambiaron, se usa el nuevo
+const PLANT_PART_V1 = `Por su participación como asistente ${EVENTO}${CIERRE}`;
+const PUESTOS = { 1: "primer lugar", 2: "segundo lugar", 3: "tercer lugar" };
+const MEDALLA = { 1: "🥇", 2: "🥈", 3: "🥉" };
 const TIPOS_INV = { jurado: "Jurado", tallerista: "Tallerista", ponente: "Ponente", otro: "Otro" };
 
 const CLAVE = "concepmi-certificados-v2";
@@ -50,8 +57,8 @@ export const textoRol = (p) => {
 };
 // Rellena la plantilla de la sección con los datos de la persona
 // Si falta el dato (sin área o sin universidad), se quita también la frase que lo acompaña («, en el área de …»)
-const sinDato = (t, v) => t.replace(new RegExp(`,?\\s*(?:en el área de|en representación de|en representación del|de la|del|de|por|en)?\\s*\\{${v}\\}`, "g"), "");
-const llenar = (plantilla, p) => [["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""]]
+const sinDato = (t, v) => t.replace(new RegExp(`,?\\s*(?:en representación de la delegación|en representación del|en representación de|de la delegación|en el área de|de la|del|de|por|en)?\\s*\\{${v}\\}`, "g"), "");
+const llenar = (plantilla, p) => [["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""], ["puesto", PUESTOS[p.puesto] || ""], ["concurso", p.concursoTxt || ""]]
   .reduce((t, [v, x]) => (x ? t.replace(new RegExp(`\\{${v}\\}`, "g"), x) : sinDato(t, v)), plantilla)
   .replace(/\{rol\}/g, textoRol(p))
   .replace(/\s+,/g, ",").replace(/\s{2,}/g, " ").replace(/\(\s*\)/g, "").trim();
@@ -193,7 +200,9 @@ export function crearCertificados(ctx) {
   let seccion = "invitados", filtro = "todos", busca = "", ponentes = null;
   const quitados = new Set();
   const g = leer();
-  g.config ||= {}; g.editados ||= {}; g.otros ||= []; g.organizadores ||= []; g.participantes ||= [];
+  g.config ||= {}; g.editados ||= {}; g.otros ||= []; g.organizadores ||= []; g.participantes ||= []; g.ganadores ||= {};
+  if (g.config.participantes?.plantilla === PLANT_PART_V1) delete g.config.participantes.plantilla;
+  const delDe = (id) => ctx.data().delegaciones.find((d) => d.id === id);
   // Migra los «otros» de la versión anterior (concepmi-certificados-v1)
   if (!g.migrado) { try { const v1 = JSON.parse(localStorage.getItem("concepmi-certificados-v1")); if (v1?.otros?.length) g.otros.push(...v1.otros); } catch { /* nada */ } g.migrado = true; }
   const guardar = () => escribir(g);
@@ -212,12 +221,14 @@ export function crearCertificados(ctx) {
   function personas(s = seccion) {
     const c = cfg(s);
     const base = s === "invitados" ? invitados()
-      : s === "organizadores" ? g.organizadores.map((o) => ({ ...o, id: `o:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido].filter(Boolean).join(" ") }))
-      : g.participantes.map((o) => ({ ...o, id: `a:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido].filter(Boolean).join(" ") }));
+      : s === "organizadores" ? g.organizadores.map((o) => ({ ...o, id: `o:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }))
+      : s === "ganadores" ? CONCURSOS.flatMap((c) => (g.ganadores[c.id] || []).flatMap((e) => e.nombres.map((n) => ({ id: `w:${n.id}`, tipo: c.tipo, nombre: n.n,
+          puesto: e.puesto, concurso: c.id, concursoNombre: c.nombre, concursoTxt: conArticulo(c.nombre), delegacion: delDe(e.delegacion)?.nombre || "", wid: e.id, nid: n.id }))))
+      : g.participantes.map((o) => ({ ...o, id: `a:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }));
     return base.map((p) => { const e = g.editados[p.id] || {}; return { ...p, seccion: s, nombre: e.nombre || p.nombre, texto: e.texto || llenar(c.plantilla, p), cinta: c.cinta, editado: !!(e.nombre || e.texto) }; });
   }
-  const visibles = () => personas().filter((p) => (seccion !== "invitados" || filtro === "todos" || p.tipo === filtro)
-    && (!busca || sinTildes(`${p.nombre} ${(p.items || []).join(" ")} ${p.area || ""} ${p.delegacion || ""} ${p.rol || ""}`).toLowerCase().includes(busca)));
+  const visibles = () => personas().filter((p) => (!["invitados", "ganadores"].includes(seccion) || filtro === "todos" || p.tipo === filtro)
+    && (!busca || sinTildes(`${p.nombre} ${(p.items || []).join(" ")} ${p.area || ""} ${p.delegacion || ""} ${p.rol || ""} ${p.concursoNombre || ""}`).toLowerCase().includes(busca)));
   const elegidos = () => visibles().filter((p) => !quitados.has(p.id));
 
   async function vista(v) {
@@ -236,18 +247,20 @@ export function crearCertificados(ctx) {
         <label class="campo"><span>Texto del certificado <small class="tenue">(variables: ${esc(S.vars)})</small></span><textarea data-plantilla rows="3" maxlength="700">${esc(c.plantilla)}</textarea></label>
         <div class="cert-cfg__acc"><button class="btn btn--mini" data-restaurar-cfg>${I.girar}Texto original</button><button class="btn btn--mini" data-muestra ${todas.length ? "" : "disabled"}>${I.vivo}Ver cómo queda</button></div>
       </section>
+      ${seccion === "ganadores" ? editorGanadores() : ""}
       <div class="cert-barra">
         ${seccion === "invitados" ? `<div class="pestanas pestanas--sub" style="margin:0">${["todos", ...Object.keys(TIPOS_INV)].map((t) => `<button class="pestana" data-f="${t}" aria-selected="${t === filtro}">${t === "todos" ? "Todos" : TIPOS_INV[t] + "s"} <small>${todas.filter((p) => t === "todos" || p.tipo === t).length}</small></button>`).join("")}</div>` : ""}
-        <input class="log-buscar" data-buscar placeholder="Buscar por nombre${seccion === "organizadores" ? " o área" : seccion === "participantes" ? " o delegación" : ", concurso o taller"}…" value="${esc(busca)}">
+        ${seccion === "ganadores" ? `<div class="pestanas pestanas--sub" style="margin:0">${[["todos", "Todos"], ["academico", "Académicos"], ["cultural", "Culturales"]].map(([t, x]) => `<button class="pestana" data-f="${t}" aria-selected="${t === filtro}">${x} <small>${todas.filter((p) => t === "todos" || p.tipo === t).length}</small></button>`).join("")}</div>` : ""}
+        <input class="log-buscar" data-buscar placeholder="Buscar por nombre${seccion === "organizadores" ? " o área" : seccion === "participantes" ? " o delegación" : seccion === "ganadores" ? ", concurso o delegación" : ", concurso o taller"}…" value="${esc(busca)}">
         <div class="cert-barra__acc">
-          ${seccion === "invitados" ? `<button class="btn" data-otro>${I.mas}Agregar persona</button>` : `<button class="btn" data-importar>${I.descargar}Cargar Excel</button><button class="btn" data-nuevo>${I.mas}Agregar</button>${todas.length ? `<button class="btn btn--peligro" data-vaciar>${I.basura}Vaciar lista</button>` : ""}`}
+          ${seccion === "invitados" ? `<button class="btn" data-otro>${I.mas}Agregar persona</button>` : seccion === "ganadores" ? "" : `<button class="btn" data-importar>${I.descargar}Cargar Excel</button><button class="btn" data-nuevo>${I.mas}Agregar</button>${todas.length ? `<button class="btn btn--peligro" data-vaciar>${I.basura}Vaciar lista</button>` : ""}`}
           <button class="btn" data-uno ${el.length ? "" : "disabled"}>${I.descargar}Un solo PDF (${el.length})</button>
           <button class="btn btn--naranja" data-zip ${el.length ? "" : "disabled"}>${I.descargar}Descargar PDFs (${el.length}) · ZIP</button>
         </div>
       </div>
       <div class="tabla-envoltura"><table class="tabla cert-tabla"><thead><tr><th style="width:36px"><input type="checkbox" data-todas ${lista.length && lista.every((p) => !quitados.has(p.id)) ? "checked" : ""} aria-label="Elegir todos"></th>
-        <th>Nombre</th><th>${seccion === "invitados" ? "Rol" : seccion === "organizadores" ? "Área" : "Delegación"}</th>${seccion === "invitados" ? "<th>Texto del certificado</th>" : ""}<th></th></tr></thead><tbody>
-        ${lista.slice(0, 400).map((p) => fila(p)).join("") || `<tr><td colspan="5"><div class="vacio"><b>${seccion === "invitados" ? "No hay personas aquí" : "La lista está vacía"}</b>${seccion === "invitados" ? "Crea jurados, talleristas o ponentes en sus pestañas, o usa «Agregar persona»." : seccion === "organizadores" ? "Usa «Cargar Excel» con la lista de voluntarios (nombre, apellido y área) o «Agregar»." : "Usa «Cargar Excel» con la lista de inscritos (por ejemplo, la hoja CONFIRMADOS) o «Agregar»."}</div></td></tr>`}
+        <th>Nombre</th><th>${seccion === "invitados" ? "Rol" : seccion === "organizadores" ? "Área" : seccion === "ganadores" ? "Puesto · concurso · delegación" : "Delegación"}</th>${seccion === "invitados" ? "<th>Texto del certificado</th>" : ""}<th></th></tr></thead><tbody>
+        ${lista.slice(0, 400).map((p) => fila(p)).join("") || `<tr><td colspan="5"><div class="vacio"><b>${seccion === "invitados" ? "No hay personas aquí" : "La lista está vacía"}</b>${seccion === "invitados" ? "Crea jurados, talleristas o ponentes en sus pestañas, o usa «Agregar persona»." : seccion === "ganadores" ? "Arriba, en cada concurso, escribe los nombres de los integrantes de cada puesto (o usa «Traer top 3 de Resultados»)." : seccion === "organizadores" ? "Usa «Cargar Excel» con la lista de voluntarios (nombre, apellido y área) o «Agregar»." : "Usa «Cargar Excel» con la lista de inscritos (por ejemplo, la hoja CONFIRMADOS) o «Agregar»."}</div></td></tr>`}
       </tbody></table></div>
       ${lista.length > 400 ? `<p class="ayuda">Se muestran 400 de ${lista.length}. Usa el buscador para encontrar a alguien; la descarga incluye a todos los marcados.</p>` : ""}
       <p class="ayuda">${seccion === "invitados" ? "Los jurados, talleristas y ponentes salen solos de sus pestañas. Con «Agregar persona» sumas a quien quieras (auspiciadores, invitados…) con su propio rol." : "La lista se guarda en este navegador. "}El nombre y el texto de cada persona se pueden corregir en su vista previa.</p>`;
@@ -256,6 +269,7 @@ export function crearCertificados(ctx) {
       const fuera = quitados.has(p.id);
       const col = seccion === "invitados" ? `<td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS_INV[p.tipo]}</span></td><td class="cert-texto">${esc(textoRol(p) || "—")}</td>`
         : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></td>`
+        : seccion === "ganadores" ? `<td class="cert-texto"><b>${MEDALLA[p.puesto] || ""} ${esc(PUESTOS[p.puesto] || "")}</b> · ${esc(p.concursoNombre)} · ${esc(p.delegacion || "sin delegación")}</td>`
         : `<td class="cert-texto">${esc(p.delegacion || "—")}</td>`;
       return `<tr class="${fuera ? "cert-fuera" : ""}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${fuera ? "" : "checked"} aria-label="Incluir"></td>
         <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}${seccion === "organizadores" && !p.area ? ` <span class="chip chip--rojo log-tag">sin área</span>` : ""}</td>${col}
@@ -285,7 +299,8 @@ export function crearCertificados(ctx) {
     $$("[data-pdf]", v).forEach((b) => (b.onclick = async () => { const p = por(b.dataset.pdf); b.disabled = true; try { bajar(pdfDeImagenes([await jpeg(await dibujar(p))]), archivo(p)); } catch (e) { aviso(e.message, "error"); } b.disabled = false; }));
     $$("[data-borrar]", v).forEach((b) => (b.onclick = () => {
       const id = b.dataset.borrar, [pre, oid] = [id.slice(0, 1), id.slice(2)];
-      if (pre === "x") g.otros = g.otros.filter((o) => o.id !== id); else if (pre === "o") g.organizadores = g.organizadores.filter((o) => o.id !== oid); else g.participantes = g.participantes.filter((o) => o.id !== oid);
+      if (pre === "w") { const q = por(id); const e = (g.ganadores[q.concurso] || []).find((x) => x.id === q.wid); if (e) e.nombres = e.nombres.filter((n) => n.id !== q.nid); }
+      else if (pre === "x") g.otros = g.otros.filter((o) => o.id !== id); else if (pre === "o") g.organizadores = g.organizadores.filter((o) => o.id !== oid); else g.participantes = g.participantes.filter((o) => o.id !== oid);
       delete g.editados[id]; guardar(); repintar();
     }));
     $("[data-otro]", v)?.addEventListener("click", () => formPersona(v));
@@ -297,21 +312,77 @@ export function crearCertificados(ctx) {
     });
     $("[data-zip]", v).onclick = () => generar(elegidos(), "zip");
     $("[data-uno]", v).onclick = () => generar(elegidos(), "uno");
+    if (seccion === "ganadores") conectarGanadores(v, repintar);
+  }
+
+  // ---------- Ganadores: top 3 de cada concurso (académicos y culturales) ----------
+  // g.ganadores[concurso] = [{ id, puesto: 1|2|3, delegacion: id, nombres: [{ id, n }] }]
+  function editorGanadores() {
+    const ds = [...ctx.data().delegaciones].sort((a, b) => (a.siglas || a.nombre).localeCompare(b.siglas || b.nombre));
+    const tarjeta = (c) => {
+      const es = (g.ganadores[c.id] || []).slice().sort((a, b) => a.puesto - b.puesto), np = es.reduce((x, e) => x + e.nombres.length, 0);
+      return `<details class="cert-gan__c" ${es.length ? "open" : ""}><summary><b>${esc(c.nombre)}</b><span class="tenue">${es.length ? `${es.length} puesto${es.length === 1 ? "" : "s"} · ${np} persona${np === 1 ? "" : "s"}` : "sin ganadores aún"}</span></summary>
+        ${es.map((e) => `<div class="cert-gan__fila" data-ge="${c.id}:${e.id}">
+          <select class="mini-select" data-gp>${[1, 2, 3].map((k) => `<option value="${k}" ${k === e.puesto ? "selected" : ""}>${MEDALLA[k]} ${k}.º</option>`).join("")}</select>
+          <select class="mini-select" data-gd><option value="">Delegación…</option>${ds.map((d) => `<option value="${d.id}" ${d.id === e.delegacion ? "selected" : ""}>${esc(d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre)}</option>`).join("")}</select>
+          <div class="cert-gan__nombres">${e.nombres.map((n) => `<span class="cert-gan__n"><input data-gn="${n.id}" value="${esc(n.n)}" aria-label="Nombre"><button class="btn btn--mini btn--icono" data-gx="${n.id}" title="Quitar a esta persona" aria-label="Quitar">×</button></span>`).join("")}
+            <input class="cert-gan__nuevo" data-gadd placeholder="+ Nombre y apellidos (Enter)"></div>
+          <button class="btn btn--mini btn--icono btn--peligro" data-gdel title="Quitar este puesto" aria-label="Quitar puesto">${I.basura}</button></div>`).join("")}
+        <button class="btn btn--mini" data-gnuevo="${c.id}">${I.mas}Agregar puesto</button></details>`;
+    };
+    return `<section class="tarjeta cert-gan">
+      <div class="cert-gan__cab"><div><h3>Ganadores por concurso</h3><p class="ayuda" style="margin:0">Por cada puesto elige la delegación y escribe a sus integrantes: cada uno recibe su certificado de reconocimiento. Con «Traer top 3» se llenan los puestos y las delegaciones desde Resultados.</p></div>
+        <button class="btn btn--naranja" data-traer-top>${I.copa}Traer top 3 de Resultados</button></div>
+      <h4 class="cob-grupo">Académicos</h4><div class="cert-gan__grid">${CONCURSOS.filter((c) => c.tipo === "academico").map(tarjeta).join("")}</div>
+      <h4 class="cob-grupo">Culturales</h4><div class="cert-gan__grid">${CONCURSOS.filter((c) => c.tipo === "cultural").map(tarjeta).join("")}</div>
+    </section>`;
+  }
+  function conectarGanadores(v, repintar) {
+    const entrada = (el) => { const [cid, eid] = el.closest("[data-ge]").dataset.ge.split(":"); return (g.ganadores[cid] || []).find((e) => e.id === eid); };
+    const listo = () => { guardar(); repintar(); };
+    $$("[data-gp]", v).forEach((s) => (s.onchange = () => { entrada(s).puesto = Number(s.value); listo(); }));
+    $$("[data-gd]", v).forEach((s) => (s.onchange = () => { entrada(s).delegacion = s.value; listo(); }));
+    $$("[data-gn]", v).forEach((i) => (i.onchange = () => { const n = entrada(i).nombres.find((x) => x.id === i.dataset.gn); const t = i.value.trim(); if (t) n.n = t; else entrada(i).nombres = entrada(i).nombres.filter((x) => x !== n); listo(); }));
+    $$("[data-gx]", v).forEach((b) => (b.onclick = () => { const e = entrada(b); e.nombres = e.nombres.filter((x) => x.id !== b.dataset.gx); listo(); }));
+    $$("[data-gadd]", v).forEach((i) => (i.onkeydown = (ev) => {
+      if (ev.key !== "Enter") return; ev.preventDefault(); const t = i.value.trim(); if (t.length < 2) return;
+      const key = i.closest("[data-ge]").dataset.ge; entrada(i).nombres.push({ id: uid(), n: t === t.toUpperCase() ? nombrePropio(t) : t }); guardar(); repintar();
+      $(`[data-ge="${key}"] [data-gadd]`, v)?.focus();
+    }));
+    $$("[data-gdel]", v).forEach((b) => (b.onclick = async () => { const e = entrada(b), [cid] = b.closest("[data-ge]").dataset.ge.split(":");
+      if (e.nombres.length && !(await confirmar("¿Quitar este puesto?", `Se quitan también ${e.nombres.length} nombre${e.nombres.length === 1 ? "" : "s"}.`, { boton: "Quitar", peligro: true }))) return;
+      g.ganadores[cid] = g.ganadores[cid].filter((x) => x !== e); listo(); }));
+    $$("[data-gnuevo]", v).forEach((b) => (b.onclick = () => { const l = (g.ganadores[b.dataset.gnuevo] ||= []); const usados = l.map((e) => e.puesto);
+      l.push({ id: uid(), puesto: [1, 2, 3].find((k) => !usados.includes(k)) || 3, delegacion: "", nombres: [] }); listo(); }));
+    $("[data-traer-top]", v).onclick = async () => {
+      const data = ctx.data(), top = {};
+      for (const c of CONCURSOS) { try { top[c.id] = resultados(c.id, data).filter((f) => f.puesto && f.puesto <= 3).map((f) => ({ puesto: f.puesto, delegacion: f.delegacion.id })); } catch { top[c.id] = []; } }
+      const n = Object.values(top).reduce((x, l) => x + l.length, 0);
+      if (!n) return aviso("Aún no hay resultados con puestos en los concursos", "error");
+      if (!(await confirmar("¿Traer el top 3 de Resultados?", `Se ponen los puestos y las delegaciones según los resultados actuales (${n} puestos). Los nombres que ya escribiste se conservan si su delegación sigue en el top 3.`, { boton: "Traer top 3" }))) return;
+      for (const c of CONCURSOS) {
+        if (!top[c.id].length) continue;
+        const antes = g.ganadores[c.id] || [];
+        g.ganadores[c.id] = top[c.id].map((t) => { const e = antes.find((x) => x.delegacion === t.delegacion); return { id: e?.id || uid(), puesto: t.puesto, delegacion: t.delegacion, nombres: e?.nombres || [] }; });
+      }
+      listo(); aviso("Top 3 traído: ahora escribe a los integrantes de cada puesto");
+    };
   }
 
   function importar(v) {
     const org = seccion === "organizadores";
     importarExcel({
       titulo: org ? "Cargar voluntarios del equipo organizador" : "Cargar participantes inscritos",
-      ayuda: org ? "Excel con <b>nombre</b> y <b>apellido</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing, Logística o TI). Si no trae el área, la eliges después en la lista."
-        : "El mismo Excel de inscritos que usas en Charlas (por ejemplo, la hoja CONFIRMADOS). Toma el <b>nombre</b> y el <b>apellido</b> (o el nombre completo) y, si quieres, la <b>delegación</b> o universidad.",
+      ayuda: org ? "Excel con <b>nombres</b>, <b>apellido paterno</b> y <b>apellido materno</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing, Logística o TI). Si no trae el área, la eliges después en la lista."
+        : "El mismo Excel de inscritos que usas en Charlas (por ejemplo, la hoja CONFIRMADOS). Toma los <b>nombres</b>, el <b>apellido paterno</b> y el <b>apellido materno</b> (o el nombre completo) y, si quieres, la <b>delegación</b> o universidad.",
       campos: [
         { id: "nombre", txt: "Nombre(s) o nombre completo", claves: /^(nombres?|nombre completo|nombres y apellidos|apellidos y nombres|participante|voluntario|integrante)\b/, requerido: true, nombre: true },
-        { id: "apellido", txt: "Apellido(s)", claves: /^(apellidos?|apellido paterno|ap\.? paterno)\b/, nombre: true },
+        { id: "apellido", txt: "Apellido paterno (o los dos apellidos)", claves: /^(apellido paterno|ap\.? ?paterno|ap\.? ?pat\b|primer apellido|apellidos?$)/, nombre: true },
+        { id: "materno", txt: "Apellido materno", claves: /^(apellido materno|ap\.? ?materno|ap\.? ?mat\b|segundo apellido)/, nombre: true },
         org ? { id: "area", txt: "Área", claves: /^(area|área|cargo|equipo|comite|comité)\b/ } : { id: "delegacion", txt: "Delegación o universidad", claves: /^(delegacion|universidad|institucion|casa de estudios|siglas)\b/ },
       ],
       alImportar: (filas, reemplazar) => {
-        const lista = filas.map((f) => ({ id: uid(), nombre: f.nombre, apellido: f.apellido || "", ...(org ? { area: areaDe(f.area) } : { delegacion: f.delegacion || "" }) }));
+        const lista = filas.map((f) => ({ id: uid(), nombre: f.nombre, apellido: f.apellido || "", materno: f.materno || "", ...(org ? { area: areaDe(f.area) } : { delegacion: f.delegacion || "" }) }));
         if (reemplazar) { g[seccion] = lista; Object.keys(g.editados).filter((k) => k.startsWith(org ? "o:" : "a:")).forEach((k) => delete g.editados[k]); }
         else g[seccion].push(...lista);
         guardar(); quitados.clear(); pintar(v); aviso(`${lista.length} persona${lista.length === 1 ? "" : "s"} cargada${lista.length === 1 ? "" : "s"}`);
@@ -337,7 +408,8 @@ export function crearCertificados(ctx) {
     const m = modal(`<h2>${inv ? "Agregar persona" : org ? "Agregar voluntario" : "Agregar participante"}</h2><form class="form">
       <label class="campo"><span>${inv ? "Nombre completo" : "Nombre(s)"}</span><input name="nombre" maxlength="80" required placeholder="Ej. María"></label>
       ${inv ? `<label class="campo"><span>Su participación fue «como…»</span><input name="rol" maxlength="120" placeholder="Ej. auspiciador oficial"></label>`
-        : `<label class="campo"><span>Apellido(s)</span><input name="apellido" maxlength="80" placeholder="Ej. López Torres"></label>
+        : `<div class="cert-map" style="margin:0"><label class="campo"><span>Apellido paterno</span><input name="apellido" maxlength="60" placeholder="Ej. López"></label>
+           <label class="campo"><span>Apellido materno</span><input name="materno" maxlength="60" placeholder="Ej. Torres"></label></div>
            ${org ? `<label class="campo"><span>Área</span><select name="area"><option value="">Elige…</option>${AREAS_ORG.map((a) => `<option value="${a.id}">${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></label>`
              : `<label class="campo"><span>Delegación o universidad (opcional)</span><input name="delegacion" maxlength="120"></label>`}`}
       <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Agregar</button></div></form>`);
@@ -345,7 +417,7 @@ export function crearCertificados(ctx) {
     f.onsubmit = (e) => {
       e.preventDefault(); const nombre = f.nombre.value.trim(); if (nombre.length < 2) return;
       if (inv) g.otros.push({ id: `x:${uid()}`, nombre, rol: f.rol.value.trim() });
-      else g[seccion].push({ id: uid(), nombre, apellido: f.apellido.value.trim(), ...(org ? { area: f.area.value } : { delegacion: f.delegacion.value.trim() }) });
+      else g[seccion].push({ id: uid(), nombre, apellido: f.apellido.value.trim(), materno: f.materno.value.trim(), ...(org ? { area: f.area.value } : { delegacion: f.delegacion.value.trim() }) });
       guardar(); m.cerrar(); if (inv) filtro = "otro"; pintar(v); aviso("Agregado");
     };
   }
@@ -390,7 +462,7 @@ export function crearCertificados(ctx) {
       else {
         const JSZip = await cargarJSZip(), zip = new JSZip(), usados = new Set();
         for (const h of hojas) {
-          const sub = seccion === "invitados" ? `${TIPOS_INV[h.p.tipo]}s/` : seccion === "organizadores" && h.p.area ? `${sinTildes(areaTxt(h.p.area))}/` : "";
+          const sub = seccion === "ganadores" ? `${sinTildes(h.p.concursoNombre)}/Puesto ${h.p.puesto}/` : seccion === "invitados" ? `${TIPOS_INV[h.p.tipo]}s/` : seccion === "organizadores" && h.p.area ? `${sinTildes(areaTxt(h.p.area))}/` : "";
           let n = `${S.carpeta}/${sub}${archivo(h.p)}`; for (let k = 2; usados.has(n); k++) n = `${S.carpeta}/${sub}${archivo(h.p).replace(/\.pdf$/, ` (${k}).pdf`)}`;
           usados.add(n); zip.file(n, pdfDeImagenes([h.img]));
         }
