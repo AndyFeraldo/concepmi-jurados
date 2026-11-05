@@ -9,12 +9,12 @@
 // ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
 // en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611050052";
-import { resultados } from "./calculo.js?v=202611050052";
-import { porId, CONCURSOS } from "./concursos.js?v=202611050052";
-import { CHARLAS } from "./charlas.js?v=202611050052";
-import { tallerPorId } from "./talleres.js?v=202611050052";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611050052";
+import { api } from "./api.js?v=202611050110";
+import { resultados } from "./calculo.js?v=202611050110";
+import { porId, CONCURSOS } from "./concursos.js?v=202611050110";
+import { CHARLAS } from "./charlas.js?v=202611050110";
+import { tallerPorId } from "./talleres.js?v=202611050110";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611050110";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
@@ -27,16 +27,20 @@ export const AREAS_ORG = [
 const areaTxt = (id) => AREAS_ORG.find((a) => a.id === id)?.txt || id || "";
 const SECCIONES = {
   invitados: { txt: "Invitados", sub: "Jurados, talleristas y ponentes", cinta: "de participación", carpeta: "Invitados",
-    plantilla: `Por su valiosa participación {rol} ${EVENTO}${CIERRE}`, vars: "{rol} = «como jurado en …», «como tallerista del taller …» o «como ponente de la charla magistral …»" },
+    plantilla: `Por su valiosa participación {rol} ${EVENTO}${CIERRE}`, vars: "{rol} = «como jurado en …», «como tallerista del taller …» o «como ponente de la charla magistral …» · **texto** = negrita" },
   organizadores: { txt: "Equipo organizador", sub: "Voluntarios del VI CONCEPMI", cinta: "equipo organizador", carpeta: "Equipo organizador",
-    plantilla: `Por su valioso compromiso y trabajo como parte del equipo organizador, en el área de {area}, ${EVENTO}${CIERRE}`, vars: "{area} = el área del voluntario (por ejemplo «Marketing»)" },
+    plantilla: `Por su valioso compromiso y trabajo como parte del **equipo organizador**, en el área de **{area}**, ${EVENTO}${CIERRE}`, vars: "{area} = el área del voluntario (por ejemplo «Marketing») · **texto** = negrita" },
   participantes: { txt: "Participantes", sub: "Inscritos al congreso", cinta: "de participación", carpeta: "Participantes",
-    plantilla: `Por su participación como asistente, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`, vars: "{delegacion} = su universidad o delegación (si a alguien le falta, esa frase se quita sola)" },
+    plantilla: `Por su participación como **asistente**, en representación de la delegación **{delegacion}**, ${EVENTO}${CIERRE}`, vars: "{delegacion} = su universidad o delegación (si a alguien le falta, esa frase se quita sola) · **texto** = negrita" },
   ganadores: { txt: "Ganadores", sub: "Top 3 de cada concurso", cinta: "de reconocimiento", carpeta: "Ganadores",
-    plantilla: `Por haber obtenido el {puesto} en {concurso}, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`, vars: "{puesto} = primer, segundo o tercer lugar · {concurso} = el concurso · {delegacion} = su delegación" },
+    plantilla: `Por haber obtenido el **{puesto}** en **{concurso}**, {equipo} de la delegación **{delegacion}**, ${EVENTO}${CIERRE}`, vars: "{puesto} = primer, segundo o tercer lugar · {concurso} · {equipo} = «como líder del equipo» o «como integrante del equipo» · {delegacion} · **texto** = negrita" },
 };
 // Texto de participantes de la versión anterior (sin delegación): si no lo cambiaron, se usa el nuevo
 const PLANT_PART_V1 = `Por su participación como asistente ${EVENTO}${CIERRE}`;
+// Textos por defecto anteriores (sin negritas): si el admin no los cambió, se usan los nuevos
+const PLANT_VIEJAS = [PLANT_PART_V1, `Por su participación como asistente, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`,
+  `Por su valioso compromiso y trabajo como parte del equipo organizador, en el área de {area}, ${EVENTO}${CIERRE}`,
+  `Por haber obtenido el {puesto} en {concurso}, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`];
 const PUESTOS = { 1: "primer lugar", 2: "segundo lugar", 3: "tercer lugar" };
 const MEDALLA = { 1: "🥇", 2: "🥈", 3: "🥉" };
 const TIPOS_INV = { jurado: "Jurado", tallerista: "Tallerista", ponente: "Ponente", otro: "Otro" };
@@ -50,15 +54,15 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const unir = (l) => (l.length < 2 ? l.join("") : `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}`);
 const conArticulo = (n) => (/^Gran\b/.test(n) ? `la ${n}` : /^Concurso\b/.test(n) ? `el ${n}` : `el concurso ${n}`);
 export const textoRol = (p) => {
-  if (p.tipo === "jurado") return `como jurado en ${unir(p.items.map(conArticulo))}`;
-  if (p.tipo === "tallerista") return p.items.length > 1 ? `como tallerista de los talleres ${unir(p.items.map((t) => `«${t}»`))}` : `como tallerista del taller «${p.items[0] || ""}»`;
-  if (p.tipo === "ponente") return `como ponente de la charla magistral ${unir(p.items.map((t) => `«${t}»`))}`;
-  return p.rol ? `como ${p.rol}` : "";
+  if (p.tipo === "jurado") return `como **jurado** en **${unir(p.items.map(conArticulo))}**`;
+  if (p.tipo === "tallerista") return p.items.length > 1 ? `como **tallerista** de los talleres **${unir(p.items.map((t) => `«${t}»`))}**` : `como **tallerista** del taller **«${p.items[0] || ""}»**`;
+  if (p.tipo === "ponente") return `como **ponente** de la charla magistral **${unir(p.items.map((t) => `«${t}»`))}**`;
+  return p.rol ? `como **${p.rol}**` : "";
 };
 // Rellena la plantilla de la sección con los datos de la persona
 // Si falta el dato (sin área o sin universidad), se quita también la frase que lo acompaña («, en el área de …»)
-const sinDato = (t, v) => t.replace(new RegExp(`,?\\s*(?:en representación de la delegación|en representación del|en representación de|de la delegación|en el área de|de la|del|de|por|en)?\\s*\\{${v}\\}`, "g"), "");
-const llenar = (plantilla, p) => [["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""], ["puesto", PUESTOS[p.puesto] || ""], ["concurso", p.concursoTxt || ""]]
+const sinDato = (t, v) => t.replace(new RegExp(`,?\\s*(?:en representación de la delegación|en representación del|en representación de|de la delegación|en el área de|de la|del|de|por|en)?\\s*(?:\\*\\*)?\\{${v}\\}(?:\\*\\*)?`, "g"), "");
+const llenar = (plantilla, p) => [["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""], ["puesto", PUESTOS[p.puesto] || ""], ["concurso", p.concursoTxt || ""], ["equipo", p.puesto ? (p.lider ? "como **líder del equipo**" : "como integrante del equipo") : ""]]
   .reduce((t, [v, x]) => (x ? t.replace(new RegExp(`\\{${v}\\}`, "g"), x) : sinDato(t, v)), plantilla)
   .replace(/\{rol\}/g, textoRol(p))
   .replace(/\s+,/g, ",").replace(/\s{2,}/g, " ").replace(/\(\s*\)/g, "").trim();
@@ -71,7 +75,29 @@ export const nombrePropio = (s) => String(s || "").trim().replace(/\s+/g, " ").t
 // ---------- Dibujo en lienzo ----------
 let fondo = null;
 const cargarFondo = () => (fondo ||= new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => { fondo = null; rej(new Error("No se pudo cargar la plantilla del certificado")); }; im.src = BASE; }));
-const fuentes = () => Promise.all([document.fonts.load(`italic 700 ${Math.round(100 * K)}px "Playfair Display"`), document.fonts.load(`400 ${Math.round(32 * K)}px Poppins`)]).catch(() => {});
+const fuentes = () => Promise.all([document.fonts.load(`italic 700 ${Math.round(100 * K)}px "Playfair Display"`), document.fonts.load(`400 ${Math.round(32 * K)}px Poppins`), document.fonts.load(`600 ${Math.round(32 * K)}px Poppins`)]).catch(() => {});
+// «Por haber obtenido el **primer lugar** en…» → palabras con negrita o sin ella
+function palabras(texto) {
+  const out = [];
+  String(texto).split("**").forEach((trozo, i) => trozo.split(/\s+/).forEach((w, j, arr) => {
+    if (!w) return;
+    // signo pegado al cierre de la negrita («**Marketing**,»): va sin espacio
+    const pegado = j === 0 && out.length && !/^\s/.test(trozo) && !/\s$/.test(String(texto).split("**")[i - 1] || " ");
+    out.push({ w, b: i % 2 === 1, pegado });
+  }));
+  return out;
+}
+const fuenteDe = (b, f) => `${b ? 600 : 400} ${f}px Poppins, sans-serif`;
+function lineasRicas(ctx, ps, ancho, f) {
+  ctx.font = fuenteDe(false, f); const esp = ctx.measureText(" ").width;
+  const out = []; let l = [], w = 0;
+  for (const p of ps) {
+    ctx.font = fuenteDe(p.b, f); const a = ctx.measureText(p.w).width, sep = l.length && !p.pegado ? esp : 0;
+    if (l.length && w + sep + a > ancho) { out.push({ l, w }); l = []; w = 0; }
+    l.push({ ...p, a, sep: l.length && !p.pegado ? esp : 0 }); w += (l.length > 1 ? l[l.length - 1].sep : 0) + a;
+  }
+  if (l.length) out.push({ l, w }); return out;
+}
 function lineas(ctx, texto, ancho) {
   const out = []; let l = "";
   for (const w of texto.split(/\s+/)) { const t = l ? `${l} ${w}` : w; if (ctx.measureText(t).width > ancho && l) { out.push(l); l = w; } else l = t; }
@@ -96,11 +122,17 @@ export async function dibujar(p, lienzo = document.createElement("canvas")) {
   do { ctx.font = `italic 700 ${t}px "Playfair Display", Georgia, serif`; t -= 4; } while (ctx.measureText(p.nombre).width > 1040 * K && t > 40 * K);
   ctx.fillText(p.nombre, 1017 * K, 652 * K);
   // Texto: entre la línea del nombre y las firmas (hasta 5 líneas, se achica si hace falta)
+  const ps = palabras(p.texto);
   let f = 33 * K, ls;
-  do { ctx.font = `400 ${f}px Poppins, sans-serif`; ls = lineas(ctx, p.texto, 1540 * K); f -= 1; } while (ls.length * f * 1.07 > 150 * K && f > 20 * K);
-  f += 1; ctx.fillStyle = "#3A3A46";
+  do { ls = lineasRicas(ctx, ps, 1540 * K, f); f -= 1; } while (ls.length * f * 1.07 > 150 * K && f > 20 * K);
+  f += 1; ls = lineasRicas(ctx, ps, 1540 * K, f);
   const alto = f * 1.07, y0 = 788 * K - ((ls.length - 1) * alto) / 2;
-  ls.forEach((l, i) => ctx.fillText(l, 1009 * K, y0 + i * alto));
+  ctx.textAlign = "left";
+  ls.forEach(({ l, w }, i) => {
+    let x = 1009 * K - w / 2;
+    l.forEach((t, k) => { if (k) x += t.sep; ctx.font = fuenteDe(t.b, f); ctx.fillStyle = t.b ? "#4A1AA6" : "#3A3A46"; ctx.fillText(t.w, x, y0 + i * alto); x += t.a; });
+  });
+  ctx.textAlign = "center";
   return lienzo;
 }
 const jpeg = (cv) => new Promise((res) => cv.toBlob(async (b) => res(new Uint8Array(await b.arrayBuffer())), "image/jpeg", 0.9));
@@ -201,7 +233,7 @@ export function crearCertificados(ctx) {
   const quitados = new Set();
   const g = leer();
   g.config ||= {}; g.editados ||= {}; g.otros ||= []; g.organizadores ||= []; g.participantes ||= []; g.ganadores ||= {};
-  if (g.config.participantes?.plantilla === PLANT_PART_V1) delete g.config.participantes.plantilla;
+  Object.values(g.config).forEach((c) => { if (PLANT_VIEJAS.includes(c?.plantilla)) delete c.plantilla; });
   const delDe = (id) => ctx.data().delegaciones.find((d) => d.id === id);
   // Migra los «otros» de la versión anterior (concepmi-certificados-v1)
   if (!g.migrado) { try { const v1 = JSON.parse(localStorage.getItem("concepmi-certificados-v1")); if (v1?.otros?.length) g.otros.push(...v1.otros); } catch { /* nada */ } g.migrado = true; }
@@ -222,7 +254,7 @@ export function crearCertificados(ctx) {
     const c = cfg(s);
     const base = s === "invitados" ? invitados()
       : s === "organizadores" ? g.organizadores.map((o) => ({ ...o, id: `o:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }))
-      : s === "ganadores" ? CONCURSOS.flatMap((c) => (g.ganadores[c.id] || []).flatMap((e) => e.nombres.map((n) => ({ id: `w:${n.id}`, tipo: c.tipo, nombre: n.n,
+      : s === "ganadores" ? CONCURSOS.flatMap((c) => (g.ganadores[c.id] || []).flatMap((e) => e.nombres.map((n) => ({ id: `w:${n.id}`, tipo: c.tipo, nombre: n.n, lider: !!n.lider,
           puesto: e.puesto, concurso: c.id, concursoNombre: c.nombre, concursoTxt: conArticulo(c.nombre), delegacion: delDe(e.delegacion)?.nombre || "", wid: e.id, nid: n.id }))))
       : g.participantes.map((o) => ({ ...o, id: `a:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }));
     return base.map((p) => { const e = g.editados[p.id] || {}; return { ...p, seccion: s, nombre: e.nombre || p.nombre, texto: e.texto || llenar(c.plantilla, p), cinta: c.cinta, editado: !!(e.nombre || e.texto) }; });
@@ -269,7 +301,7 @@ export function crearCertificados(ctx) {
       const fuera = quitados.has(p.id);
       const col = seccion === "invitados" ? `<td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS_INV[p.tipo]}</span></td><td class="cert-texto">${esc(textoRol(p) || "—")}</td>`
         : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></td>`
-        : seccion === "ganadores" ? `<td class="cert-texto"><b>${MEDALLA[p.puesto] || ""} ${esc(PUESTOS[p.puesto] || "")}</b> · ${esc(p.concursoNombre)} · ${esc(p.delegacion || "sin delegación")}</td>`
+        : seccion === "ganadores" ? `<td class="cert-texto"><b>${MEDALLA[p.puesto] || ""} ${esc(PUESTOS[p.puesto] || "")}</b> · ${esc(p.concursoNombre)} · ${esc(p.delegacion || "sin delegación")}${p.lider ? ` <span class="chip chip--ambar log-tag">★ líder</span>` : ""}</td>`
         : `<td class="cert-texto">${esc(p.delegacion || "—")}</td>`;
       return `<tr class="${fuera ? "cert-fuera" : ""}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${fuera ? "" : "checked"} aria-label="Incluir"></td>
         <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}${seccion === "organizadores" && !p.area ? ` <span class="chip chip--rojo log-tag">sin área</span>` : ""}</td>${col}
@@ -323,12 +355,12 @@ export function crearCertificados(ctx) {
       const es = (g.ganadores[c.id] || []).slice().sort((a, b) => a.puesto - b.puesto), np = es.reduce((x, e) => x + e.nombres.length, 0);
       return `<details class="cert-gan__c" ${es.length ? "open" : ""}><summary><b>${esc(c.nombre)}</b><span class="tenue">${es.length ? `${es.length} puesto${es.length === 1 ? "" : "s"} · ${np} persona${np === 1 ? "" : "s"}` : "sin ganadores aún"}</span></summary>
         ${es.map((e) => `<div class="cert-gan__fila" data-ge="${c.id}:${e.id}">
-          <select class="mini-select" data-gp>${[1, 2, 3].map((k) => `<option value="${k}" ${k === e.puesto ? "selected" : ""}>${MEDALLA[k]} ${k}.º</option>`).join("")}</select>
+          <select class="mini-select" data-gp>${[1, 2, 3].map((k) => `<option value="${k}" ${k === e.puesto ? "selected" : ""}>${MEDALLA[k]} ${k}.º${es.some((x) => x !== e && x.puesto === k) ? " (cambiar)" : ""}</option>`).join("")}</select>
           <select class="mini-select" data-gd><option value="">Delegación…</option>${ds.map((d) => `<option value="${d.id}" ${d.id === e.delegacion ? "selected" : ""}>${esc(d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre)}</option>`).join("")}</select>
-          <div class="cert-gan__nombres">${e.nombres.map((n) => `<span class="cert-gan__n"><input data-gn="${n.id}" value="${esc(n.n)}" aria-label="Nombre"><button class="btn btn--mini btn--icono" data-gx="${n.id}" title="Quitar a esta persona" aria-label="Quitar">×</button></span>`).join("")}
+          <div class="cert-gan__nombres">${e.nombres.map((n) => `<span class="cert-gan__n ${n.lider ? "cert-gan__n--lider" : ""}"><button class="cert-gan__estrella" data-gl="${n.id}" title="${n.lider ? "Líder del equipo (clic para quitar)" : "Marcar como líder del equipo"}" aria-label="Líder del equipo">${n.lider ? "★" : "☆"}</button><input data-gn="${n.id}" value="${esc(n.n)}" aria-label="Nombre"><button class="btn btn--mini btn--icono" data-gx="${n.id}" title="Quitar a esta persona" aria-label="Quitar">×</button></span>`).join("")}
             <input class="cert-gan__nuevo" data-gadd placeholder="+ Nombre y apellidos (Enter)"></div>
           <button class="btn btn--mini btn--icono btn--peligro" data-gdel title="Quitar este puesto" aria-label="Quitar puesto">${I.basura}</button></div>`).join("")}
-        <button class="btn btn--mini" data-gnuevo="${c.id}">${I.mas}Agregar puesto</button></details>`;
+        ${es.length < 3 ? `<button class="btn btn--mini" data-gnuevo="${c.id}">${I.mas}Agregar ${es.length ? "puesto" : "1.er puesto"}</button>` : `<p class="ayuda" style="margin:4px 0 0">✓ Top 3 completo (1.º, 2.º y 3.º).</p>`}</details>`;
     };
     return `<section class="tarjeta cert-gan">
       <div class="cert-gan__cab"><div><h3>Ganadores por concurso</h3><p class="ayuda" style="margin:0">Por cada puesto elige la delegación y escribe a sus integrantes: cada uno recibe su certificado de reconocimiento. Con «Traer top 3» se llenan los puestos y las delegaciones desde Resultados.</p></div>
@@ -340,7 +372,10 @@ export function crearCertificados(ctx) {
   function conectarGanadores(v, repintar) {
     const entrada = (el) => { const [cid, eid] = el.closest("[data-ge]").dataset.ge.split(":"); return (g.ganadores[cid] || []).find((e) => e.id === eid); };
     const listo = () => { guardar(); repintar(); };
-    $$("[data-gp]", v).forEach((s) => (s.onchange = () => { entrada(s).puesto = Number(s.value); listo(); }));
+    // Cambiar a un puesto ocupado intercambia los dos (siempre queda 1.º, 2.º y 3.º sin repetir)
+    $$("[data-gp]", v).forEach((s) => (s.onchange = () => { const e = entrada(s), [cid] = s.closest("[data-ge]").dataset.ge.split(":"), k = Number(s.value);
+      const otro = (g.ganadores[cid] || []).find((x) => x !== e && x.puesto === k); if (otro) otro.puesto = e.puesto; e.puesto = k; listo(); }));
+    $$("[data-gl]", v).forEach((b) => (b.onclick = () => { const e = entrada(b), n = e.nombres.find((x) => x.id === b.dataset.gl); const era = n.lider; e.nombres.forEach((x) => (x.lider = false)); n.lider = !era; listo(); }));
     $$("[data-gd]", v).forEach((s) => (s.onchange = () => { entrada(s).delegacion = s.value; listo(); }));
     $$("[data-gn]", v).forEach((i) => (i.onchange = () => { const n = entrada(i).nombres.find((x) => x.id === i.dataset.gn); const t = i.value.trim(); if (t) n.n = t; else entrada(i).nombres = entrada(i).nombres.filter((x) => x !== n); listo(); }));
     $$("[data-gx]", v).forEach((b) => (b.onclick = () => { const e = entrada(b); e.nombres = e.nombres.filter((x) => x.id !== b.dataset.gx); listo(); }));
@@ -352,14 +387,15 @@ export function crearCertificados(ctx) {
     $$("[data-gdel]", v).forEach((b) => (b.onclick = async () => { const e = entrada(b), [cid] = b.closest("[data-ge]").dataset.ge.split(":");
       if (e.nombres.length && !(await confirmar("¿Quitar este puesto?", `Se quitan también ${e.nombres.length} nombre${e.nombres.length === 1 ? "" : "s"}.`, { boton: "Quitar", peligro: true }))) return;
       g.ganadores[cid] = g.ganadores[cid].filter((x) => x !== e); listo(); }));
-    $$("[data-gnuevo]", v).forEach((b) => (b.onclick = () => { const l = (g.ganadores[b.dataset.gnuevo] ||= []); const usados = l.map((e) => e.puesto);
-      l.push({ id: uid(), puesto: [1, 2, 3].find((k) => !usados.includes(k)) || 3, delegacion: "", nombres: [] }); listo(); }));
+    $$("[data-gnuevo]", v).forEach((b) => (b.onclick = () => { const l = (g.ganadores[b.dataset.gnuevo] ||= []); if (l.length >= 3) return aviso("Solo hay 1.º, 2.º y 3.er lugar", "error");
+      const usados = l.map((e) => e.puesto); l.push({ id: uid(), puesto: [1, 2, 3].find((k) => !usados.includes(k)), delegacion: "", nombres: [] }); listo(); }));
     $("[data-traer-top]", v).onclick = async () => {
       const data = ctx.data(), top = {};
-      for (const c of CONCURSOS) { try { top[c.id] = resultados(c.id, data).filter((f) => f.puesto && f.puesto <= 3).map((f) => ({ puesto: f.puesto, delegacion: f.delegacion.id })); } catch { top[c.id] = []; } }
+      for (const c of CONCURSOS) { try { top[c.id] = resultados(c.id, data).filter((f) => f.puesto && f.puesto <= 3).slice(0, 3).map((f, k) => ({ puesto: k + 1, delegacion: f.delegacion.id, empate: f.puesto !== k + 1 })); } catch { top[c.id] = []; } }
+      const empates = CONCURSOS.filter((c) => top[c.id].some((t) => t.empate)).map((c) => c.nombre);
       const n = Object.values(top).reduce((x, l) => x + l.length, 0);
       if (!n) return aviso("Aún no hay resultados con puestos en los concursos", "error");
-      if (!(await confirmar("¿Traer el top 3 de Resultados?", `Se ponen los puestos y las delegaciones según los resultados actuales (${n} puestos). Los nombres que ya escribiste se conservan si su delegación sigue en el top 3.`, { boton: "Traer top 3" }))) return;
+      if (!(await confirmar("¿Traer el top 3 de Resultados?", `Se ponen los puestos y las delegaciones según los resultados actuales (${n} puestos). Los nombres que ya escribiste se conservan si su delegación sigue en el top 3.${empates.length ? `<br><br><b>Hay empate en ${esc(unir(empates))}:</b> se ordenan como salen en Resultados; revisa los puestos.` : ""}`, { boton: "Traer top 3" }))) return;
       for (const c of CONCURSOS) {
         if (!top[c.id].length) continue;
         const antes = g.ganadores[c.id] || [];
