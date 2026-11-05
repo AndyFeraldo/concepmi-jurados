@@ -1,22 +1,21 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611051441";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611051441";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611051441";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611051441";
-import { salir } from "./app.js?v=202611051441";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611051441";
-import { abrirVisor } from "./entrega-visor.js?v=202611051441";
-import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611051441";
+import { api, ES_DEMO } from "./api.js?v=202611051449";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611051449";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611051449";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611051449";
+import { salir } from "./app.js?v=202611051449";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611051449";
+import { abrirVisor } from "./entrega-visor.js?v=202611051449";
+import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611051449";
 
-import { pintarColegas } from "./colegas.js?v=202611051441";
+import { pintarColegas } from "./colegas.js?v=202611051449";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
   let vista = { tipo: "inicio" };
   let form = null; // { cid, sub, did, valores, comentario }
-  let pestanaInicio = "concursos"; // «concursos» o «colegas»
 
   app.innerHTML = `<div class="fondo fondo--sobrio"></div><div class="cargando"><div class="giro"></div>Cargando tus concursos…</div>`;
   try { data = await api.datosJurado(codigo); }
@@ -69,17 +68,14 @@ export async function vistaJurado(app, codigo) {
         <div><h1>Hola, ${esc(j.nombre.split(" ")[0])}</h1>
           <p>${j.descripcion ? esc(j.descripcion) : "Gracias por ser parte del jurado del VI CONCEPMI."}</p></div>
       </section>
-      <div class="pestanas pestanas--sub" style="margin:18px 0 0">
-        <button class="pestana" data-vj="concursos" aria-selected="${pestanaInicio === "concursos"}">${I.mazo}Tus concursos</button>
-        <button class="pestana" data-vj="colegas" aria-selected="${pestanaInicio === "colegas"}">${I.personas}Colegas</button></div>
-      ${pestanaInicio === "colegas" ? `<div data-colegas style="margin-top:14px"></div>` : `
+      <div class="jur-layout lado-colegas"><div class="lado-colegas__main">
       <h2 class="seccion-titulo">Tus concursos</h2>
       ${asignados.length ? `<div class="rejilla">${tarjetas}</div>` : `<div class="vacio"><b>Aún no tienes concursos asignados</b>Pide al organizador que te asigne uno.</div>`}
       ${nd ? "" : `<div class="vacio" style="margin-top:14px"><b>Todavía no hay delegaciones registradas</b>El organizador las agregará antes del concurso.</div>`}
       <h2 class="seccion-titulo">Para tu información</h2>
-      <div class="rejilla">${info}</div>`}`);
-    $$("[data-vj]", app).forEach((b) => (b.onclick = () => { pestanaInicio = b.dataset.vj; inicio(); }));
-    const caja = $("[data-colegas]", app); if (caja) pintarColegas(caja, codigo, { rol: "jurado", concursos: j.concursos });
+      <div class="rejilla">${info}</div></div>
+      <aside class="cob-panel colegas-lado" data-colegas aria-label="Tus colegas"></aside></div>`);
+    pintarColegas($("[data-colegas]", app), codigo, { rol: "jurado", concursos: j.concursos }, { lado: true });
     $$("[data-cid]", app).forEach((b) => (b.onclick = () => { abrirConcurso(b.dataset.cid); window.scrollTo(0, 0); }));
   }
 

@@ -1632,3 +1632,19 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .colega__in svg{ width:14px; height:14px; }
 .colega__sin{ color:var(--tenue); font-size:.78rem; }
 .jurado__in{ display:inline-block; font-size:.8rem; font-weight:700; color:#6FB6FF; margin:2px 0 4px; }
+
+/* Colegas en la columna derecha del panel del jurado / tallerista */
+.lado-colegas{ grid-template-columns:minmax(0, 1fr) 340px; margin-top:4px; }
+.lado-colegas__main{ min-width:0; }
+.colegas-lado{ max-height:calc(100vh - 28px); overflow:auto; padding-right:4px; scrollbar-width:thin; }
+.colegas-lado .cob{ display:grid; gap:8px; }
+.colegas-lado__propio{ border-color:rgba(255,210,122,.6) !important; background:linear-gradient(135deg, rgba(255,210,122,.12), rgba(110,43,230,.14)) !important; }
+.colegas-lado__lista{ display:grid; gap:6px; }
+.colega-mini{ display:grid; grid-template-columns:36px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 4px; border-top:1px solid rgba(255,255,255,.06); }
+.colega-mini:first-child{ border-top:0; }
+.colega-mini .avatar{ width:36px; height:36px; font-size:.75rem; }
+.colega-mini__txt{ display:grid; min-width:0; } .colega-mini__txt b{ font-size:.86rem; line-height:1.25; } .colega-mini__txt .chip{ font-size:.62rem; padding:.05em .5em; }
+.colega-mini__txt small{ color:var(--tenue); font-size:.72rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.colega-mini__in{ display:grid; place-items:center; width:30px; height:30px; border-radius:8px; background:#0A66C2; color:#fff; }
+.colega-mini__in:hover{ background:#0b5bab; } .colega-mini__in svg{ width:15px; height:15px; }
+@media (max-width:980px){ .lado-colegas{ grid-template-columns:1fr; } .colegas-lado{ order:0; max-height:none; grid-template-columns:1fr; } }
