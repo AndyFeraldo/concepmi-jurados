@@ -1615,3 +1615,20 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 
 .cert-gan__estrella{ background:none; border:0; color:#FFD27A; font-size:1rem; cursor:pointer; padding:0 2px; line-height:1; }
 .cert-gan__n--lider{ border-color:rgba(255,210,122,.7); background:rgba(255,210,122,.1); }
+
+/* ---------- Colegas (js/colegas.js) ---------- */
+.colegas__grupo{ margin:0 0 22px; }
+.colegas__grupo h3{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:1.05rem; }
+.colegas__grupo h3 small{ color:var(--tenue); font-weight:500; font-size:.8rem; }
+.colegas__grupo h3 svg{ width:1em; height:1em; color:var(--oro, #FFD27A); }
+.colegas__grupo--propio{ padding:14px; border-radius:18px; border:1px solid rgba(255,210,122,.5); background:linear-gradient(135deg, rgba(255,210,122,.1), rgba(110,43,230,.12)); }
+.colegas__grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); }
+.colega{ display:grid; gap:8px; align-content:start; padding:14px; border-radius:16px; border:1px solid var(--borde); background:rgba(14,8,56,.55); }
+.colega--yo{ border-color:rgba(255,210,122,.6); }
+.colega__cab{ display:flex; align-items:center; gap:10px; } .colega__cab b{ display:block; line-height:1.25; } .colega__cab .chip{ margin-top:4px; }
+.colega__cab .avatar{ width:52px; height:52px; flex:none; }
+.colega__desc{ margin:0; color:var(--niebla); font-size:.86rem; line-height:1.45; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+.colega__in{ justify-self:start; background:#0A66C2; border-color:#0A66C2; color:#fff; } .colega__in:hover{ background:#0b5bab; }
+.colega__in svg{ width:14px; height:14px; }
+.colega__sin{ color:var(--tenue); font-size:.78rem; }
+.jurado__in{ display:inline-block; font-size:.8rem; font-weight:700; color:#6FB6FF; margin:2px 0 4px; }

@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611050110";
-import { CONCURSOS, porId } from "./concursos.js?v=202611050110";
-import { TALLERES } from "./talleres.js?v=202611050110";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611050110";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611051441";
+import { CONCURSOS, porId } from "./concursos.js?v=202611051441";
+import { TALLERES } from "./talleres.js?v=202611051441";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611051441";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -83,8 +83,10 @@ const real = {
   adminDatos: (codigo) => rpc("jur_admin_datos", { p_codigo: codigo }),
   adminDelegacion: (codigo, id, nombre, siglas, borrar = false) =>
     rpc("jur_admin_delegacion", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_siglas: siglas, p_borrar: borrar }),
-  adminJurado: (codigo, { id = null, nombre = "", concursos = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null }) =>
-    rpc("jur_admin_jurado", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
+  adminJurado: (codigo, { id = null, nombre = "", concursos = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, linkedin = null }) =>
+    rpc("jur_admin_jurado", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo, p_linkedin: linkedin }),
+  // Colegas (jurados y talleristas con foto, descripción y LinkedIn) para el jurado o el tallerista
+  colegas: (codigo) => rpc("jur_colegas", { p_codigo: codigo }),
   adminAjuste: (codigo, concurso, delegacion, a) =>
     rpc("jur_admin_ajuste", { p_codigo: codigo, p_concurso: concurso, p_delegacion: delegacion, p_retraso: !!a.retraso, p_walkover: !!a.walkover,
       p_descalificado: !!a.descalificado, p_valor: a.valor ?? null, p_nota: a.nota || "" }),
@@ -95,8 +97,8 @@ const real = {
   adminClave: (codigo, nueva) => rpc("jur_admin_clave", { p_codigo: codigo, p_nueva: nueva }),
   datosTallerista: (codigo) => rpc("jur_datos_tallerista", { p_codigo: codigo }),
   registrarTaller: (codigo, taller, integrantes) => rpc("jur_taller_registrar", { p_codigo: codigo, p_taller: taller, p_integrantes: integrantes }),
-  adminTallerista: (codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null }) =>
-    rpc("jur_admin_tallerista", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_talleres: talleres, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo }),
+  adminTallerista: (codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, linkedin = null }) =>
+    rpc("jur_admin_tallerista", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_talleres: talleres, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo, p_linkedin: linkedin }),
   adminTaller: (codigo, taller, abierto) => rpc("jur_admin_taller", { p_codigo: codigo, p_taller: taller, p_abierto: abierto }),
   adminTallerBorrar: (codigo, taller) => rpc("jur_admin_taller_borrar", { p_codigo: codigo, p_taller: taller }),
   adminConocimientos: (codigo) => rpc("jur_admin_conocimientos", { p_codigo: codigo }),
@@ -190,7 +192,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611050110");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611051441");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -349,7 +351,11 @@ const demo = {
     else if (id) Object.assign(d.delegaciones.find((x) => x.id === id), { nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
     else d.delegaciones.push({ id: uid(), nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
     guardar(); },
-  async adminJurado(codigo, { id = null, nombre = "", concursos = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
+  async colegas(codigo) { await espera(); const d = db(), c = norm(codigo); const j = d.jurados.find((x) => x.codigo === c), t = d.talleristas.find((x) => x.codigo === c);
+    if (!j && !t && c !== d.admin) throw new Error("Código incorrecto");
+    const sin = ({ codigo: _c, ...x }) => ({ linkedin: "", ...x });
+    return { yo: (j || t)?.id || null, rol: j ? "jurado" : t ? "tallerista" : null, jurados: d.jurados.map(sin), talleristas: d.talleristas.map(sin) }; },
+  async adminJurado(codigo, { id = null, nombre = "", concursos = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null, linkedin = null }) {
     await espera(); exigirPermiso(codigo, "jurados", "editar"); const d = db();
     if (borrar) { d.jurados = d.jurados.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.jurado_id !== id); guardar(); return null; }
     if (!String(nombre).trim()) throw new Error("Escribe el nombre completo del jurado");
@@ -363,7 +369,7 @@ const demo = {
     let j = id ? d.jurados.find((x) => x.id === id) : null;
     if (!j) { j = { id: uid(), codigo: nuevoCodigo(), foto: "" }; d.jurados.push(j); }
     Object.assign(j, { nombre: nombre.trim(), concursos, descripcion });
-    if (foto != null) j.foto = foto;
+    if (foto != null) j.foto = foto; if (linkedin != null) j.linkedin = String(linkedin).trim();
     if (regen) j.codigo = nuevoCodigo();
     if (fijo) j.codigo = fijo;
     guardar(); return { id: j.id, codigo: j.codigo }; },
@@ -418,7 +424,7 @@ const demo = {
     d.ganadores = d.ganadores.filter((g) => g.taller_id !== taller);
     d.ganadores.push({ taller_id: taller, integrantes: integrantes.map((x) => ({ nombre: x.nombre.trim(), delegacion: x.delegacion })), tallerista: t.nombre, actualizado: new Date().toISOString() });
     guardar(); },
-  async adminTallerista(codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null }) {
+  async adminTallerista(codigo, { id = null, nombre = "", talleres = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null, linkedin = null }) {
     await espera(); exigirPermiso(codigo, "talleristas", "editar"); const d = db();
     if (borrar) { d.talleristas = d.talleristas.filter((x) => x.id !== id); guardar(); return null; }
     if (!String(nombre).trim()) throw new Error("Escribe el nombre completo del tallerista");
@@ -432,7 +438,7 @@ const demo = {
     let t = id ? d.talleristas.find((x) => x.id === id) : null;
     if (!t) { t = { id: uid(), codigo: nuevoCodigo(), foto: "" }; d.talleristas.push(t); }
     Object.assign(t, { nombre: nombre.trim(), talleres, descripcion });
-    if (foto != null) t.foto = foto;
+    if (foto != null) t.foto = foto; if (linkedin != null) t.linkedin = String(linkedin).trim();
     if (regen) t.codigo = nuevoCodigo();
     if (fijo) t.codigo = fijo;
     guardar(); return { id: t.id, codigo: t.codigo }; },

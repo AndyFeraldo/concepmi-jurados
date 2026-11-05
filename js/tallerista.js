@@ -1,15 +1,17 @@
 // =========================================================
 // Vista del TALLERISTA: registra al equipo ganador de su taller
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611050110";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611050110";
-import { $, $$, esc, avatar, hace, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611050110";
-import { salir } from "./app.js?v=202611050110";
+import { api, ES_DEMO } from "./api.js?v=202611051441";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611051441";
+import { $, $$, esc, avatar, hace, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611051441";
+import { salir } from "./app.js?v=202611051441";
 
 const INICIALES = 4;
 
+import { pintarColegas } from "./colegas.js?v=202611051441";
+
 export async function vistaTallerista(app, codigo) {
-  let data = null;
+  let data = null, pestanaInicio = "talleres"; // «talleres» o «colegas»
 
   app.innerHTML = `<div class="fondo fondo--sobrio"></div><div class="cargando"><div class="giro"></div>Cargando tus talleres…</div>`;
   try { data = await api.datosTallerista(codigo); }
@@ -46,6 +48,10 @@ export async function vistaTallerista(app, codigo) {
         <div><h1>Hola, ${esc(t.nombre.split(" ")[0])}</h1>
           <p>${t.descripcion ? esc(t.descripcion) : "Gracias por ser parte de los talleres del VI CONCEPMI."}</p></div>
       </section>
+      <div class="pestanas pestanas--sub" style="margin:18px 0 0">
+        <button class="pestana" data-vt="talleres" aria-selected="${pestanaInicio === "talleres"}">${I.pizarra}Tus talleres</button>
+        <button class="pestana" data-vt="colegas" aria-selected="${pestanaInicio === "colegas"}">${I.personas}Colegas</button></div>
+      ${pestanaInicio === "colegas" ? `<div data-colegas style="margin-top:14px"></div>` : `
       <h2 class="seccion-titulo">Tus talleres</h2>
       ${mios.length ? `<div class="rejilla">${mios.map((x) => {
         const g = ganador(x.id);
@@ -57,7 +63,9 @@ export async function vistaTallerista(app, codigo) {
           <div class="concurso__pie">${g?.integrantes.length ? `<span class="chip chip--verde">${I.check}Ganadores registrados</span>` : `<span class="chip chip--ambar">Pendiente</span>`}</div>
         </button>`; }).join("")}</div>`
       : `<div class="vacio"><b>Aún no tienes talleres asignados</b>Pide al organizador que te asigne uno.</div>`}
-      <div class="nota" style="margin-top:18px">Cada integrante del equipo ganador suma <b>${PUNTOS_TALLER} puntos</b> a su delegación en la Copa CONCEPMI. Si dos integrantes son de la misma delegación, esa delegación recibe los ${PUNTOS_TALLER} puntos una sola vez.</div>`);
+      <div class="nota" style="margin-top:18px">Cada integrante del equipo ganador suma <b>${PUNTOS_TALLER} puntos</b> a su delegación en la Copa CONCEPMI. Si dos integrantes son de la misma delegación, esa delegación recibe los ${PUNTOS_TALLER} puntos una sola vez.</div>`}`);
+    $$("[data-vt]", app).forEach((b) => (b.onclick = () => { pestanaInicio = b.dataset.vt; inicio(); }));
+    const caja = $("[data-colegas]", app); if (caja) pintarColegas(caja, codigo, { rol: "tallerista", talleres: t.talleres });
     $$("[data-tid]", app).forEach((b) => (b.onclick = () => { abrirTaller(b.dataset.tid); window.scrollTo(0, 0); }));
   }
 

@@ -7,10 +7,10 @@
 //  · Proyector: tarjeta «Expone ahora / Sigue» con turno, archivos y cronómetro 5 + 3 min.
 // Los archivos están en un espacio privado; se abren con enlaces temporales (api.presUrl).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611050110";
-import { ENTREGABLES } from "./entregables.js?v=202611050110";
-import { porId } from "./concursos.js?v=202611050110";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611050110";
+import { api, ES_DEMO } from "./api.js?v=202611051441";
+import { ENTREGABLES } from "./entregables.js?v=202611051441";
+import { porId } from "./concursos.js?v=202611051441";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611051441";
 
 const LIMA = "America/Lima";
 export const fechaLima = (t) => new Date(t).toLocaleString("es-PE", { timeZone: LIMA, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });

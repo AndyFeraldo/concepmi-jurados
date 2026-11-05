@@ -1,23 +1,24 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611050110";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611050110";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611050110";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611050110";
-import { exportarExcel } from "./excel.js?v=202611050110";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611050110";
-import { crearLogistica } from "./admin-logistica.js?v=202611050110";
-import { crearEntregas } from "./admin-entregas.js?v=202611050110";
-import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611050110";
-import { crearInauguracion } from "./inauguracion.js?v=202611050110";
-import { crearCertificados } from "./certificados.js?v=202611050110";
-import { crearCharlas } from "./admin-charlas.js?v=202611050110";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611050110";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611050110";
-import { puede, soloVer } from "./permisos.js?v=202611050110";
-import { ENTREGABLES } from "./entregables.js?v=202611050110";
-import { salir } from "./app.js?v=202611050110";
+import { api, ES_DEMO } from "./api.js?v=202611051441";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611051441";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611051441";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611051441";
+import { exportarExcel } from "./excel.js?v=202611051441";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611051441";
+import { crearLogistica } from "./admin-logistica.js?v=202611051441";
+import { crearEntregas } from "./admin-entregas.js?v=202611051441";
+import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611051441";
+import { crearInauguracion } from "./inauguracion.js?v=202611051441";
+import { crearCertificados } from "./certificados.js?v=202611051441";
+import { crearCharlas } from "./admin-charlas.js?v=202611051441";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611051441";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611051441";
+import { puede, soloVer } from "./permisos.js?v=202611051441";
+import { ENTREGABLES } from "./entregables.js?v=202611051441";
+import { enlaceLinkedin } from "./colegas.js?v=202611051441";
+import { salir } from "./app.js?v=202611051441";
 
 const PESTANAS = [
   { id: "vivo", txt: "En vivo", icono: "vivo" },
@@ -671,7 +672,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
       ${data.delegaciones.length ? `<p class="ayuda" style="margin-top:12px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611050110"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611051441"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
@@ -763,6 +764,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
           return `<article class="jurado">
             <div class="jurado__cab">${avatar(j.nombre, j.foto)}<div><h4>${esc(j.nombre)}</h4><p>${n} calificaci${n === 1 ? "ón" : "ones"} enviada${n === 1 ? "" : "s"}${j.recuperado ? ' · <span class="chip chip--ambar">recuperado</span>' : ""}</p></div></div>
             ${j.descripcion ? `<p>${esc(j.descripcion)}</p>` : ""}
+            ${j.linkedin ? `<a class="jurado__in" href="${esc(enlaceLinkedin(j.linkedin))}" target="_blank" rel="noopener noreferrer">in · LinkedIn</a>` : ""}
             <div class="jurado__chips">${j.concursos.map((cid) => `<span class="chip">${esc(porId(cid)?.nombre || cid)}</span>`).join("")}</div>
             <div class="jurado__codigo"><code>${esc(j.codigo)}</code><button class="btn btn--mini btn--icono" data-copiar="${esc(j.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></div>
             <div class="jurado__acc">
@@ -826,6 +828,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
         ${data.talleristas.map((t) => `<article class="jurado">
             <div class="jurado__cab">${avatar(t.nombre, t.foto)}<div><h4>${esc(t.nombre)}</h4><p>${t.talleres.length} taller${t.talleres.length === 1 ? "" : "es"}</p></div></div>
             ${t.descripcion ? `<p>${esc(t.descripcion)}</p>` : ""}
+            ${t.linkedin ? `<a class="jurado__in" href="${esc(enlaceLinkedin(t.linkedin))}" target="_blank" rel="noopener noreferrer">in · LinkedIn</a>` : ""}
             <div class="jurado__chips">${t.talleres.map((id) => `<span class="chip">Taller ${esc(tallerPorId(id)?.num || id)} · ${esc(tallerPorId(id)?.nombre || "")}</span>`).join("")}</div>
             <div class="jurado__codigo"><code>${esc(t.codigo)}</code><button class="btn btn--mini btn--icono" data-copiar="${esc(t.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></div>
             <div class="jurado__acc">
@@ -875,7 +878,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
 
   function copiarRespaldo() {
     const txt = JSON.stringify({ tipo: "concepmi-jurados", version: 1, fecha: new Date().toISOString(),
-      jurados: data.jurados.map((j) => ({ nombre: j.nombre, codigo: j.codigo, concursos: j.concursos, descripcion: j.descripcion || "", foto: j.foto || "" })) });
+      jurados: data.jurados.map((j) => ({ nombre: j.nombre, codigo: j.codigo, concursos: j.concursos, descripcion: j.descripcion || "", foto: j.foto || "", linkedin: j.linkedin || "" })) });
     const m = modal(`<h2>Respaldo de jurados</h2><p style="margin:0;color:var(--niebla)">Contiene nombre, código, concursos, descripción y foto de los ${data.jurados.length} jurados. Cópialo y guárdalo en un documento, o pégalo en <b>Importar respaldo</b> de otra versión del panel.</p>
       <textarea class="respaldo" readonly>${esc(txt)}</textarea>
       <div class="modal__acciones"><button class="btn" data-cerrar>Cerrar</button><button class="btn btn--naranja" data-copiar>${I.copiar}Copiar</button></div>`, { ancho: true });
@@ -903,7 +906,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
       for (const j of lista) {
         if (data.jurados.some((x) => x.codigo === String(j.codigo).toUpperCase())) { omitidos++; continue; }
         try {
-          await api.adminJurado(codigo, { nombre: j.nombre, concursos: (j.concursos || []).filter((c) => CON_JURADO.some((x) => x.id === c)), descripcion: j.descripcion || "", foto: j.foto || "", codigoFijo: j.codigo });
+          await api.adminJurado(codigo, { nombre: j.nombre, concursos: (j.concursos || []).filter((c) => CON_JURADO.some((x) => x.id === c)), descripcion: j.descripcion || "", foto: j.foto || "", codigoFijo: j.codigo, linkedin: j.linkedin || "" });
           creados++;
         } catch (e) { fallos.push(`${j.nombre}: ${e.message}`); }
       }
@@ -939,6 +942,8 @@ export async function vistaAdmin(app, codigo, acceso = null) {
         <label class="campo"><span>Código de acceso ${j ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" autocapitalize="characters" value="${esc(j?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase">
           <span class="ayuda" style="font-weight:400">Úsalo para conservar un código que ya le enviaste al ${P.titulo} (4 a 16 letras o números).</span></label>
         <label class="campo"><span>Descripción breve</span><textarea name="desc" maxlength="400" placeholder="Cargo, especialidad o experiencia (se muestra al ${P.titulo} al entrar)">${esc(j?.descripcion || "")}</textarea></label>
+        <label class="campo"><span>LinkedIn (opcional)</span><input name="linkedin" maxlength="300" inputmode="url" value="${esc(j?.linkedin || "")}" placeholder="Ej. linkedin.com/in/maria-quispe">
+          <span class="ayuda" style="font-weight:400">Sale en «Colegas» para que jurados y talleristas puedan conectar entre ellos.</span></label>
         <fieldset style="border:0;padding:0;margin:0"><legend class="campo" style="margin-bottom:8px"><span>${P.leyenda}</span></legend>
           <div class="checks">${P.opciones().map((c) => `<label class="check"><input type="checkbox" value="${c.id}" ${j?.[P.campo].includes(c.id) ? "checked" : ""}><span>${esc(c.nombre)}<small>${esc(c.sub)}</small></span></label>`).join("")}</div>
           <p class="ayuda" style="margin-top:8px">${esc(P.nota)}</p></fieldset>
@@ -964,7 +969,7 @@ export async function vistaAdmin(app, codigo, acceso = null) {
       try {
         const cod = f.cod.value.replace(/\s/g, "").toUpperCase();
         const r = await P.guardar({ id: j?.id || null, nombre: f.nombre.value, descripcion: f.desc.value.trim(), [P.campo]: elegidos, foto: fotoCambiada || !j ? foto : null,
-          codigoFijo: cod && cod !== j?.codigo ? cod : null });
+          codigoFijo: cod && cod !== j?.codigo ? cod : null, linkedin: enlaceLinkedin(f.linkedin.value) });
         m.cerrar(); await recargar(true);
         if (!j || r.codigo !== j.codigo) mostrarCodigo(f.nombre.value.trim(), r.codigo, P.boton); else aviso(`${P.boton} actualizado`);
       } catch (ex) { err.textContent = ex.message; btn.disabled = false; }
