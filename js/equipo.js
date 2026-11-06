@@ -3,13 +3,13 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611051449";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611051449";
-import { FORMAS } from "./formas.js?v=202611051449";
-import { vistaPresentacion } from "./presentacion.js?v=202611051449";
-import { porId } from "./concursos.js?v=202611051449";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611051449";
-import { salir } from "./app.js?v=202611051449";
+import { api, ES_DEMO } from "./api.js?v=202611061316";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611061316";
+import { FORMAS } from "./formas.js?v=202611061316";
+import { vistaPresentacion } from "./presentacion.js?v=202611061316";
+import { porId } from "./concursos.js?v=202611061316";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611061316";
+import { salir } from "./app.js?v=202611061316";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
@@ -41,7 +41,9 @@ export async function vistaEquipo(app, codigo) {
   const def = () => ENTREGABLES[data.entrega.concurso_id];
   const enviado = () => data.entrega.estado === "enviado";
   const fin = () => (data.tiempo.fin ? Date.parse(data.tiempo.fin) : null);
-  const bloqueado = () => enviado() || (fin() != null && ahora() > fin() + GRACIA_MS);
+  // Candado: antes de que el organizador pulse «Iniciar» no se puede escribir (Proyectos sube antes, no usa esta pantalla)
+  const esperando = () => !enviado() && !data.tiempo.inicio && data.entrega.concurso_id !== "proyectos";
+  const bloqueado = () => enviado() || esperando() || (fin() != null && ahora() > fin() + GRACIA_MS);
 
   function guardarLocal() { try { localStorage.setItem(CLAVE, JSON.stringify({ t: Date.now(), datos })); } catch { /* sin almacenamiento */ } }
   function marcarCambio() {
@@ -73,7 +75,9 @@ export async function vistaEquipo(app, codigo) {
     try { const t0 = Date.now(); const d = await api.equipoDatos(codigo); desfase = Date.parse(d.tiempo.ahora) - (t0 + Date.now()) / 2; const cambioEstado = d.entrega.estado !== data.entrega.estado;
       const vaciada = !Object.keys(d.entrega.datos || {}).length && d.entrega.actualizado && d.entrega.actualizado !== data.entrega.actualizado && !pendiente && !guardando;
       if (vaciada) { try { localStorage.removeItem(CLAVE); } catch { /* sin almacenamiento */ } data.entrega.actualizado = d.entrega.actualizado; datos = structuredClone(d.entrega.datos); if (esActa()) datos = F().normalizar(datos); else { datos.filas = []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } }
+      const arranco = !!d.tiempo.inicio !== !!data.tiempo.inicio;
       data.tiempo = d.tiempo; data.entrega.estado = d.entrega.estado; data.entrega.enviado = d.entrega.enviado; data.entrega.tarde = d.entrega.tarde;
+      if (arranco && !cambioEstado && !vaciada) { if (d.tiempo.inicio) aviso("¡Empezó el tiempo! Ya pueden escribir."); pintar(); }
       if (cambioEstado || vaciada) { if (d.entrega.estado === "borrador") { datos = structuredClone(d.entrega.datos); if (esActa()) datos = F().normalizar(datos); else { datos.filas ||= []; while (datos.filas.length < (def()?.filasIniciales || 8)) datos.filas.push(filaVacia()); } } pintar(); }
     } catch { /* se reintenta */ }
   }
@@ -82,6 +86,23 @@ export async function vistaEquipo(app, codigo) {
   function pintar() {
     const c = porId(data.entrega.concurso_id), d = def(), bl = bloqueado();
     const filas = esActa() ? [] : conIds(datos.filas);
+    if (esperando()) {
+      app.innerHTML = `<div class="fondo fondo--sobrio"></div>
+    <header class="barra">
+      <img class="logo" src="${IMG.logo}" alt="CONCEPMI"><span class="sep"></span>
+      <div><div class="barra__titulo">${esc(c?.nombre || "Concurso")}</div><div class="barra__sub">${esc(data.delegacion?.nombre || "")}</div></div>
+      <div class="der"><span class="eq-reloj" data-reloj></span><button class="btn btn--mini" data-salir>${I.salir}<span>Salir</span></button></div>
+    </header>
+    <main class="contenedor eq"><section class="tarjeta eq-espera">
+      <div class="eq-espera__icono">${I.candado}</div>
+      <h1>Aún no empieza el concurso</h1>
+      <p>Entraste bien, <b>${esc(data.delegacion?.siglas || data.delegacion?.nombre || "equipo")}</b>. ${esc(d?.titulo || "El entregable")} se abrirá solo en esta pantalla cuando el organizador dé la señal de inicio.</p>
+      <p class="eq-espera__sub"><span class="giro"></span> Esperando la señal… no cierres esta página.</p>
+    </section></main>
+    ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
+      $("[data-salir]", app).onclick = () => { limpiarTimers(); salir(); };
+      reloj(); return;
+    }
     app.innerHTML = `<div class="fondo fondo--sobrio"></div>
     <header class="barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI"><span class="sep"></span>
@@ -217,7 +238,8 @@ export async function vistaEquipo(app, codigo) {
   function limpiarTimers() { clearInterval(tic); clearInterval(sondeo); clearTimeout(temporizador); }
   pintar();
   tic = setInterval(() => { if (!document.body.contains($("[data-reloj]", app))) return limpiarTimers(); reloj(); }, 1000);
-  sondeo = setInterval(refrescar, 10000);
+  // Mientras espera la señal de inicio pregunta cada 3 s; luego cada 10 s
+  let vueltas = 0; sondeo = setInterval(() => { vueltas++; if (esperando() || vueltas % 3 === 0) refrescar(); }, 3300);
   window.addEventListener("beforeunload", (e) => { if (pendiente && !bloqueado()) { guardarLocal(); e.preventDefault(); } });
   window.addEventListener("online", () => { if (pendiente) guardar(); });
 }

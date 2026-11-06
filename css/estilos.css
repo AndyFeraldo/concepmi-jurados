@@ -1648,3 +1648,12 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .colega-mini__in{ display:grid; place-items:center; width:30px; height:30px; border-radius:8px; background:#0A66C2; color:#fff; }
 .colega-mini__in:hover{ background:#0b5bab; } .colega-mini__in svg{ width:15px; height:15px; }
 @media (max-width:980px){ .lado-colegas{ grid-template-columns:1fr; } .colegas-lado{ order:0; max-height:none; grid-template-columns:1fr; } }
+
+/* Equipo: espera de la señal de inicio (candado) */
+.eq-espera{ max-width:620px; margin:40px auto; text-align:center; padding:36px 26px; display:grid; gap:12px; justify-items:center; }
+.eq-espera h1{ margin:0; font-size:clamp(1.4rem, 4vw, 2rem); }
+.eq-espera p{ margin:0; color:var(--suave, #d8d0f0); line-height:1.5; }
+.eq-espera__icono{ width:72px; height:72px; border-radius:50%; display:grid; place-items:center; background:rgba(255,210,122,.14); color:#FFD27A; border:1px solid rgba(255,210,122,.45); }
+.eq-espera__icono svg{ width:34px; height:34px; }
+.eq-espera__sub{ display:flex; align-items:center; gap:10px; font-size:.9rem; color:var(--tenue) !important; }
+.eq-espera__sub .giro{ width:18px; height:18px; border-width:2px; }

@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611051449";
-import { CONCURSOS, porId } from "./concursos.js?v=202611051449";
-import { TALLERES } from "./talleres.js?v=202611051449";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611051449";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611061316";
+import { CONCURSOS, porId } from "./concursos.js?v=202611061316";
+import { TALLERES } from "./talleres.js?v=202611061316";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611061316";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -192,7 +192,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611051449");
+    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611061316");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, claude = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -571,11 +571,13 @@ const demo = {
     return { entrega: entJson(e), tiempo: tiempoJson(e.concurso_id), delegacion: d.delegaciones.find((x) => x.id === e.delegacion_id) || null }; },
   async equipoGuardar(codigo, datos) { await espera(150); const d = db(); const e = eqDe(codigo); const x = (d.entregas[e.id] ||= { estado: "borrador" });
     if (x.estado === "enviado") throw new Error("Tu equipo ya envió el entregable. Pide al organizador que lo reabra si necesitas corregir.");
-    const t = d.tiempos[e.concurso_id]; if (t?.fin && Date.now() > Date.parse(t.fin) + 60000) throw new Error("Se acabó el tiempo. Ya no se pueden hacer cambios; envía tu entregable.");
+    const t = d.tiempos[e.concurso_id]; if (e.concurso_id !== "proyectos" && !t?.inicio) throw new Error("El tiempo aún no inicia. Espera a que el organizador dé la señal de inicio.");
+    if (t?.fin && Date.now() > Date.parse(t.fin) + 60000) throw new Error("Se acabó el tiempo. Ya no se pueden hacer cambios; envía tu entregable.");
     Object.assign(x, { datos, actualizado: new Date().toISOString() }); guardar(); return { actualizado: x.actualizado }; },
   async equipoEnviar(codigo, datos) { await espera(); const d = db(); const e = eqDe(codigo); const x = (d.entregas[e.id] ||= { estado: "borrador" });
     if (x.estado === "enviado") throw new Error("Tu equipo ya envió el entregable");
-    const t = d.tiempos[e.concurso_id], tarde = !!(t?.fin && Date.now() > Date.parse(t.fin) + 60000);
+    const t = d.tiempos[e.concurso_id]; if (e.concurso_id !== "proyectos" && !t?.inicio) throw new Error("El tiempo aún no inicia. Espera a que el organizador dé la señal de inicio.");
+    const tarde = !!(t?.fin && Date.now() > Date.parse(t.fin) + 60000);
     Object.assign(x, { datos: tarde ? x.datos || {} : datos, estado: "enviado", enviado: new Date().toISOString(), tarde, actualizado: new Date().toISOString() }); guardar(); return { enviado: x.enviado, tarde }; },
   async juradoEntregas(codigo, concurso) { await espera(); const j = juradoDe(codigo); if (!j.concursos.includes(concurso)) throw new Error("No estás asignado a este concurso");
     return { tiempo: tiempoJson(concurso), entregas: db().equipos.filter((e) => e.concurso_id === concurso).map(entJson) }; },
