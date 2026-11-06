@@ -1,0 +1,2 @@
+-- Carga inicial del presupuesto (ya aplicada en Supabase).
+-- El contenido se retiró del repositorio público: el presupuesto real solo vive en la base de datos.
