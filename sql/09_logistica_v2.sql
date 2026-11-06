@@ -33,12 +33,7 @@ revoke all on public.jur_log_historial, public.jur_log_archivos from anon, authe
 -- Reconstrucción de lo que ya cambió antes de existir el historial
 update public.jur_log_items set pres_original = 9, orden = 1
   where id = '2ae4e755-d17d-4a82-bbd7-8661b995220b' and pres_original is null;  -- constancia borrada y creada de nuevo, igual a la original
-insert into public.jur_log_historial (fecha, accion, categoria, descripcion, antes, despues, detalle)
-select '2026-11-02 22:00:00+00', 'eliminado', 'Sede del evento', '[retirado]', 2000, null, 'Ya no se usará'
-where not exists (select 1 from public.jur_log_historial);
-insert into public.jur_log_historial (fecha, accion, categoria, descripcion, antes, despues, detalle)
-select '2026-11-02 21:36:00+00', 'agregado', 'Marketing y difusión', 'Pago de Claude Pro (1 mes)', null, 0, 'No estaba en el presupuesto aprobado'
-where (select count(*) from public.jur_log_historial) = 1;
+-- (Aquí se registraron en el historial dos cambios previos del presupuesto; esos datos se retiraron del repositorio público.)
 
 create or replace function public.jur_log_hist(p_accion text, p_cat text, p_desc text, p_antes numeric, p_despues numeric, p_detalle text default '')
 returns void language sql security definer set search_path = public as $$

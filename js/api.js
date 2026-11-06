@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611061316";
-import { CONCURSOS, porId } from "./concursos.js?v=202611061316";
-import { TALLERES } from "./talleres.js?v=202611061316";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611061316";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611061328";
+import { CONCURSOS, porId } from "./concursos.js?v=202611061328";
+import { TALLERES } from "./talleres.js?v=202611061328";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611061328";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -192,25 +192,24 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./logistica-semilla.js?v=202611061316");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611061328");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
-    let flyer = null, claude = null;
+    let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
       const cid = uid(); L.categorias.push({ id: cid, nombre: c.nombre, orden: ci + 1 });
       c.items.forEach((it, ii) => {
-        const x = { id: uid(), categoria_id: cid, ...it, pres_original: it.descripcion.startsWith("Pago de Claude") ? null : it.cantidad * it.cu, acordado: null, estado: "pendiente", proveedor_id: null, adelanto: false, orden: ii + 1 };
+        const x = { id: uid(), categoria_id: cid, ...it, pres_original: it.descripcion.startsWith("Herramienta") ? null : it.cantidad * it.cu, acordado: null, estado: "pendiente", proveedor_id: null, adelanto: false, orden: ii + 1 };
         L.items.push(x);
-        if (it.descripcion.startsWith("Impresion de flyers")) flyer = x.id;
-        if (it.descripcion.startsWith("Pago de Claude")) claude = x.id;
+        if (it.descripcion.startsWith("Flyers")) flyer = x.id;
+        if (it.descripcion.startsWith("Herramienta")) herr = x.id;
       });
     });
+    L.config.linea_base = L.items.filter((i) => i.pres_original != null).reduce((a, i) => a + i.pres_original, 0);
     const f = uid();
-    L.fondos.push({ id: f, nombre: "Fondo de transporte y marketing", responsable: "[retirado]", monto: 440, fecha: null,
-      notas: "[retirado]" });
-    L.gastos.push({ id: uid(), item_id: flyer, fondo_id: f, fecha: null, concepto: "Copias e impresiones", monto: 15, moneda: "PEN", tc: null, monto_pen: 15, comprobante: "", a_nombre_pmi: false, notas: "" });
-    L.gastos.push({ id: uid(), item_id: claude, fondo_id: f, fecha: null, concepto: "Claude Pro (1 mes)", monto: 23.6, moneda: "USD", tc: 3.4, monto_pen: 80.24, comprobante: "", a_nombre_pmi: false, notas: "" });
-    L.historial = [{ id: uid(), fecha: new Date().toISOString(), accion: "eliminado", categoria: "Sede del evento", descripcion: "[retirado]", antes: 2000, despues: null, detalle: "Ya no se usará" }];
-    L.items = L.items.filter((i) => !i.descripcion.startsWith("[retirado]"));
+    L.fondos.push({ id: f, nombre: "Fondo de ejemplo", responsable: "Organizador", monto: 200, fecha: null, notas: "Dato de ejemplo de la vista previa." });
+    L.gastos.push({ id: uid(), item_id: flyer, fondo_id: f, fecha: null, concepto: "Copias e impresiones", monto: 20, moneda: "PEN", tc: null, monto_pen: 20, comprobante: "", a_nombre_pmi: false, notas: "" });
+    L.gastos.push({ id: uid(), item_id: herr, fondo_id: f, fecha: null, concepto: "Herramienta digital", monto: 10, moneda: "USD", tc: 3.4, monto_pen: 34, comprobante: "", a_nombre_pmi: false, notas: "" });
+    L.historial = [{ id: uid(), fecha: new Date().toISOString(), accion: "eliminado", categoria: "Sede del evento", descripcion: "Ítem de ejemplo eliminado", antes: 100, despues: null, detalle: "Ya no se usará" }];
     d.log = L; guardar();
   }
   d.log.archivos ||= []; d.log.historial ||= [];
