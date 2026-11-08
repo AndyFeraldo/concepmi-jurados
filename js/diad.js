@@ -7,13 +7,13 @@
 //  · Guía personal: cada persona entra con su código (botón «Voluntarios» de la portada o
 //    su panel) y ve qué le toca, a qué hora llegar, dónde, con quién y qué hacer.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611080205";
-import { CONCURSOS, porId } from "./concursos.js?v=202611080205";
-import { TALLERES } from "./talleres.js?v=202611080205";
-import { CHARLAS } from "./charlas.js?v=202611080205";
-import { ENTREGABLES } from "./entregables.js?v=202611080205";
-import { AREAS, nivel } from "./permisos.js?v=202611080205";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611080205";
+import { api, ES_DEMO } from "./api.js?v=202611081304";
+import { CONCURSOS, porId } from "./concursos.js?v=202611081304";
+import { TALLERES } from "./talleres.js?v=202611081304";
+import { CHARLAS } from "./charlas.js?v=202611081304";
+import { ENTREGABLES } from "./entregables.js?v=202611081304";
+import { AREAS, nivel } from "./permisos.js?v=202611081304";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611081304";
 
 export const DIAS = {
   d1: { txt: "Día 1 · Martes 24 de noviembre", corto: "Mar 24/11", fecha: "2026-11-24" },
@@ -211,7 +211,7 @@ export function crearDiaD(ctx) {
     const asignadas = new Set(D.tareas.flatMap((t) => t.personas)), sinNadie = D.tareas.filter((t) => !t.personas.length).length;
     const sinLugar = D.tareas.filter((t) => !t.lugar).length, sinTarea = D.personas.filter((k) => !asignadas.has(k.id)).length;
     v.innerHTML = `<div class="cabeza" style="margin-top:0"><div><h1>Día D</h1><p>Quién hace qué, dónde y a qué hora el <b>24 y 26 de noviembre</b>. Las personas son las mismas de <b>Entregas → Accesos limitados</b>; si alguien no está, créalo aquí como voluntario. Cada uno entra con su código por el botón <b>Voluntarios · Día D</b> de la portada y ve su guía.</p></div>
-      <div class="acciones">${D.tareas.length ? "" : `<button class="btn btn--naranja" data-sugeridas>${I.mas}Cargar cronograma sugerido</button>`}<button class="btn ${D.tareas.length ? "btn--naranja" : ""}" data-nueva>${I.mas}Nueva tarea</button><button class="btn" data-plan>${I.descargar}Imprimir plan</button></div></div>
+</div>
       <div class="kpis">
         <div class="kpi"><b>${D.tareas.length}</b><span>tareas en el cronograma</span></div>
         <div class="kpi"><b>${asignadas.size}</b><span>personas con tarea</span></div>
@@ -225,9 +225,6 @@ export function crearDiaD(ctx) {
         <button class="pestana" data-sub="general" aria-selected="${sub === "general"}">${I.info}Datos generales</button></div>
       <div data-cuerpo></div>`;
     $$("[data-sub]", v).forEach((b) => (b.onclick = () => { sub = b.dataset.sub; pintar(v); }));
-    $("[data-nueva]", v).onclick = () => formTarea(null, v);
-    $("[data-plan]", v).onclick = () => imprimirPlan();
-    $("[data-sugeridas]", v)?.addEventListener("click", () => cargarSugeridas(v));
     const c = $("[data-cuerpo]", v);
     if (sub === "cronograma") pintarCronograma(c, v); else if (sub === "personas") pintarPersonas(c, v); else pintarGeneral(c, v);
   }
@@ -241,17 +238,24 @@ export function crearDiaD(ctx) {
     const filtros = `<div class="dd-filtros">
       <div class="segm">${[["todos", "Los 2 días"], ["d1", DIAS.d1.corto], ["d2", DIAS.d2.corto]].map(([k, t]) => `<button type="button" data-fd="${k}" class="${filtroDia === k ? "activo" : ""}">${t}</button>`).join("")}</div>
       <div class="segm"><button type="button" data-ft="" class="${!filtroTipo ? "activo" : ""}">Todo</button>${Object.entries(TIPOS).map(([k, t]) => `<button type="button" data-ft="${k}" class="${filtroTipo === k ? "activo" : ""}">${t.txt}</button>`).join("")}</div>
-      <label class="chip" style="cursor:pointer"><input type="checkbox" data-sin ${soloSin ? "checked" : ""}> Solo sin asignar</label></div>`;
+      <label class="chip" style="cursor:pointer"><input type="checkbox" data-sin ${soloSin ? "checked" : ""}> Solo sin asignar</label></div>
+      <div class="dd-acciones">
+        ${D.tareas.length ? "" : `<button class="btn btn--naranja" data-sugeridas>${I.mas}Cargar cronograma sugerido</button>`}
+        <button class="btn ${D.tareas.length ? "btn--naranja" : ""}" data-nueva>${I.mas}Nueva tarea</button>
+        <button class="btn" data-plan>${I.descargar}Imprimir plan</button></div>`;
+    const enlazarAcciones = () => {
+      $("[data-nueva]", c).onclick = () => formTarea(null, v);
+      $("[data-plan]", c).onclick = () => imprimirPlan();
+      $("[data-sugeridas]", c)?.addEventListener("click", () => cargarSugeridas(v));
+    };
     if (!D.tareas.length) {
-      c.innerHTML = `<div class="vacio"><b>Aún no hay tareas</b>Pulsa <b>Cargar cronograma sugerido</b>: trae la agenda oficial (registro, inauguración, charlas, talleres, concursos, Gymkana y premiación) con las funciones típicas (coordinador de sala, micrófonos, apoyo al ponente…). Luego solo asignas personas y corriges lo que quieras.</div>`;
-      return;
+      c.innerHTML = filtros + `<div class="vacio"><b>Aún no hay tareas</b>Pulsa <b>Cargar cronograma sugerido</b>: trae la agenda oficial (registro, inauguración, charlas, talleres, concursos, Gymkana y premiación) con las funciones típicas (coordinador de sala, micrófonos, apoyo al ponente…). Luego solo asignas personas y corriges lo que quieras.</div>`;
+      enlazarAcciones(); return;
     }
     const grupos = []; lista.forEach((t) => { const k = `${t.dia}|${t.hora_ini}|${t.bloque}`; let g = grupos.find((x) => x.k === k); if (!g) grupos.push((g = { k, t, items: [] })); g.items.push(t); });
-    let diaPrev = "";
-    c.innerHTML = filtros + (grupos.length ? grupos.map((g) => {
-      const cab = g.t.dia !== diaPrev ? `<h2 class="dd-dia">${esc(DIAS[g.t.dia].txt)}</h2>` : ""; diaPrev = g.t.dia;
+    const htmlGrupo = (g) => {
       const lugares = [...new Set(g.items.map((t) => t.lugar).filter(Boolean))];
-      return `${cab}<section class="dd-momento tarjeta">
+      return `<section class="dd-momento tarjeta">
         <div class="dd-momento__cab"><span class="dd-momento__hora">${esc(rango(g.t))}</span><b>${esc(g.t.bloque || "Sin momento")}</b>
           <span class="dd-momento__lugar">${lugares.length ? `📍 ${esc(lugares.join(" · "))}` : `<span class="dd-pc">📍 Lugar por confirmar</span>`}</span>
           <button class="btn btn--mini" data-mas-rol="${esc(g.items[0].id)}" title="Agregar otra función en este momento">${I.mas}Función</button></div>
@@ -263,7 +267,12 @@ export function crearDiaD(ctx) {
           <div class="dd-tarea__gente">${t.personas.map((pid) => { const k = persona(pid); return k ? `<span class="dd-per ${choques.includes(pid) ? "dd-per--choque" : ""}" title="${choques.includes(pid) ? "Tiene otra tarea a la misma hora" : esc(k.area || "")}">${esc(k.nombre)}${choques.includes(pid) ? " ⚠" : ""}<button data-quitar="${t.id}|${pid}" aria-label="Quitar a ${esc(k.nombre)}">×</button></span>` : ""; }).join("") || `<span class="dd-pc">Nadie asignado</span>`}</div>
           <div class="dd-tarea__acc"><button class="btn btn--mini btn--naranja" data-asignar="${t.id}">${I.personas}Asignar</button><button class="btn btn--mini btn--icono" data-editar="${t.id}" title="Editar tarea" aria-label="Editar tarea">${I.lapiz}</button></div>
         </div>`; }).join("")}</section>`;
-    }).join("") : `<div class="vacio"><b>Nada con ese filtro</b></div>`);
+    };
+    const dias = filtroDia === "todos" ? Object.keys(DIAS) : [filtroDia];
+    const columna = (d) => { const gs = grupos.filter((g) => g.t.dia === d);
+      return `<div class="dd-col"><h2 class="dd-dia">${esc(DIAS[d].txt)} <small>${gs.length} ${gs.length === 1 ? "momento" : "momentos"}</small></h2>${gs.map(htmlGrupo).join("") || `<div class="vacio">Nada en este día con ese filtro</div>`}</div>`; };
+    c.innerHTML = filtros + (grupos.length ? `<div class="dd-cols ${dias.length === 2 ? "dd-cols--2" : ""}">${dias.map(columna).join("")}</div>` : `<div class="vacio"><b>Nada con ese filtro</b></div>`);
+    enlazarAcciones();
     $$("[data-fd]", c).forEach((b) => (b.onclick = () => { filtroDia = b.dataset.fd; pintarCronograma(c, v); }));
     $$("[data-ft]", c).forEach((b) => (b.onclick = () => { filtroTipo = b.dataset.ft; pintarCronograma(c, v); }));
     $("[data-sin]", c).onchange = (e) => { soloSin = e.target.checked; pintarCronograma(c, v); };
