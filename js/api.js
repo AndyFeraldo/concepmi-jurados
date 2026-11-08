@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611081304";
-import { CONCURSOS, porId } from "./concursos.js?v=202611081304";
-import { TALLERES } from "./talleres.js?v=202611081304";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611081304";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611081549";
+import { CONCURSOS, porId } from "./concursos.js?v=202611081549";
+import { TALLERES } from "./talleres.js?v=202611081549";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611081549";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -147,6 +147,8 @@ const real = {
   adminDiadConfig: (codigo, datos) => rpc("jur_admin_diad_config", { p_codigo: codigo, p_datos: datos }),
   adminDiadPersona: (codigo, id, area, telefono) => rpc("jur_admin_diad_persona", { p_codigo: codigo, p_id: id, p_area: area, p_telefono: telefono }),
   diadMio: (codigo) => rpc("jur_diad_mio", { p_codigo: codigo }),
+  adminDiadVoluntario: (codigo, id, datos) => rpc("jur_admin_diad_voluntario", { p_codigo: codigo, p_id: id, p_datos: datos }),
+  adminDiadImportar: (codigo, lista) => rpc("jur_admin_diad_importar", { p_codigo: codigo, p_lista: lista }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -199,7 +201,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611081304");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611081549");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -232,7 +234,7 @@ function db() {
   mem.coordinadores ||= [{ id: uid(), nombre: "Coordinador de prueba", codigo: "SALA01", concursos: ["amateur-1"] }];
   mem.ponentes ||= CHARLAS.map((c, k) => ({ id: uid(), nombre: c.ponente, codigo: `PON00${k + 1}`, charlas: [c.id], descripcion: "", foto: "", titulo: "", video_despues: "", pdf: null, ppt: null, video: null }));
   if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true, permisos: { logistica: "editar" } });
-  if (!mem.coordinadores.some((k) => k.codigo === "VOL001")) mem.coordinadores.push({ id: uid(), nombre: "Valeria Voluntaria (prueba)", codigo: "VOL001", concursos: [], permisos: { diad: "ver" }, area: "RRPP", telefono: "999 111 222" });
+  if (!mem.coordinadores.some((k) => k.codigo === "VOL001")) mem.coordinadores.push({ id: uid(), nombre: "Valeria Voluntaria (prueba)", codigo: "VOL001", concursos: [], permisos: { diad: "ver" }, area: "RRPP", telefono: "999 111 222", nombres: "Valeria", paterno: "Voluntaria", materno: "(prueba)", disponibilidad: { d1: [[480, 780]], d2: [[780, 1230]] } });
   mem.diad ||= { tareas: [], config: {} };
   if (!mem.coordinadores.some((k) => k.codigo === "PROY01")) mem.coordinadores.push({ id: uid(), nombre: "Laptop del auditorio (prueba)", codigo: "PROY01", concursos: [], permisos: { proyeccion: "ver" } });
   if (!mem.coordinadores.some((k) => k.codigo === "RRPP01")) mem.coordinadores.push({ id: uid(), nombre: "Relaciones públicas (prueba)", codigo: "RRPP01", concursos: [], permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" } });
@@ -645,6 +647,23 @@ const demo = {
   async adminDiadConfig(codigo, datos) { await espera(); exigirAdmin(codigo); db().diad.config = datos; guardar(); return datos; },
   async adminDiadPersona(codigo, id, area, telefono) { await espera(); exigirAdmin(codigo); const k = db().coordinadores.find((x) => x.id === id); if (!k) throw new Error("Esa persona ya no existe");
     k.area = area || null; k.telefono = telefono || null; guardar(); return { ok: true }; },
+  async adminDiadVoluntario(codigo, id, datos = {}) { await espera(120); exigirAdmin(codigo); const d = db();
+    const nom = ["nombres", "paterno", "materno"].some((x) => x in datos) ? [datos.nombres, datos.paterno, datos.materno].map((x) => String(x || "").trim()).filter(Boolean).join(" ") : null;
+    if (nom !== null && nom.length < 2) throw new Error("Escribe el nombre");
+    const fijo = norm(datos.codigo); if (fijo && codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otra persona");
+    let k = id && d.coordinadores.find((x) => x.id === id);
+    if (id && !k) throw new Error("Esa persona ya no existe");
+    if (!k) { if (!nom) throw new Error("Escribe el nombre"); k = { id: uid(), codigo: nuevoCodigo(), concursos: [], permisos: { diad: "ver" }, disponibilidad: {} }; d.coordinadores.push(k); }
+    if (nom) k.nombre = nom;
+    ["nombres", "paterno", "materno", "area", "telefono"].forEach((x) => { if (x in datos) k[x] = String(datos[x] || "").trim() || null; });
+    if (datos.disponibilidad) k.disponibilidad = { ...(k.disponibilidad || {}), ...Object.fromEntries(Object.entries(datos.disponibilidad).filter(([x]) => x === "d1" || x === "d2").map(([x, r]) => [x, (r || []).filter((y) => y[0] < y[1])])) };
+    if (fijo) k.codigo = fijo; guardar(); return structuredClone(k); },
+  async adminDiadImportar(codigo, lista) { await espera(); exigirAdmin(codigo); const d = db(); let nuevos = 0, actualizados = 0;
+    for (const x of lista) { const nom = [x.nombres, x.paterno, x.materno].map((y) => String(y || "").trim()).filter(Boolean).join(" "); if (nom.length < 2) continue;
+      let k = d.coordinadores.find((y) => y.nombre.toLowerCase() === nom.toLowerCase());
+      if (!k) { k = { id: uid(), nombre: nom, codigo: nuevoCodigo(), concursos: [], permisos: { diad: "ver" }, disponibilidad: {} }; d.coordinadores.push(k); nuevos++; } else actualizados++;
+      ["nombres", "paterno", "materno", "area", "telefono"].forEach((y) => { if (String(x[y] || "").trim()) k[y] = String(x[y]).trim(); }); }
+    guardar(); return { nuevos, actualizados }; },
   async diadMio(codigo) { await espera(); const d = db(); const k = d.coordinadores.find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código incorrecto");
     const tareas = d.diad.tareas.filter((t) => t.personas.includes(k.id)).map((t) => ({ ...t, equipo: t.personas.filter((x) => x !== k.id).map((x) => d.coordinadores.find((o) => o.id === x)).filter(Boolean).map(({ nombre, area, telefono }) => ({ nombre, area, telefono })) }));
     const vistos = new Set(), agenda = []; d.diad.tareas.forEach((t) => { const c = t.dia + t.hora_ini + t.bloque; if (t.bloque && !vistos.has(c)) { vistos.add(c); agenda.push(t); } });

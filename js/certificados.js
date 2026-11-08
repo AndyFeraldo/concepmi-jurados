@@ -9,12 +9,12 @@
 // ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
 // en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611081304";
-import { resultados } from "./calculo.js?v=202611081304";
-import { porId, CONCURSOS } from "./concursos.js?v=202611081304";
-import { CHARLAS } from "./charlas.js?v=202611081304";
-import { tallerPorId } from "./talleres.js?v=202611081304";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611081304";
+import { api } from "./api.js?v=202611081549";
+import { resultados } from "./calculo.js?v=202611081549";
+import { porId, CONCURSOS } from "./concursos.js?v=202611081549";
+import { CHARLAS } from "./charlas.js?v=202611081549";
+import { tallerPorId } from "./talleres.js?v=202611081549";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611081549";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
@@ -172,7 +172,7 @@ function leerLibro(file) {
     fr.onerror = () => rej(new Error("No se pudo abrir el archivo")); fr.readAsArrayBuffer(file);
   });
 }
-function importarExcel({ titulo, ayuda, campos, alImportar }) {
+export function importarExcel({ titulo, ayuda, campos, alImportar, unBoton = "" }) {
   let libro = null, hoja = "", filas = [], fila0 = 0, cols = {};
   const m = modal(`<h2>${esc(titulo)}</h2><p class="ayuda" style="margin-top:0">${ayuda}</p>
     <label class="btn btn--naranja" style="cursor:pointer;justify-self:start">${I.descargar}Elegir archivo Excel<input type="file" accept=".xlsx,.xls,.csv" hidden data-archivo></label>
@@ -197,7 +197,7 @@ function importarExcel({ titulo, ayuda, campos, alImportar }) {
       <label class="check" style="margin:6px 0"><input type="checkbox" data-propio checked><span>Corregir mayúsculas de los nombres<small>«JUAN PÉREZ» → «Juan Pérez»</small></span></label>
       ${alReves() ? `<label class="check" style="margin:6px 0"><input type="checkbox" data-invertir checked><span>Poner el nombre antes de los apellidos<small>«García Rojas Pedro» → «Pedro García Rojas» (toma las 2 primeras palabras como apellidos)</small></span></label>` : ""}
       <p class="ayuda" style="margin:4px 0"><b>${datos.length}</b> filas encontradas${muestra.length ? `. Ejemplo: ${muestra.map(esc).join(" | ")}` : ""}</p>
-      <div class="modal__acciones" style="margin-top:6px"><button class="btn" data-cancelar>Cancelar</button><button class="btn" data-agregar>Agregar a la lista</button><button class="btn btn--naranja" data-reemplazar>${I.check}Reemplazar la lista</button></div>`;
+      <div class="modal__acciones" style="margin-top:6px"><button class="btn" data-cancelar>Cancelar</button>${unBoton ? `<button class="btn btn--naranja" data-agregar>${I.check}${esc(unBoton)}</button>` : `<button class="btn" data-agregar>Agregar a la lista</button><button class="btn btn--naranja" data-reemplazar>${I.check}Reemplazar la lista</button>`}</div>`;
     $("[data-hoja]", paso)?.addEventListener("change", (e) => { hoja = e.target.value; filas = window.XLSX.utils.sheet_to_json(libro.Sheets[hoja], { header: 1, defval: "", raw: false }); detectar(); pintar(); });
     $$("[data-col]", paso).forEach((s) => (s.onchange = () => { cols[s.dataset.col] = Number(s.value); pintar(); }));
     $("[data-cancelar]", paso).onclick = m.cerrar;
@@ -214,7 +214,7 @@ function importarExcel({ titulo, ayuda, campos, alImportar }) {
       alImportar(lista, reemplazar); m.cerrar();
     };
     $("[data-agregar]", paso).onclick = () => hacer(false);
-    $("[data-reemplazar]", paso).onclick = () => hacer(true);
+    $("[data-reemplazar]", paso)?.addEventListener("click", () => hacer(true));
   }
   $("[data-archivo]", m.el).onchange = async (e) => {
     const f = e.target.files?.[0]; if (!f) return;

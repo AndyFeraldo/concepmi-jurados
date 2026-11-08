@@ -3,16 +3,16 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611081304";
-import { ENTREGABLES } from "./entregables.js?v=202611081304";
-import { porId } from "./concursos.js?v=202611081304";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611081304";
-import { abrirEscenario } from "./escenario.js?v=202611081304";
-import { quitarArchivos } from "./presentacion.js?v=202611081304";
-import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611081304";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611081304";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611081304";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611081304";
+import { api } from "./api.js?v=202611081549";
+import { ENTREGABLES } from "./entregables.js?v=202611081549";
+import { porId } from "./concursos.js?v=202611081549";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611081549";
+import { abrirEscenario } from "./escenario.js?v=202611081549";
+import { quitarArchivos } from "./presentacion.js?v=202611081549";
+import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611081549";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611081549";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611081549";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611081549";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -261,6 +261,13 @@ export function crearEntregas(ctx) {
   }
   function pintarCoords() {
     if (!coords) return `<div class="cargando" style="min-height:80px"><div class="giro"></div></div>`;
+    const vols = coords.filter(soloGuia), todos = coords; coords = coords.filter((k) => !soloGuia(k));
+    const resumenVols = vols.length ? `<details class="tarjeta dd-vols-resumen"><summary>${I.personas} ${vols.length} voluntarios del Día D <small>(solo ven su guía)</small></summary>
+      <p class="ayuda" style="margin:6px 0">Sus horarios, tareas y códigos se manejan en la pestaña <b>Día D → Voluntarios</b>.</p>
+      <div class="reparto" style="margin:0">${vols.map((k) => `<span class="chip">${esc(k.nombre)} · <code>${esc(k.codigo)}</code></span>`).join("")}</div></details>` : "";
+    const html = pintarCoordsTabla(); coords = todos; return html + resumenVols;
+  }
+  function pintarCoordsTabla() {
     if (!coords.length) return `<div class="vacio"><b>Aún no hay accesos limitados</b>Crea uno para un coordinador de sala, tu líder de logística o alguien de confianza que solo deba mirar.</div>`;
     const chips = (k) => [...AREAS.filter((a) => nivel(k, a.id)).map((a) => `<span class="chip ${nivel(k, a.id) === "editar" ? "chip--ambar" : "chip--celeste"}">${esc(a.txt)} · ${nivel(k, a.id) === "editar" ? "edita" : "ve"}</span>`),
       ...k.concursos.map((x) => `<span class="chip chip--ambar">Entregas · ${esc(porId(x)?.nombre || x)}</span>`),
