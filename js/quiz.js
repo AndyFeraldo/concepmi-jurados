@@ -3,9 +3,9 @@
 // El servidor manda: dice en qué pregunta vamos y cuándo termina.
 // 15 s por pregunta; si todos respondieron, pasa a la siguiente.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611061328";
-import { charlaPorId, PUNTOS_PODIO, barajar } from "./charlas.js?v=202611061328";
-import { $, $$, esc, I, IMG, lanzarConfeti } from "./ui.js?v=202611061328";
+import { api, ES_DEMO } from "./api.js?v=202611080205";
+import { charlaPorId, PUNTOS_PODIO, barajar } from "./charlas.js?v=202611080205";
+import { $, $$, esc, I, IMG, lanzarConfeti } from "./ui.js?v=202611080205";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];

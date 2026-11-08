@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611061328";
-import { CONCURSOS, porId } from "./concursos.js?v=202611061328";
-import { TALLERES } from "./talleres.js?v=202611061328";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611061328";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611080205";
+import { CONCURSOS, porId } from "./concursos.js?v=202611080205";
+import { TALLERES } from "./talleres.js?v=202611080205";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611080205";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -140,6 +140,13 @@ const real = {
   adminCoordinadores: (codigo) => rpc("jur_admin_coordinadores", { p_codigo: codigo }),
   adminCoordinador: (codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, permisos = {} }) =>
     rpc("jur_admin_coordinador", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_borrar: borrar, p_codigo_fijo: codigoFijo, p_permisos: permisos }),
+  // ---- Día D ----
+  adminDiad: (codigo) => rpc("jur_admin_diad", { p_codigo: codigo }),
+  adminDiadTarea: (codigo, { id = null, datos = {}, borrar = false }) => rpc("jur_admin_diad_tarea", { p_codigo: codigo, p_id: id, p_datos: datos, p_borrar: borrar }),
+  adminDiadCargar: (codigo, lista) => rpc("jur_admin_diad_cargar", { p_codigo: codigo, p_lista: lista }),
+  adminDiadConfig: (codigo, datos) => rpc("jur_admin_diad_config", { p_codigo: codigo, p_datos: datos }),
+  adminDiadPersona: (codigo, id, area, telefono) => rpc("jur_admin_diad_persona", { p_codigo: codigo, p_id: id, p_area: area, p_telefono: telefono }),
+  diadMio: (codigo) => rpc("jur_diad_mio", { p_codigo: codigo }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -192,7 +199,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611061328");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611080205");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -225,6 +232,8 @@ function db() {
   mem.coordinadores ||= [{ id: uid(), nombre: "Coordinador de prueba", codigo: "SALA01", concursos: ["amateur-1"] }];
   mem.ponentes ||= CHARLAS.map((c, k) => ({ id: uid(), nombre: c.ponente, codigo: `PON00${k + 1}`, charlas: [c.id], descripcion: "", foto: "", titulo: "", video_despues: "", pdf: null, ppt: null, video: null }));
   if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true, permisos: { logistica: "editar" } });
+  if (!mem.coordinadores.some((k) => k.codigo === "VOL001")) mem.coordinadores.push({ id: uid(), nombre: "Valeria Voluntaria (prueba)", codigo: "VOL001", concursos: [], permisos: { diad: "ver" }, area: "RRPP", telefono: "999 111 222" });
+  mem.diad ||= { tareas: [], config: {} };
   if (!mem.coordinadores.some((k) => k.codigo === "PROY01")) mem.coordinadores.push({ id: uid(), nombre: "Laptop del auditorio (prueba)", codigo: "PROY01", concursos: [], permisos: { proyeccion: "ver" } });
   if (!mem.coordinadores.some((k) => k.codigo === "RRPP01")) mem.coordinadores.push({ id: uid(), nombre: "Relaciones públicas (prueba)", codigo: "RRPP01", concursos: [], permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" } });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "amateur-1")) mem.equipos.push({ id: uid(), concurso_id: "amateur-1", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0002" });
@@ -618,6 +627,28 @@ const demo = {
     if (!k) { k = { id: uid(), codigo: nuevoCodigo() }; d.coordinadores.push(k); }
     Object.assign(k, { nombre: String(nombre).trim(), concursos, permisos, logistica: permisos.logistica === "editar" }); if (fijo) k.codigo = fijo;
     guardar(); return { id: k.id, codigo: k.codigo }; },
+  // ---- Día D (vista previa) ----
+  async adminDiad(codigo) { await espera(); exigirAdmin(codigo); const d = db(); const ids = new Set(d.coordinadores.map((k) => k.id));
+    return structuredClone({ tareas: d.diad.tareas.map((t) => ({ ...t, personas: t.personas.filter((x) => ids.has(x)) })), personas: [...d.coordinadores].sort((a, b) => a.nombre.localeCompare(b.nombre)), config: d.diad.config || {} }); },
+  async adminDiadTarea(codigo, { id = null, datos = {}, borrar = false }) { await espera(); exigirAdmin(codigo); const d = db();
+    if (borrar) { d.diad.tareas = d.diad.tareas.filter((t) => t.id !== id); guardar(); return null; }
+    if (String(datos.rol || "").trim().length < 2 && String(datos.bloque || "").trim().length < 2) throw new Error("Escribe el momento o la función");
+    const ids = new Set(d.coordinadores.map((k) => k.id)); let t = id && d.diad.tareas.find((x) => x.id === id);
+    if (id && !t) throw new Error("Esa tarea ya no existe");
+    if (!t) { t = { id: uid(), orden: Math.max(0, ...d.diad.tareas.map((x) => x.orden || 0)) + 1 }; d.diad.tareas.push(t); }
+    Object.assign(t, { dia: datos.dia || "d1", hora_ini: datos.hora_ini || "", hora_fin: datos.hora_fin || "", bloque: datos.bloque || "", rol: datos.rol || "", tipo: datos.tipo || "general", concurso_id: datos.concurso_id || null,
+      lugar: datos.lugar || "", llegar_min: Math.max(0, Math.min(240, +datos.llegar_min || 0)), indicaciones: datos.indicaciones || "", personas: (datos.personas || []).filter((x) => ids.has(x)), ...(datos.orden ? { orden: datos.orden } : {}) });
+    guardar(); return structuredClone(t); },
+  async adminDiadCargar(codigo, lista) { await espera(); exigirAdmin(codigo); const d = db();
+    lista.forEach((x) => d.diad.tareas.push({ hora_ini: "", hora_fin: "", bloque: "", rol: "", tipo: "general", lugar: "", llegar_min: 10, indicaciones: "", ...x, concurso_id: x.concurso_id || null, id: uid(), orden: d.diad.tareas.length + 1, personas: [] }));
+    guardar(); return lista.length; },
+  async adminDiadConfig(codigo, datos) { await espera(); exigirAdmin(codigo); db().diad.config = datos; guardar(); return datos; },
+  async adminDiadPersona(codigo, id, area, telefono) { await espera(); exigirAdmin(codigo); const k = db().coordinadores.find((x) => x.id === id); if (!k) throw new Error("Esa persona ya no existe");
+    k.area = area || null; k.telefono = telefono || null; guardar(); return { ok: true }; },
+  async diadMio(codigo) { await espera(); const d = db(); const k = d.coordinadores.find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código incorrecto");
+    const tareas = d.diad.tareas.filter((t) => t.personas.includes(k.id)).map((t) => ({ ...t, equipo: t.personas.filter((x) => x !== k.id).map((x) => d.coordinadores.find((o) => o.id === x)).filter(Boolean).map(({ nombre, area, telefono }) => ({ nombre, area, telefono })) }));
+    const vistos = new Set(), agenda = []; d.diad.tareas.forEach((t) => { const c = t.dia + t.hora_ini + t.bloque; if (t.bloque && !vistos.has(c)) { vistos.add(c); agenda.push(t); } });
+    return structuredClone({ yo: { id: k.id, nombre: k.nombre, area: k.area, concursos: k.concursos, permisos: k.permisos }, tareas, agenda, config: d.diad.config || {} }); },
   // ---- Concurso de Proyectos (vista previa: los archivos quedan solo en esta pestaña) ----
   async equipoPresentacion(codigo) { await espera(); const e = eqDe(codigo); return { presentacion: presJson(e), config: presCfg(e.concurso_id) }; },
   async adminPresentaciones(codigo, concurso) { await espera(80); exigirVistaSala(codigo, concurso);

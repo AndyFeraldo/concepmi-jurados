@@ -5,15 +5,16 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611061328";
-import { crearEntregas } from "./admin-entregas.js?v=202611061328";
-import { crearLogistica } from "./admin-logistica.js?v=202611061328";
-import { ENTREGABLES } from "./entregables.js?v=202611061328";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611061328";
-import { vistaProyeccion } from "./proyeccion.js?v=202611061328";
-import { usaPanel, puede, soloVer, esProyeccion } from "./permisos.js?v=202611061328";
-import { vistaAdmin } from "./admin.js?v=202611061328";
-import { salir } from "./app.js?v=202611061328";
+import { api, ES_DEMO } from "./api.js?v=202611080205";
+import { crearEntregas } from "./admin-entregas.js?v=202611080205";
+import { crearLogistica } from "./admin-logistica.js?v=202611080205";
+import { ENTREGABLES } from "./entregables.js?v=202611080205";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611080205";
+import { vistaProyeccion } from "./proyeccion.js?v=202611080205";
+import { crearGuia, vistaGuia } from "./diad.js?v=202611080205";
+import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611080205";
+import { vistaAdmin } from "./admin.js?v=202611080205";
+import { salir } from "./app.js?v=202611080205";
 
 export async function vistaCoordinador(app, codigo) {
   let data = null;
@@ -23,6 +24,7 @@ export async function vistaCoordinador(app, codigo) {
 
   const k = data.coordinador;
   // Con pestañas del admin (jurados, charlas, etc.) usa el panel completo, limitado a sus permisos
+  if (soloGuia(k)) return vistaGuia(app, codigo, k, () => { soloVer(null); salir(); });
   if (esProyeccion(k)) return vistaProyeccion(app, codigo, k);
   if (usaPanel(k)) return vistaAdmin(app, codigo, k);
   const concursos = k.concursos.filter((x) => ENTREGABLES[x]);
@@ -30,8 +32,9 @@ export async function vistaCoordinador(app, codigo) {
   const pestanas = [];
   if (concursos.length) pestanas.push({ id: "entregas", txt: "Entregas", icono: "lapiz", ui: crearEntregas({ codigo: () => codigo, data: () => data, recargar, concursos, coordinador: true }) });
   if (puede(k, "logistica", "ver")) pestanas.push({ id: "logistica", txt: "Logística", icono: "caja", ui: crearLogistica({ codigo: () => codigo }) });
+  pestanas.unshift({ id: "guia", txt: "Mi Día D", icono: "reloj", ui: crearGuia({ codigo: () => codigo }) });
   let actual = pestanas[0]?.id;
-  const titulo = pestanas.length === 1 && actual === "logistica" ? (puede(k, "logistica") ? "Logística" : "Logística · solo lectura") : concursos.length && !k.logistica ? "Coordinador de sala" : "Panel de acceso limitado";
+  const titulo = pestanas.length === 2 && pestanas[1].id === "logistica" ? (puede(k, "logistica") ? "Logística" : "Logística · solo lectura") : concursos.length && !k.logistica ? "Coordinador de sala" : "Panel de acceso limitado";
 
   app.innerHTML = `<div class="fondo fondo--sobrio"></div>
     <header class="barra">

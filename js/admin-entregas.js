@@ -3,16 +3,16 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611061328";
-import { ENTREGABLES } from "./entregables.js?v=202611061328";
-import { porId } from "./concursos.js?v=202611061328";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611061328";
-import { abrirEscenario } from "./escenario.js?v=202611061328";
-import { quitarArchivos } from "./presentacion.js?v=202611061328";
-import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611061328";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611061328";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611061328";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611061328";
+import { api } from "./api.js?v=202611080205";
+import { ENTREGABLES } from "./entregables.js?v=202611080205";
+import { porId } from "./concursos.js?v=202611080205";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611080205";
+import { abrirEscenario } from "./escenario.js?v=202611080205";
+import { quitarArchivos } from "./presentacion.js?v=202611080205";
+import { AREAS, PLANTILLAS, nivel } from "./permisos.js?v=202611080205";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611080205";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611080205";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611080205";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -20,7 +20,7 @@ const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-d
 export function crearEntregas(ctx) {
   const lista = () => (ctx.concursos || Object.keys(ENTREGABLES)).filter((k) => ENTREGABLES[k]);
   const esAdmin = !ctx.coordinador;
-  let concurso = lista()[0], E = null, P = null, coords = null, desfase = 0, temporizador = null, reloj = null;
+  let concurso = lista()[0], E = null, P = null, coords = null, diadT = [], desfase = 0, temporizador = null, reloj = null;
   const del = (id) => ctx.data().delegaciones.find((d) => d.id === id);
   const nomDel = (id) => { const d = del(id); return d ? (d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre) : "Delegación eliminada"; };
   const ahora = () => Date.now() + desfase;
@@ -256,18 +256,20 @@ export function crearEntregas(ctx) {
   // ---------------- Coordinadores de sala (solo admin) ----------------
   async function cargarCoords(v) {
     try { coords = await api.adminCoordinadores(ctx.codigo()); } catch (e) { coords = []; aviso(e.message, "error"); }
+    try { diadT = (await api.adminDiad(ctx.codigo())).tareas || []; } catch { diadT = []; }
     const caja = $("[data-coords]", v); if (caja) { caja.innerHTML = pintarCoords(); enlazarCoords(v); }
   }
   function pintarCoords() {
     if (!coords) return `<div class="cargando" style="min-height:80px"><div class="giro"></div></div>`;
     if (!coords.length) return `<div class="vacio"><b>Aún no hay accesos limitados</b>Crea uno para un coordinador de sala, tu líder de logística o alguien de confianza que solo deba mirar.</div>`;
     const chips = (k) => [...AREAS.filter((a) => nivel(k, a.id)).map((a) => `<span class="chip ${nivel(k, a.id) === "editar" ? "chip--ambar" : "chip--celeste"}">${esc(a.txt)} · ${nivel(k, a.id) === "editar" ? "edita" : "ve"}</span>`),
-      ...k.concursos.map((x) => `<span class="chip chip--ambar">Entregas · ${esc(porId(x)?.nombre || x)}</span>`)].join(" ") || `<span class="tenue">Nada asignado</span>`;
+      ...k.concursos.map((x) => `<span class="chip chip--ambar">Entregas · ${esc(porId(x)?.nombre || x)}</span>`),
+      (() => { const n = diadT.filter((t) => (t.personas || []).includes(k.id)).length; return `<span class="chip ${n ? "chip--verde" : ""}" title="Se asignan en la pestaña Día D">Día D · ${n ? `${n} ${n === 1 ? "tarea" : "tareas"}` : "sin tareas"}</span>`; })()].join(" ") || `<span class="tenue">Nada asignado</span>`;
     return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Permisos</th><th></th></tr></thead><tbody>
       ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td style="white-space:nowrap"><code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
         <td><div class="reparto" style="margin:0">${chips(k)}</div></td>
         <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>
-      <p class="ayuda" style="margin-top:8px"><b>Ve</b> = mira la pestaña sin poder cambiar nada (y sin ver códigos de jurados ni talleristas). <b>Edita</b> = puede crear, cambiar y borrar en esa pestaña.</p>`;
+      <p class="ayuda" style="margin-top:8px">Estas mismas personas son las del <b>Día D</b>: ahí les asignas qué hacer, dónde y a qué hora (y puedes crear voluntarios nuevos, que aparecen aquí). <b>Ve</b> = mira la pestaña sin poder cambiar nada (y sin ver códigos de jurados ni talleristas). <b>Edita</b> = puede crear, cambiar y borrar en esa pestaña.</p>`;
   }
   function enlazarCoords(v) {
     if (!esAdmin) return;

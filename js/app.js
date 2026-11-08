@@ -1,16 +1,16 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611061328";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611061328";
-import { CONCURSOS } from "./concursos.js?v=202611061328";
-import { vistaJurado } from "./jurado.js?v=202611061328";
-import { vistaAdmin } from "./admin.js?v=202611061328";
-import { vistaTallerista } from "./tallerista.js?v=202611061328";
-import { vistaQuiz } from "./quiz.js?v=202611061328";
-import { vistaEquipo } from "./equipo.js?v=202611061328";
-import { vistaPonente } from "./ponente.js?v=202611061328";
-import { vistaCoordinador } from "./coordinador.js?v=202611061328";
+import { api, ES_DEMO } from "./api.js?v=202611080205";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611080205";
+import { CONCURSOS } from "./concursos.js?v=202611080205";
+import { vistaJurado } from "./jurado.js?v=202611080205";
+import { vistaAdmin } from "./admin.js?v=202611080205";
+import { vistaTallerista } from "./tallerista.js?v=202611080205";
+import { vistaQuiz } from "./quiz.js?v=202611080205";
+import { vistaEquipo } from "./equipo.js?v=202611080205";
+import { vistaPonente } from "./ponente.js?v=202611080205";
+import { vistaCoordinador } from "./coordinador.js?v=202611080205";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -89,13 +89,18 @@ function portada() {
             <span class="puerta__ir">Abrir panel ${I.flecha}</span>
           </button>
         </div>
+        <button class="puerta-staff" data-rol="voluntario">
+          <span class="puerta-staff__icono">${I.personas}</span>
+          <span><b>Voluntarios y staff · Día D</b><small>Mira qué te toca, dónde y a qué hora llegar, con tu código.</small></span>
+          <span class="puerta-staff__ir">Ver mi guía ${I.flecha}</span>
+        </button>
       </div>
     </main>
     <footer class="portada__pie">VI Congreso Nacional de Conexiones Estudiantiles del <b>PMI</b> · 24 y 26 de noviembre · UNMSM</footer>
     <img class="wolfito" src="${IMG.wolfito}" alt="">
   </div>
   ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
-  app.querySelectorAll(".puerta").forEach((b) => (b.onclick = () => pedirCodigo(b.dataset.rol)));
+  app.querySelectorAll(".puerta, .puerta-staff").forEach((b) => (b.onclick = () => pedirCodigo(b.dataset.rol)));
 }
 
 const ROLES = {
@@ -105,6 +110,7 @@ const ROLES = {
   admin: { titulo: "Acceso de administrador", icono: "escudo", fondo: "linear-gradient(135deg,#1FCBEA,#6E2BE6)", btn: "btn--primario", demo: "ADMIN1 (o SALA01 para coordinador de sala)", boton: "Admin" },
   ponente: { titulo: "Acceso de ponente", icono: "vivo", fondo: "linear-gradient(135deg,#FFD27A,#FF7A00)", btn: "btn--naranja", demo: "PON001, PON002 o PON003", boton: "Ponente" },
   proyeccion: { titulo: "Acceso de proyección", icono: "pizarra", fondo: "linear-gradient(135deg,#1FCBEA,#FF7A00)", btn: "btn--naranja", demo: "PROY01", boton: "Proyección" },
+  voluntario: { titulo: "Voluntarios y staff · Día D", icono: "personas", fondo: "linear-gradient(135deg,#3BE08F,#1FCBEA)", btn: "btn--naranja", demo: "VOL001 (o SALA01)", boton: "Voluntarios" },
   coordinador: { boton: "Admin" },
 };
 
@@ -147,7 +153,7 @@ function pedirCodigo(rol) {
     try {
       const r = await api.entrar(codigo);
       // El coordinador de sala entra por la misma puerta del admin
-      const valido = r && (r.rol === rol || ((rol === "admin" || rol === "proyeccion") && r.rol === "coordinador"));
+      const valido = r && (r.rol === rol || (["admin", "proyeccion", "voluntario"].includes(rol) && r.rol === "coordinador"));
       if (!valido) {
         err.textContent = r ? `Ese código es de ${r.rol === "admin" ? "administrador" : r.rol}. Usa el botón ${ROLES[r.rol]?.boton || ""}.` : "Código incorrecto. Revisa e inténtalo otra vez.";
         inp.classList.remove("temblor"); void inp.offsetWidth; inp.classList.add("temblor"); inp.select();
