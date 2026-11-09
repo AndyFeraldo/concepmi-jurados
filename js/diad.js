@@ -7,14 +7,14 @@
 //  · Guía personal: cada persona entra con su código (botón «Voluntarios» de la portada o
 //    su panel) y ve qué le toca, a qué hora llegar, dónde, con quién y qué hacer.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611081549";
-import { CONCURSOS, porId } from "./concursos.js?v=202611081549";
-import { TALLERES } from "./talleres.js?v=202611081549";
-import { CHARLAS } from "./charlas.js?v=202611081549";
-import { ENTREGABLES } from "./entregables.js?v=202611081549";
-import { importarExcel } from "./certificados.js?v=202611081549";
-import { AREAS, nivel } from "./permisos.js?v=202611081549";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611081549";
+import { api, ES_DEMO } from "./api.js?v=202611091504";
+import { CONCURSOS, porId } from "./concursos.js?v=202611091504";
+import { TALLERES } from "./talleres.js?v=202611091504";
+import { CHARLAS } from "./charlas.js?v=202611091504";
+import { ENTREGABLES } from "./entregables.js?v=202611091504";
+import { importarExcel } from "./certificados.js?v=202611091504";
+import { AREAS, nivel } from "./permisos.js?v=202611091504";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611091504";
 
 export const DIAS = {
   d1: { txt: "Día 1 · Martes 24 de noviembre", num: "Día 1", largo: "Martes 24 de noviembre", corto: "Mar 24/11", fecha: "2026-11-24" },
@@ -168,7 +168,7 @@ function guiaDe(D, k) {
 function mensajeWhatsApp(D, k) {
   const g = guiaDe(D, k);
   return [`Hola ${k.nombre.split(" ")[0]} 👋 Eres parte del equipo del *VI CONCEPMI 2026*.`, "",
-    `Tu código: *${k.codigo}*`, `Entra a ${URL_PANEL()} → botón *Voluntarios · Día D* y escribe tu código para ver tu guía completa (qué hacer, dónde y con quién).`, "",
+    k.codigo ? `Tu código: *${k.codigo}*` : "Entra con tu código privado.", `Entra a ${URL_PANEL()} → botón *Voluntarios · Día D* y escribe tu código para ver tu guía completa (qué hacer, dónde y con quién).`, "",
     g.tareas.length ? "*Tus tareas:*" : "Aún no tienes tareas asignadas; te avisaremos.",
     ...g.tareas.sort(ordenT).map((t) => `• ${DIAS[t.dia].corto} · llega ${llegada(t)} · ${t.rol || t.bloque}${t.rol && t.bloque ? ` (${t.bloque})` : ""} · ${t.lugar || "salón por confirmar"}`),
     "", "No compartas tu código con nadie. ¡Gracias por sumarte!"].join("\n");
@@ -458,7 +458,7 @@ export function crearDiaD(ctx) {
       ${D.personas.length ? `<div class="tabla-envoltura"><table class="tabla dd-vtabla"><thead><tr><th>Voluntario</th><th>${DIAS.d1.num} · ${DIAS.d1.corto}</th><th>${DIAS.d2.num} · ${DIAS.d2.corto}</th><th>Tareas</th><th></th></tr></thead><tbody>
         ${lista.map((k) => { const ts = tareasDe(k); return `<tr data-fila="${k.id}">
           <td class="dd-vnom"><b>${esc(k.nombre)}</b><div>${k.area ? `<span class="chip">${esc(k.area)}</span>` : `<span class="dd-pc" style="font-size:.75rem">Sin área</span>`}${esVoluntario(k) ? "" : ` <span class="chip chip--celeste" title="Tiene pestañas del panel o Entregas">Panel</span>`}</div>
-            <small class="tenue">${k.telefono ? `${esc(k.telefono)} · ` : ""}código <code>${esc(k.codigo)}</code></small><small class="dd-ok" data-estado></small></td>
+            <small class="tenue">${k.telefono ? `${esc(k.telefono)} · ` : ""}${k.codigo ? `código <code>${esc(k.codigo)}</code>` : "🔒 código privado"}</small><small class="dd-ok" data-estado></small></td>
           ${Object.keys(DIAS).map((d) => `<td><div class="dd-disp" data-disp="${k.id}|${d}">${htmlDisp(k, d)}</div></td>`).join("")}
           <td>${ts.length ? ts.map((t) => `<div class="dd-mini"><b>${esc(DIAS[t.dia].corto)} ${esc(hora(minutos(t.hora_ini)))}</b> ${esc(t.rol || t.bloque)}</div>`).join("") : `<span class="dd-pc" style="font-size:.8rem">Sin tarea</span>`}</td>
           <td class="dd-vacc"><button class="btn btn--mini btn--icono" data-ver-guia="${k.id}" title="Ver su guía" aria-label="Ver su guía">${I.libro}</button><button class="btn btn--mini btn--icono" data-wa="${k.id}" title="Copiar mensaje de WhatsApp con su código y sus tareas" aria-label="WhatsApp">${I.copiar}</button><button class="btn btn--mini btn--icono" data-per-editar="${k.id}" title="Editar datos" aria-label="Editar">${I.lapiz}</button></td></tr>`; }).join("") || `<tr><td colspan="5"><div class="vacio">Nadie con ese filtro</div></td></tr>`}

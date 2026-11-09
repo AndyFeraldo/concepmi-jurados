@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611081549";
-import { CONCURSOS, porId } from "./concursos.js?v=202611081549";
-import { TALLERES } from "./talleres.js?v=202611081549";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611081549";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611091504";
+import { CONCURSOS, porId } from "./concursos.js?v=202611091504";
+import { TALLERES } from "./talleres.js?v=202611091504";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611091504";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -32,12 +32,12 @@ async function edge(cuerpo) {
   return data;
 }
 // Sube el archivo directo al espacio privado con barra de progreso (XHR)
-function subirConProgreso(path, token, archivo, alAvanzar) {
+function subirConProgreso(path, token, archivo, alAvanzar, tipoContenido = null) {
   return new Promise((res, rej) => {
     const x = new XMLHttpRequest();
     x.open("PUT", `${SUPABASE_URL}/storage/v1/object/upload/sign/jur-presentaciones/${path.split("/").map(encodeURIComponent).join("/")}?token=${encodeURIComponent(token)}`);
     x.setRequestHeader("apikey", SUPABASE_KEY); x.setRequestHeader("Authorization", `Bearer ${SUPABASE_KEY}`);
-    x.setRequestHeader("x-upsert", "false"); x.setRequestHeader("Content-Type", archivo.type || "application/octet-stream");
+    x.setRequestHeader("x-upsert", "false"); x.setRequestHeader("Content-Type", tipoContenido || archivo.type || "application/octet-stream");
     x.upload.onprogress = (e) => e.lengthComputable && alAvanzar?.(e.loaded / e.total);
     x.onload = () => (x.status >= 200 && x.status < 300 ? res() : rej(new Error(`No se pudo subir el archivo (${x.status}). Inténtalo de nuevo.`)));
     x.onerror = () => rej(new Error("Se cortó la conexión al subir. Revisa tu internet e inténtalo de nuevo."));
@@ -149,6 +149,17 @@ const real = {
   diadMio: (codigo) => rpc("jur_diad_mio", { p_codigo: codigo }),
   adminDiadVoluntario: (codigo, id, datos) => rpc("jur_admin_diad_voluntario", { p_codigo: codigo, p_id: id, p_datos: datos }),
   adminDiadImportar: (codigo, lista) => rpc("jur_admin_diad_importar", { p_codigo: codigo, p_lista: lista }),
+  // ---- Casos confidenciales (Amateur I, II e IATHON) ----
+  casosEstado: (codigo) => rpc("jur_casos_estado", { p_codigo: codigo }),
+  coordCambiarCodigo: (codigo, nuevo) => rpc("jur_coord_cambiar_codigo", { p_codigo: codigo, p_nuevo: nuevo }),
+  async casoSubir(codigo, concurso, archivo, alAvanzar) {
+    const { path, token } = await edge({ accion: "subir", caso: true, codigo, concurso, nombre: archivo.name, tamano: archivo.size });
+    // El espacio privado acepta PDF; los Word se suben como archivo genérico (se descargan igual con su nombre)
+    await subirConProgreso(path, token, archivo, alAvanzar, /\.pdf$/i.test(archivo.name) ? "application/pdf" : "application/octet-stream");
+    await edge({ accion: "confirmar", caso: true, codigo, concurso, path, nombre: archivo.name, tamano: archivo.size });
+  },
+  casoUrl: (codigo, concurso, descargar = false) => edge({ accion: "leer", caso: true, codigo, concurso, descargar }),
+  casoQuitar: (codigo, concurso) => edge({ accion: "quitar", caso: true, codigo, concurso }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -201,7 +212,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611081549");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611091504");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -236,6 +247,8 @@ function db() {
   if (!mem.coordinadores.some((k) => k.codigo === "LOG001")) mem.coordinadores.push({ id: uid(), nombre: "Líder de logística (prueba)", codigo: "LOG001", concursos: [], logistica: true, permisos: { logistica: "editar" } });
   if (!mem.coordinadores.some((k) => k.codigo === "VOL001")) mem.coordinadores.push({ id: uid(), nombre: "Valeria Voluntaria (prueba)", codigo: "VOL001", concursos: [], permisos: { diad: "ver" }, area: "RRPP", telefono: "999 111 222", nombres: "Valeria", paterno: "Voluntaria", materno: "(prueba)", disponibilidad: { d1: [[480, 780]], d2: [[780, 1230]] } });
   mem.diad ||= { tareas: [], config: {} };
+  if (!mem.coordinadores.some((k) => k.nombre === "Presidenta (prueba)")) mem.coordinadores.push({ id: uid(), nombre: "Presidenta (prueba)", codigo: "CASO01", concursos: ["iathon", "amateur-1", "amateur-2"], permisos: { casos: "editar" }, codigo_propio: false });
+  mem.casos ||= {}; mem.casosVistas ||= [];
   if (!mem.coordinadores.some((k) => k.codigo === "PROY01")) mem.coordinadores.push({ id: uid(), nombre: "Laptop del auditorio (prueba)", codigo: "PROY01", concursos: [], permisos: { proyeccion: "ver" } });
   if (!mem.coordinadores.some((k) => k.codigo === "RRPP01")) mem.coordinadores.push({ id: uid(), nombre: "Relaciones públicas (prueba)", codigo: "RRPP01", concursos: [], permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" } });
   if (mem.delegaciones.length && !mem.equipos.some((e) => e.concurso_id === "amateur-1")) mem.equipos.push({ id: uid(), concurso_id: "amateur-1", delegacion_id: mem.delegaciones[0].id, nombre: "", lider: "", codigo: "EQ0002" });
@@ -617,7 +630,7 @@ const demo = {
     return { coordinador: { id: k.id, nombre: k.nombre, concursos: k.concursos, logistica: !!k.logistica, permisos: k.permisos || (k.logistica ? { logistica: "editar" } : {}) }, delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(({ id, nombre, siglas }) => ({ id, nombre, siglas })),
       jurados: d.jurados.filter((j) => j.concursos.some((c) => k.concursos.includes(c))).map(({ id, nombre, concursos }) => ({ id, nombre, concursos })),
       calificaciones: d.calificaciones.filter((c) => k.concursos.includes(c.concurso_id)), ajustes: d.ajustes.filter((a) => k.concursos.includes(a.concurso_id)) }; },
-  async adminCoordinadores(codigo) { await espera(); exigirAdmin(codigo); return [...(db().coordinadores || [])].sort((a, b) => a.nombre.localeCompare(b.nombre)); },
+  async adminCoordinadores(codigo) { await espera(); exigirAdmin(codigo); return structuredClone([...(db().coordinadores || [])].sort((a, b) => a.nombre.localeCompare(b.nombre))).map((k) => (k.codigo_propio ? { ...k, codigo: null } : k)); },
   async adminCoordinador(codigo, { id = null, nombre = "", concursos = [], borrar = false, codigoFijo = null, permisos = {} }) {
     await espera(); exigirAdmin(codigo); const d = db(); d.coordinadores ||= [];
     if (borrar) { d.coordinadores = d.coordinadores.filter((k) => k.id !== id); guardar(); return null; }
@@ -625,6 +638,7 @@ const demo = {
     permisos = Object.fromEntries(Object.entries(permisos || {}).filter(([, x]) => x === "ver" || x === "editar"));
     if (!concursos.length && !Object.keys(permisos).length) throw new Error("Elige al menos una pestaña o un concurso de Entregas");
     const fijo = norm(codigoFijo); if (fijo && codigoUsado(fijo, id)) throw new Error("Ese código ya lo tiene otro jurado, tallerista, equipo o coordinador");
+    if (fijo && d.coordinadores.find((x) => x.id === id)?.codigo_propio) throw new Error("Esta persona eligió su propio código privado: solo ella puede cambiarlo");
     let k = id && d.coordinadores.find((x) => x.id === id);
     if (!k) { k = { id: uid(), codigo: nuevoCodigo() }; d.coordinadores.push(k); }
     Object.assign(k, { nombre: String(nombre).trim(), concursos, permisos, logistica: permisos.logistica === "editar" }); if (fijo) k.codigo = fijo;
@@ -664,6 +678,31 @@ const demo = {
       if (!k) { k = { id: uid(), nombre: nom, codigo: nuevoCodigo(), concursos: [], permisos: { diad: "ver" }, disponibilidad: {} }; d.coordinadores.push(k); nuevos++; } else actualizados++;
       ["nombres", "paterno", "materno", "area", "telefono"].forEach((y) => { if (String(x[y] || "").trim()) k[y] = String(x[y]).trim(); }); }
     guardar(); return { nuevos, actualizados }; },
+  // ---- Casos confidenciales (vista previa: los archivos quedan solo en esta pestaña) ----
+  async casosEstado(codigo) { await espera(80); const d = db(); const c = norm(codigo); let rol, k = null, cc = ["amateur-1", "amateur-2", "iathon"];
+    if (c === d.admin) rol = "admin"; else if ((k = accesoDe(c))) rol = k.permisos?.casos === "editar" ? "encargada" : "coordinador";
+    else { const e = d.equipos.find((x) => x.codigo === c); if (e) { rol = "equipo"; cc = [e.concurso_id]; } else { const j = d.jurados.find((x) => x.codigo === c); if (!j) throw new Error("Código incorrecto"); rol = "jurado"; cc = cc.filter((x) => j.concursos.includes(x)); } }
+    return structuredClone({ rol, codigo_propio: !!k?.codigo_propio, encargadas: d.coordinadores.filter((x) => x.permisos?.casos === "editar").map((x) => x.nombre).sort(),
+      concursos: cc.sort().map((ci) => { const x = d.casos[ci], lib = !!d.tiempos[ci]?.inicio; return { concurso_id: ci, subido: !!x, liberado: lib, fecha: x?.subido, tipo: x?.tipo, tamano: x?.tamano, subido_por: x?.subido_por,
+        nombre: x && (lib || rol === "admin" || (rol === "encargada" && k.codigo_propio)) ? x.nombre : null, vistas: ["admin", "encargada"].includes(rol) ? d.casosVistas.filter((w) => w.concurso_id === ci) : null }; }) }); },
+  async coordCambiarCodigo(codigo, nuevo) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede cambiarse aquí");
+    const n = norm(nuevo); if (!/^[A-Z0-9-]{8,16}$/.test(n)) throw new Error("Tu código privado debe tener de 8 a 16 letras o números"); if (n === k.codigo) throw new Error("Elige un código distinto al que te dieron");
+    if (codigoUsado(n, k.id)) throw new Error("Ese código no se puede usar; elige otro"); k.codigo = n; k.codigo_propio = true; guardar(); return { ok: true }; },
+  async casoSubir(codigo, concurso, archivo, alAvanzar) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede manejar los casos confidenciales");
+    if (!k.codigo_propio) throw new Error("Primero crea tu código privado"); if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el caso ya no se puede cambiar");
+    if (!/\.(pdf|docx?)$/i.test(archivo.name)) throw new Error("El caso debe ser un PDF o un Word (.pdf, .docx o .doc)");
+    for (let i = 1; i <= 10; i++) { await espera(40); alAvanzar?.(i / 10); }
+    ARCHIVOS_DEMO.set(`caso:${concurso}`, archivo); db().casos[concurso] = { nombre: archivo.name, tipo: /\.pdf$/i.test(archivo.name) ? "pdf" : "word", tamano: archivo.size, subido: new Date().toISOString(), subido_por: k.nombre }; guardar(); },
+  async casoUrl(codigo, concurso) { await espera(); const d = db(); const c = norm(codigo), x = d.casos[concurso]; if (!x) throw new Error("Todavía no hay un caso para este concurso");
+    const lib = !!d.tiempos[concurso]?.inicio; let rol, quien;
+    if (c === d.admin) { rol = "admin"; quien = "Administrador"; } else { const k = accesoDe(c); const e = d.equipos.find((y) => y.codigo === c);
+      if (k && k.permisos?.casos === "editar" && k.codigo_propio) { rol = "encargada"; quien = k.nombre; } else if (k && k.concursos.includes(concurso)) { rol = "coordinador"; quien = k.nombre; }
+      else if (e && e.concurso_id === concurso) { rol = "equipo"; quien = d.delegaciones.find((y) => y.id === e.delegacion_id)?.siglas || "Equipo"; } else throw new Error("Este código no puede abrir este caso"); }
+    if (!["admin", "encargada"].includes(rol) && !lib) throw new Error("Por confidencialidad, el caso se abre recién cuando empieza el concurso");
+    d.casosVistas.push({ concurso_id: concurso, rol, quien, antes: !lib, momento: new Date().toISOString() }); guardar();
+    const f = ARCHIVOS_DEMO.get(`caso:${concurso}`); if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return { url: URL.createObjectURL(f), nombre: x.nombre }; },
+  async casoQuitar(codigo, concurso) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar" || !k.codigo_propio) throw new Error("Este código no puede manejar los casos confidenciales");
+    if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el caso ya no se puede quitar"); delete db().casos[concurso]; ARCHIVOS_DEMO.delete(`caso:${concurso}`); guardar(); return { ok: true }; },
   async diadMio(codigo) { await espera(); const d = db(); const k = d.coordinadores.find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código incorrecto");
     const tareas = d.diad.tareas.filter((t) => t.personas.includes(k.id)).map((t) => ({ ...t, equipo: t.personas.filter((x) => x !== k.id).map((x) => d.coordinadores.find((o) => o.id === x)).filter(Boolean).map(({ nombre, area, telefono }) => ({ nombre, area, telefono })) }));
     const vistos = new Set(), agenda = []; d.diad.tareas.forEach((t) => { const c = t.dia + t.hora_ini + t.bloque; if (t.bloque && !vistos.has(c)) { vistos.add(c); agenda.push(t); } });

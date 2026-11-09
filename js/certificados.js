@@ -9,12 +9,12 @@
 // ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
 // en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611081549";
-import { resultados } from "./calculo.js?v=202611081549";
-import { porId, CONCURSOS } from "./concursos.js?v=202611081549";
-import { CHARLAS } from "./charlas.js?v=202611081549";
-import { tallerPorId } from "./talleres.js?v=202611081549";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611081549";
+import { api } from "./api.js?v=202611091504";
+import { resultados } from "./calculo.js?v=202611091504";
+import { porId, CONCURSOS } from "./concursos.js?v=202611091504";
+import { CHARLAS } from "./charlas.js?v=202611091504";
+import { tallerPorId } from "./talleres.js?v=202611091504";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611091504";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414

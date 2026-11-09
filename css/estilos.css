@@ -1812,3 +1812,28 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .dd-op__txt .chip, .dd-pcard .chip{ justify-self:start; }
 .dd-buscar{ width:100%; padding:.6em .9em; border-radius:12px; border:1px solid var(--borde); background:rgba(255,255,255,.06); color:inherit; font:inherit; }
 .dd-buscar::placeholder{ color:var(--tenue); } .dd-buscar:focus{ outline:none; border-color:#FF8A3D; }
+
+/* ===== Casos confidenciales ===== */
+.cs-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-bottom:14px; }
+.cs-card{ padding:16px 18px; display:grid; gap:12px; align-content:start; border-color:rgba(255,194,61,.45); }
+.cs-card--ok{ border-color:rgba(59,224,143,.5); }
+.cs-card__cab{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; } .cs-card__cab b{ font-size:1.1rem; }
+.cs-arch{ display:flex; gap:12px; align-items:center; } .cs-arch div{ display:grid; min-width:0; } .cs-arch b{ word-break:break-word; } .cs-arch small{ color:var(--tenue); }
+.cs-ico{ width:46px; height:52px; flex:none; border-radius:8px; display:grid; place-items:center; font-weight:800; font-size:.75rem; letter-spacing:.04em; color:#fff; background:linear-gradient(135deg,#FF5A4E,#C2185B); }
+.cs-acc{ display:flex; flex-wrap:wrap; gap:8px; }
+.cs-barra{ height:8px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; } .cs-barra i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#FF6A1F,#FFB27F); transition:width .2s; }
+.cs-reg summary{ cursor:pointer; font-size:.85rem; color:var(--niebla); } .cs-reg ul{ margin:6px 0 0; padding-left:18px; font-size:.82rem; } .cs-reg li{ margin:3px 0; } .cs-reg small{ color:var(--tenue); }
+.cs-reg--antes{ color:#FFD98A; } .cs-reg-vacio{ margin:0; font-size:.8rem; color:var(--tenue); }
+.cs-privado{ max-width:640px; margin:30px auto; padding:28px 24px; text-align:center; display:grid; gap:12px; }
+.cs-privado h1{ margin:0; font-size:1.6rem; } .cs-privado p{ margin:0; color:var(--niebla); line-height:1.55; }
+.cs-privado__ico{ width:64px; height:64px; margin:0 auto; border-radius:50%; display:grid; place-items:center; background:rgba(255,210,122,.14); color:#FFD27A; border:1px solid rgba(255,210,122,.45); } .cs-privado__ico svg{ width:30px; height:30px; }
+.cs-alerta{ display:grid; gap:10px; padding:14px 16px; border-radius:18px; margin:0 0 14px; border:1px solid; }
+.cs-alerta--ok{ border-color:rgba(59,224,143,.55); background:rgba(59,224,143,.08); } .cs-alerta--falta{ border-color:rgba(255,194,61,.55); background:rgba(255,194,61,.08); }
+.cs-alerta__txt{ display:flex; gap:10px; align-items:flex-start; } .cs-alerta__txt > svg{ width:22px; height:22px; flex:none; color:#FFD27A; margin-top:1px; }
+.cs-alerta__lista{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; }
+.cs-mini{ display:grid; gap:4px; padding:9px 12px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid var(--borde); align-content:start; }
+.cs-mini small{ color:var(--tenue); font-size:.76rem; word-break:break-word; } .cs-mini--ok b{ color:#8FF2C0; } .cs-mini .btn{ justify-self:start; }
+.cs-equipo{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:14px 16px; border-radius:18px; margin:0 0 14px; border:2px solid rgba(255,106,31,.6); background:linear-gradient(120deg, rgba(255,106,31,.14), rgba(110,43,230,.2)); text-align:left; }
+.cs-equipo > div{ display:grid; min-width:0; flex:1 1 200px; } .cs-equipo small{ color:var(--niebla); word-break:break-word; } .cs-equipo b{ font-size:1.05rem; }
+.cs-equipo--bloq{ border-style:dashed; border-color:var(--borde); background:rgba(255,255,255,.03); margin-top:10px; } .cs-equipo--bloq > svg{ width:26px; height:26px; color:#FFD27A; flex:none; }
+.cs-equipo > .cs-acc{ display:flex; flex:0 0 auto; }

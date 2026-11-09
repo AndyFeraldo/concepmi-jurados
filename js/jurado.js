@@ -1,16 +1,17 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611081549";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611081549";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611081549";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611081549";
-import { salir } from "./app.js?v=202611081549";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611081549";
-import { abrirVisor } from "./entrega-visor.js?v=202611081549";
-import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611081549";
+import { api, ES_DEMO } from "./api.js?v=202611091504";
+import { abrirCaso, CONCURSOS_CASO } from "./casos.js?v=202611091504";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611091504";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611091504";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611091504";
+import { salir } from "./app.js?v=202611091504";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611091504";
+import { abrirVisor } from "./entrega-visor.js?v=202611091504";
+import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611091504";
 
-import { pintarColegas } from "./colegas.js?v=202611081549";
+import { pintarColegas } from "./colegas.js?v=202611091504";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
@@ -116,7 +117,7 @@ export async function vistaJurado(app, codigo) {
       ${c.nota ? `<div class="nota">${esc(c.nota)}</div>` : ""}
       ${ENTREGABLES[cid]?.tipo === "presentacion" ? `<div class="en-jurado en-jurado--pres" data-pres-jurado><span>${I.tabla}<b>Presentación de este equipo</b>: ábrela en tu laptop mientras expone.</span><span class="tenue">Cargando…</span></div>`
       : tieneEntregable(cid) ? `<div class="en-jurado"><span>${I.tabla}<b>${esc(ENTREGABLES[cid].titulo)}</b> en línea: mira lo que escribió cada equipo (se actualiza en vivo).</span>
-        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button></div>` : ""}
+        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button>${CONCURSOS_CASO.includes(cid) ? `<button class="btn btn--mini" data-caso-ver="${cid}">${I.libro}Caso oficial</button>` : ""}</div>` : ""}
       <div id="criterios">${criterios}</div>
       <label class="campo" style="margin-top:16px"><span>Comentario para el organizador (opcional)</span>
         <textarea id="comentario" maxlength="600" ${editable ? "" : "disabled"} placeholder="Observaciones, fortalezas o motivos de tu puntaje">${esc(form.comentario)}</textarea></label>
@@ -148,6 +149,7 @@ export async function vistaJurado(app, codigo) {
         $$("[data-jpres]", cajaPres).forEach((x) => (x.onclick = () => abrirArchivo(codigo, pr.equipo_id, x.dataset.jpres)));
       }).catch((e) => { cajaPres.innerHTML = `<span>${I.alerta} ${esc(e.message)}</span>`; });
       $("[data-vertodas]", app)?.addEventListener("click", () => ver(null));
+      $("[data-caso-ver]", app)?.addEventListener("click", () => abrirCaso(codigo, cid));
     }
     if (!data.delegaciones.length) return;
     $("#comentario").oninput = (e) => (form.comentario = e.target.value);

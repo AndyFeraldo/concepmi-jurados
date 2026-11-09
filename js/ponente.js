@@ -3,10 +3,10 @@
 // y sube su presentación en PDF (la que se proyecta), su PPT de respaldo y un video opcional.
 // Mismo sistema de archivos privados del Concurso de Proyectos (función Edge jur-presentaciones).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611081549";
-import { CHARLAS } from "./charlas.js?v=202611081549";
-import { $, $$, esc, I, IMG, aviso, avatar, lanzarConfeti } from "./ui.js?v=202611081549";
-import { mb, fechaLima } from "./presentacion.js?v=202611081549";
+import { api, ES_DEMO } from "./api.js?v=202611091504";
+import { CHARLAS } from "./charlas.js?v=202611091504";
+import { $, $$, esc, I, IMG, aviso, avatar, lanzarConfeti } from "./ui.js?v=202611091504";
+import { mb, fechaLima } from "./presentacion.js?v=202611091504";
 
 const charlaDe = (id) => CHARLAS.find((c) => c.id === id);
 const INFO = {

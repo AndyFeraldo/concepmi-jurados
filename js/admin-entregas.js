@@ -3,16 +3,17 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611081549";
-import { ENTREGABLES } from "./entregables.js?v=202611081549";
-import { porId } from "./concursos.js?v=202611081549";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611081549";
-import { abrirEscenario } from "./escenario.js?v=202611081549";
-import { quitarArchivos } from "./presentacion.js?v=202611081549";
-import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611081549";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611081549";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611081549";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611081549";
+import { api } from "./api.js?v=202611091504";
+import { ENTREGABLES } from "./entregables.js?v=202611091504";
+import { porId } from "./concursos.js?v=202611091504";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611091504";
+import { abrirEscenario } from "./escenario.js?v=202611091504";
+import { quitarArchivos } from "./presentacion.js?v=202611091504";
+import { alertaCasos } from "./casos.js?v=202611091504";
+import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611091504";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611091504";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611091504";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611091504";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -61,6 +62,7 @@ export function crearEntregas(ctx) {
   const conectarSelector = (v) => $$("[data-concurso]", v).forEach((b) => (b.onclick = () => { if (b.dataset.concurso === concurso) return; concurso = b.dataset.concurso; E = null; P = null; vista(v); }));
 
   function pintar(v) {
+    setTimeout(() => alertaCasos(v, ctx.codigo(), esAdmin), 0);
     const def = ENTREGABLES[concurso], c = porId(concurso), pl = def.plural, Pl = pl[0].toUpperCase() + pl.slice(1), nm = def.nombre;
     if (def.tipo === "presentacion") return pintarPres(v);
     const eqs = E.equipos, enviados = eqs.filter((x) => x.entrega.estado === "enviado").length;
@@ -273,7 +275,7 @@ export function crearEntregas(ctx) {
       ...k.concursos.map((x) => `<span class="chip chip--ambar">Entregas · ${esc(porId(x)?.nombre || x)}</span>`),
       (() => { const n = diadT.filter((t) => (t.personas || []).includes(k.id)).length; return `<span class="chip ${n ? "chip--verde" : ""}" title="Se asignan en la pestaña Día D">Día D · ${n ? `${n} ${n === 1 ? "tarea" : "tareas"}` : "sin tareas"}</span>`; })()].join(" ") || `<span class="tenue">Nada asignado</span>`;
     return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Permisos</th><th></th></tr></thead><tbody>
-      ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td style="white-space:nowrap"><code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
+      ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td style="white-space:nowrap">${k.codigo ? `<code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button>` : `<span class="chip" title="Eligió su propio código; solo ella lo sabe">🔒 Código privado</span>`}</td>
         <td><div class="reparto" style="margin:0">${chips(k)}</div></td>
         <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>
       <p class="ayuda" style="margin-top:8px">Estas mismas personas son las del <b>Día D</b>: ahí les asignas qué hacer, dónde y a qué hora (y puedes crear voluntarios nuevos, que aparecen aquí). <b>Ve</b> = mira la pestaña sin poder cambiar nada (y sin ver códigos de jurados ni talleristas). <b>Edita</b> = puede crear, cambiar y borrar en esa pestaña.</p>`;
@@ -291,7 +293,7 @@ export function crearEntregas(ctx) {
         <div class="perm-fila__txt"><b>${esc(a.txt)}</b><small data-desc>${esc(per[a.id] === "editar" ? a.editar || a.ver : a.ver)}</small></div>
         <div class="segm perm-segm" role="radiogroup" aria-label="${esc(a.txt)}">
           <button type="button" data-nv="" class="${!per[a.id] ? "activo" : ""}">No ve</button>
-          <button type="button" data-nv="ver" class="${per[a.id] === "ver" ? "activo" : ""}">Ve</button>
+          ${a.soloEdita ? "" : `<button type="button" data-nv="ver" class="${per[a.id] === "ver" ? "activo" : ""}">Ve</button>`}
           ${a.editar ? `<button type="button" data-nv="editar" class="${per[a.id] === "editar" ? "activo" : ""}">Edita</button>` : ""}
         </div></div>`;
     const m = modal(`<h2>${k ? "Editar acceso" : "Nuevo acceso limitado"}</h2><form class="form">
@@ -301,7 +303,7 @@ export function crearEntregas(ctx) {
       <fieldset class="campo"><span>Entregas · coordinador de sala de</span><div class="reparto" style="margin:4px 0 0">${Object.keys(ENTREGABLES).map((x) => `<label class="chip" style="cursor:pointer"><input type="checkbox" name="cc" value="${x}" ${sala.has(x) ? "checked" : ""}> ${esc(porId(x)?.nombre || x)}</label>`).join("")}</div>
         <small class="tenue">Maneja los equipos, códigos, tiempo oficial y pantalla del concurso que marques (no aplica sanciones).</small></fieldset>
       <p class="perm-resumen" data-resumen></p>
-      <label class="campo"><span>Código de acceso ${k ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" value="${esc(k?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase"></label>
+      <label class="campo"><span>Código de acceso ${k ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" ${k && !k.codigo ? 'disabled placeholder="🔒 Código privado (solo ella lo sabe)"' : ""} value="${esc(k?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase"></label>
       <p class="ayuda" style="margin:0">Entra por el botón <b>Admin</b> de la portada con este código. Nunca puede crear otros accesos ni cambiar tu código.</p>
       <p class="error"></p>
       <div class="modal__acciones" style="margin-top:0">${k ? `<button type="button" class="btn btn--peligro" data-borrar style="margin-right:auto">${I.basura}Quitar acceso</button>` : ""}<button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Guardar</button></div></form>`, { ancho: true });

@@ -3,7 +3,7 @@
 // puntero/clicker: → / PageDown / Espacio = siguiente, ← / PageUp = anterior, B o . = pantalla negra.
 // Si el equipo subió un video, se intercala como una «diapositiva» después de la que indicó y se reproduce solo.
 // El cronómetro (5 min de pitch + 3 de preguntas) queda listo y solo empieza al pulsar Iniciar (o la tecla T).
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611081549";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611091504";
 
 const PDFJS = new URL("../vendor/pdfjs/pdf.min.mjs", import.meta.url).href;
 const WORKER = new URL("../vendor/pdfjs/pdf.worker.min.mjs", import.meta.url).href;

@@ -5,16 +5,17 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611081549";
-import { crearEntregas } from "./admin-entregas.js?v=202611081549";
-import { crearLogistica } from "./admin-logistica.js?v=202611081549";
-import { ENTREGABLES } from "./entregables.js?v=202611081549";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611081549";
-import { vistaProyeccion } from "./proyeccion.js?v=202611081549";
-import { crearGuia, vistaGuia } from "./diad.js?v=202611081549";
-import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611081549";
-import { vistaAdmin } from "./admin.js?v=202611081549";
-import { salir } from "./app.js?v=202611081549";
+import { api, ES_DEMO } from "./api.js?v=202611091504";
+import { crearEntregas } from "./admin-entregas.js?v=202611091504";
+import { crearLogistica } from "./admin-logistica.js?v=202611091504";
+import { ENTREGABLES } from "./entregables.js?v=202611091504";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611091504";
+import { vistaProyeccion } from "./proyeccion.js?v=202611091504";
+import { crearCasos } from "./casos.js?v=202611091504";
+import { crearGuia, vistaGuia } from "./diad.js?v=202611091504";
+import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611091504";
+import { vistaAdmin } from "./admin.js?v=202611091504";
+import { salir } from "./app.js?v=202611091504";
 
 export async function vistaCoordinador(app, codigo) {
   let data = null;
@@ -33,6 +34,7 @@ export async function vistaCoordinador(app, codigo) {
   if (concursos.length) pestanas.push({ id: "entregas", txt: "Entregas", icono: "lapiz", ui: crearEntregas({ codigo: () => codigo, data: () => data, recargar, concursos, coordinador: true }) });
   if (puede(k, "logistica", "ver")) pestanas.push({ id: "logistica", txt: "Logística", icono: "caja", ui: crearLogistica({ codigo: () => codigo }) });
   pestanas.unshift({ id: "guia", txt: "Mi Día D", icono: "reloj", ui: crearGuia({ codigo: () => codigo }) });
+  if (puede(k, "casos")) pestanas.unshift({ id: "casos", txt: "Casos confidenciales", icono: "candado", ui: crearCasos({ codigo: () => codigo, cambiarCodigo: (c) => { codigo = c; } }) });
   let actual = pestanas[0]?.id;
   const titulo = pestanas.length === 2 && pestanas[1].id === "logistica" ? (puede(k, "logistica") ? "Logística" : "Logística · solo lectura") : concursos.length && !k.logistica ? "Coordinador de sala" : "Panel de acceso limitado";
 

@@ -3,13 +3,14 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611081549";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611081549";
-import { FORMAS } from "./formas.js?v=202611081549";
-import { vistaPresentacion } from "./presentacion.js?v=202611081549";
-import { porId } from "./concursos.js?v=202611081549";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611081549";
-import { salir } from "./app.js?v=202611081549";
+import { api, ES_DEMO } from "./api.js?v=202611091504";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611091504";
+import { FORMAS } from "./formas.js?v=202611091504";
+import { vistaPresentacion } from "./presentacion.js?v=202611091504";
+import { porId } from "./concursos.js?v=202611091504";
+import { htmlCasoEquipo, enlazarCaso } from "./casos.js?v=202611091504";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611091504";
+import { salir } from "./app.js?v=202611091504";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 
@@ -82,6 +83,9 @@ export async function vistaEquipo(app, codigo) {
     } catch { /* se reintenta */ }
   }
 
+  // Caso oficial (Amateur I, II e IATHON): aparece al «Iniciar tiempo»
+  async function pintarCaso() { const el = $("[data-caso]", app); if (!el) return; const h = await htmlCasoEquipo(codigo, data.entrega.concurso_id); const el2 = $("[data-caso]", app); if (el2) { el2.innerHTML = h; enlazarCaso(el2, codigo); } }
+
   // ---------------- Pantalla ----------------
   function pintar() {
     const c = porId(data.entrega.concurso_id), d = def(), bl = bloqueado();
@@ -98,10 +102,11 @@ export async function vistaEquipo(app, codigo) {
       <h1>Aún no empieza el concurso</h1>
       <p>Entraste bien, <b>${esc(data.delegacion?.siglas || data.delegacion?.nombre || "equipo")}</b>. ${esc(d?.titulo || "El entregable")} se abrirá solo en esta pantalla cuando el organizador dé la señal de inicio.</p>
       <p class="eq-espera__sub"><span class="giro"></span> Esperando la señal… no cierres esta página.</p>
+      <div data-caso style="width:100%"></div>
     </section></main>
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
       $("[data-salir]", app).onclick = () => { limpiarTimers(); salir(); };
-      reloj(); return;
+      pintarCaso(); reloj(); return;
     }
     app.innerHTML = `<div class="fondo fondo--sobrio"></div>
     <header class="barra">
@@ -115,6 +120,7 @@ export async function vistaEquipo(app, codigo) {
         <span class="eq-guardado" data-guardado>${esc(estadoGuardado)}</span></div>
       ${enviado() ? `<div class="cerrado" style="background:rgba(59,224,143,.12);border-color:rgba(59,224,143,.5);color:#8FF2C0">${I.check}<span><b>¡${Nom()} enviada${data.entrega.tarde ? " fuera de tiempo" : ""}!</b> a las ${new Date(data.entrega.enviado).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}. Los jurados ya la pueden ver. Si necesitas corregir algo, pide al organizador que la reabra.</span></div>`
         : bl ? `<div class="cerrado">${I.candado}<span><b>Se acabó el tiempo.</b> Ya no se pueden hacer cambios. Envía tu ${nom()} ahora; si la envías tarde se registra como entrega tardía.</span></div>` : ""}
+      <div data-caso></div>
       <div class="eq-aviso">⚠️ Usen <b>una sola laptop</b> por equipo. Todo se guarda solo cada pocos segundos.</div>
       <section class="tarjeta eq-cab">
         <label class="campo"><span>Delegación</span><input value="${esc(data.delegacion?.nombre || "")}" disabled></label>
@@ -138,6 +144,7 @@ export async function vistaEquipo(app, codigo) {
     </main>
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
     $("[data-salir]", app).onclick = async () => { if (pendiente) await guardar(); limpiarTimers(); salir(); };
+    pintarCaso();
     const lid = $("[data-lider]", app); if (lid) lid.oninput = () => { datos.lider = lid.value; marcarCambio(); };
     if (esActa()) F().enlazar($(F().raiz, app), datos, { bl, cambio: () => { marcarCambio(); resumen(); }, repintar: (sel) => { pintar(); $(sel, app)?.scrollIntoView({ block: "center" }); } });
     $$("[data-f]", app).forEach((el) => {
