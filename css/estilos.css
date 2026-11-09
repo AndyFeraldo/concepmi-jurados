@@ -1837,3 +1837,9 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cs-equipo > div{ display:grid; min-width:0; flex:1 1 200px; } .cs-equipo small{ color:var(--niebla); word-break:break-word; } .cs-equipo b{ font-size:1.05rem; }
 .cs-equipo--bloq{ border-style:dashed; border-color:var(--borde); background:rgba(255,255,255,.03); margin-top:10px; } .cs-equipo--bloq > svg{ width:26px; height:26px; color:#FFD27A; flex:none; }
 .cs-equipo > .cs-acc{ display:flex; flex:0 0 auto; }
+.cs-parte{ display:grid; gap:8px; padding:12px; border-radius:14px; border:1px dashed rgba(255,194,61,.45); background:rgba(255,255,255,.02); }
+.cs-parte--ok{ border-style:solid; border-color:rgba(59,224,143,.4); }
+.cs-parte__cab{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; } .cs-parte__cab small{ color:var(--tenue); font-size:.76rem; flex:1 1 140px; }
+.cs-ico--sol{ background:linear-gradient(135deg,#3BE08F,#1FCBEA); color:#0b0420; }
+.cs-mini__fila{ display:grid; gap:2px; padding-top:6px; border-top:1px solid rgba(255,255,255,.06); } .cs-mini__fila:first-of-type{ border-top:0; }
+.cs-mini__fila > span{ font-size:.85rem; font-weight:600; }

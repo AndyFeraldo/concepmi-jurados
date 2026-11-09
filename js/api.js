@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611091504";
-import { CONCURSOS, porId } from "./concursos.js?v=202611091504";
-import { TALLERES } from "./talleres.js?v=202611091504";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611091504";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611091738";
+import { CONCURSOS, porId } from "./concursos.js?v=202611091738";
+import { TALLERES } from "./talleres.js?v=202611091738";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611091738";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -152,14 +152,14 @@ const real = {
   // ---- Casos confidenciales (Amateur I, II e IATHON) ----
   casosEstado: (codigo) => rpc("jur_casos_estado", { p_codigo: codigo }),
   coordCambiarCodigo: (codigo, nuevo) => rpc("jur_coord_cambiar_codigo", { p_codigo: codigo, p_nuevo: nuevo }),
-  async casoSubir(codigo, concurso, archivo, alAvanzar) {
-    const { path, token } = await edge({ accion: "subir", caso: true, codigo, concurso, nombre: archivo.name, tamano: archivo.size });
+  async casoSubir(codigo, concurso, parte, archivo, alAvanzar) {
+    const { path, token } = await edge({ accion: "subir", caso: true, codigo, concurso, parte, nombre: archivo.name, tamano: archivo.size });
     // El espacio privado acepta PDF; los Word se suben como archivo genérico (se descargan igual con su nombre)
     await subirConProgreso(path, token, archivo, alAvanzar, /\.pdf$/i.test(archivo.name) ? "application/pdf" : "application/octet-stream");
-    await edge({ accion: "confirmar", caso: true, codigo, concurso, path, nombre: archivo.name, tamano: archivo.size });
+    await edge({ accion: "confirmar", caso: true, codigo, concurso, parte, path, nombre: archivo.name, tamano: archivo.size });
   },
-  casoUrl: (codigo, concurso, descargar = false) => edge({ accion: "leer", caso: true, codigo, concurso, descargar }),
-  casoQuitar: (codigo, concurso) => edge({ accion: "quitar", caso: true, codigo, concurso }),
+  casoUrl: (codigo, concurso, parte = "caso", descargar = false) => edge({ accion: "leer", caso: true, codigo, concurso, parte, descargar }),
+  casoQuitar: (codigo, concurso, parte) => edge({ accion: "quitar", caso: true, codigo, concurso, parte }),
 };
 
 // ---------------- Vista previa (datos de ejemplo) ----------------
@@ -212,7 +212,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611091504");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611091738");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -682,27 +682,31 @@ const demo = {
   async casosEstado(codigo) { await espera(80); const d = db(); const c = norm(codigo); let rol, k = null, cc = ["amateur-1", "amateur-2", "iathon"];
     if (c === d.admin) rol = "admin"; else if ((k = accesoDe(c))) rol = k.permisos?.casos === "editar" ? "encargada" : "coordinador";
     else { const e = d.equipos.find((x) => x.codigo === c); if (e) { rol = "equipo"; cc = [e.concurso_id]; } else { const j = d.jurados.find((x) => x.codigo === c); if (!j) throw new Error("Código incorrecto"); rol = "jurado"; cc = cc.filter((x) => j.concursos.includes(x)); } }
+    const partes = ["equipo", "coordinador"].includes(rol) ? ["caso"] : ["caso", "solucion"];
     return structuredClone({ rol, codigo_propio: !!k?.codigo_propio, encargadas: d.coordinadores.filter((x) => x.permisos?.casos === "editar").map((x) => x.nombre).sort(),
-      concursos: cc.sort().map((ci) => { const x = d.casos[ci], lib = !!d.tiempos[ci]?.inicio; return { concurso_id: ci, subido: !!x, liberado: lib, fecha: x?.subido, tipo: x?.tipo, tamano: x?.tamano, subido_por: x?.subido_por,
-        nombre: x && (lib || rol === "admin" || (rol === "encargada" && k.codigo_propio)) ? x.nombre : null, vistas: ["admin", "encargada"].includes(rol) ? d.casosVistas.filter((w) => w.concurso_id === ci) : null }; }) }); },
+      concursos: cc.sort().map((ci) => { const lib = !!d.tiempos[ci]?.inicio; return { concurso_id: ci, liberado: lib, partes: Object.fromEntries(partes.map((pt) => { const x = d.casos[`${ci}|${pt}`];
+        return [pt, x ? { fecha: x.subido, tipo: x.tipo, tamano: x.tamano, subido_por: x.subido_por, nombre: lib || rol === "admin" || (rol === "encargada" && k.codigo_propio) ? x.nombre : null,
+          vistas: ["admin", "encargada"].includes(rol) ? d.casosVistas.filter((w) => w.concurso_id === ci && (w.parte || "caso") === pt) : null } : null]; })) }; }) }); },
   async coordCambiarCodigo(codigo, nuevo) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede cambiarse aquí");
     const n = norm(nuevo); if (!/^[A-Z0-9-]{8,16}$/.test(n)) throw new Error("Tu código privado debe tener de 8 a 16 letras o números"); if (n === k.codigo) throw new Error("Elige un código distinto al que te dieron");
     if (codigoUsado(n, k.id)) throw new Error("Ese código no se puede usar; elige otro"); k.codigo = n; k.codigo_propio = true; guardar(); return { ok: true }; },
-  async casoSubir(codigo, concurso, archivo, alAvanzar) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede manejar los casos confidenciales");
-    if (!k.codigo_propio) throw new Error("Primero crea tu código privado"); if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el caso ya no se puede cambiar");
-    if (!/\.(pdf|docx?)$/i.test(archivo.name)) throw new Error("El caso debe ser un PDF o un Word (.pdf, .docx o .doc)");
+  async casoSubir(codigo, concurso, parte, archivo, alAvanzar) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede manejar los casos confidenciales");
+    if (!k.codigo_propio) throw new Error("Primero crea tu código privado"); if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el archivo ya no se puede cambiar");
+    if (!/\.(pdf|docx?)$/i.test(archivo.name)) throw new Error("Debe ser un PDF o un Word (.pdf, .docx o .doc)");
     for (let i = 1; i <= 10; i++) { await espera(40); alAvanzar?.(i / 10); }
-    ARCHIVOS_DEMO.set(`caso:${concurso}`, archivo); db().casos[concurso] = { nombre: archivo.name, tipo: /\.pdf$/i.test(archivo.name) ? "pdf" : "word", tamano: archivo.size, subido: new Date().toISOString(), subido_por: k.nombre }; guardar(); },
-  async casoUrl(codigo, concurso) { await espera(); const d = db(); const c = norm(codigo), x = d.casos[concurso]; if (!x) throw new Error("Todavía no hay un caso para este concurso");
+    ARCHIVOS_DEMO.set(`caso:${concurso}|${parte}`, archivo); db().casos[`${concurso}|${parte}`] = { nombre: archivo.name, tipo: /\.pdf$/i.test(archivo.name) ? "pdf" : "word", tamano: archivo.size, subido: new Date().toISOString(), subido_por: k.nombre }; guardar(); },
+  async casoUrl(codigo, concurso, parte = "caso") { await espera(); const d = db(); const c = norm(codigo), x = d.casos[`${concurso}|${parte}`];
+    if (!x) throw new Error(parte === "caso" ? "Todavía no hay un caso para este concurso" : "Todavía no hay una resolución para este concurso");
     const lib = !!d.tiempos[concurso]?.inicio; let rol, quien;
-    if (c === d.admin) { rol = "admin"; quien = "Administrador"; } else { const k = accesoDe(c); const e = d.equipos.find((y) => y.codigo === c);
-      if (k && k.permisos?.casos === "editar" && k.codigo_propio) { rol = "encargada"; quien = k.nombre; } else if (k && k.concursos.includes(concurso)) { rol = "coordinador"; quien = k.nombre; }
-      else if (e && e.concurso_id === concurso) { rol = "equipo"; quien = d.delegaciones.find((y) => y.id === e.delegacion_id)?.siglas || "Equipo"; } else throw new Error("Este código no puede abrir este caso"); }
-    if (!["admin", "encargada"].includes(rol) && !lib) throw new Error("Por confidencialidad, el caso se abre recién cuando empieza el concurso");
-    d.casosVistas.push({ concurso_id: concurso, rol, quien, antes: !lib, momento: new Date().toISOString() }); guardar();
-    const f = ARCHIVOS_DEMO.get(`caso:${concurso}`); if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return { url: URL.createObjectURL(f), nombre: x.nombre }; },
-  async casoQuitar(codigo, concurso) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar" || !k.codigo_propio) throw new Error("Este código no puede manejar los casos confidenciales");
-    if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el caso ya no se puede quitar"); delete db().casos[concurso]; ARCHIVOS_DEMO.delete(`caso:${concurso}`); guardar(); return { ok: true }; },
+    if (c === d.admin) { rol = "admin"; quien = "Administrador"; } else { const k = accesoDe(c); const e = d.equipos.find((y) => y.codigo === c); const j = d.jurados.find((y) => y.codigo === c);
+      if (k && k.permisos?.casos === "editar" && k.codigo_propio) { rol = "encargada"; quien = k.nombre; } else if (k && parte === "caso" && k.concursos.includes(concurso)) { rol = "coordinador"; quien = k.nombre; }
+      else if (e && e.concurso_id === concurso && parte === "caso") { rol = "equipo"; quien = d.delegaciones.find((y) => y.id === e.delegacion_id)?.siglas || "Equipo"; }
+      else if (j && j.concursos.includes(concurso)) { rol = "jurado"; quien = j.nombre; } else throw new Error("Este código no puede abrir este archivo"); }
+    if (!["admin", "encargada"].includes(rol) && !lib) throw new Error("Por confidencialidad, se abre recién cuando empieza el concurso");
+    d.casosVistas.push({ concurso_id: concurso, parte, rol, quien, antes: !lib, momento: new Date().toISOString() }); guardar();
+    const f = ARCHIVOS_DEMO.get(`caso:${concurso}|${parte}`); if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return { url: URL.createObjectURL(f), nombre: x.nombre }; },
+  async casoQuitar(codigo, concurso, parte) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar" || !k.codigo_propio) throw new Error("Este código no puede manejar los casos confidenciales");
+    if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el archivo ya no se puede quitar"); delete db().casos[`${concurso}|${parte}`]; ARCHIVOS_DEMO.delete(`caso:${concurso}|${parte}`); guardar(); return { ok: true }; },
   async diadMio(codigo) { await espera(); const d = db(); const k = d.coordinadores.find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código incorrecto");
     const tareas = d.diad.tareas.filter((t) => t.personas.includes(k.id)).map((t) => ({ ...t, equipo: t.personas.filter((x) => x !== k.id).map((x) => d.coordinadores.find((o) => o.id === x)).filter(Boolean).map(({ nombre, area, telefono }) => ({ nombre, area, telefono })) }));
     const vistos = new Set(), agenda = []; d.diad.tareas.forEach((t) => { const c = t.dia + t.hora_ini + t.bloque; if (t.bloque && !vistos.has(c)) { vistos.add(c); agenda.push(t); } });
