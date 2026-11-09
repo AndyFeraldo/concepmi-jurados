@@ -1,7 +1,7 @@
--- Migración jur_28_casos_confidenciales (PENDIENTE: aún no aplicada en Supabase; falta la prueba con confirmación del usuario)
--- Casos oficiales de Amateur I, Amateur II e IATHON: los sube SOLO la encargada (acceso con permiso
--- «casos», p. ej. la presidenta) y nadie más los puede abrir —ni el admin— hasta que empieza el
--- concurso («Iniciar tiempo»). Entonces los ven los equipos, jurados y coordinadores de ese concurso.
+-- Migración jur_28_casos_confidenciales (aplicada en Supabase)
+-- Casos oficiales de Amateur I, Amateur II e IATHON: los suben las encargadas (accesos con permiso «casos»,
+-- p. ej. la presidenta). Equipos, jurados y coordinadores los abren recién cuando empieza el concurso («Iniciar
+-- tiempo»). El admin puede abrirlos para verificar, pero si lo hace antes queda registrado y lo ven las encargadas.
 -- La encargada crea su propio código privado: el admin deja de verlo y no puede cambiarlo.
 -- Cada apertura queda registrada. Solo agrega tablas, columnas y funciones.
 
@@ -13,7 +13,7 @@ create table if not exists public.jur_casos (
   tamano bigint not null default 0, subido_por uuid, subido_por_nombre text, subido timestamptz not null default now()
 );
 create table if not exists public.jur_casos_vistas (
-  id bigint generated always as identity primary key, concurso_id text not null, rol text not null, quien text not null, momento timestamptz not null default now()
+  id bigint generated always as identity primary key, concurso_id text not null, rol text not null, quien text not null, antes boolean not null default false, momento timestamptz not null default now()
 );
 alter table public.jur_casos enable row level security;
 alter table public.jur_casos_vistas enable row level security;
@@ -28,8 +28,6 @@ begin
   f := replace(f, $a$'proyeccion', 'diad') then$a$, $a$'proyeccion', 'diad', 'casos') then$a$);
   f := replace(f, $a$  if fijo is not null then$a$, $a$  if fijo is not null and exists (select 1 from jur_coordinadores where id = p_id and codigo_propio) then
     raise exception 'Esta persona eligió su propio código privado: solo ella puede cambiarlo'; end if;
-  if pp ? 'casos' and exists (select 1 from jur_coordinadores where permisos ? 'casos' and id is distinct from p_id) then
-    raise exception 'Solo una persona puede tener el permiso de casos confidenciales'; end if;
   if fijo is not null then$a$);
   f := replace(f, $a$'codigo', k.codigo$a$, $a$'codigo', case when k.codigo_propio then null else k.codigo end$a$);
   execute f;
@@ -101,15 +99,15 @@ begin
     end if;
   end if;
   return json_build_object('rol', v_rol, 'codigo_propio', coalesce(k.codigo_propio, false),
-    'encargada', (select nombre from jur_coordinadores where permisos ? 'casos' limit 1),
+    'encargadas', coalesce((select json_agg(nombre order by nombre) from jur_coordinadores where permisos->>'casos' = 'editar'), '[]'),
     'concursos', (select json_agg(json_build_object(
       'concurso_id', c,
       'subido', x.concurso_id is not null,
       'liberado', t.inicio is not null,
       'fecha', x.subido, 'tipo', x.tipo, 'tamano', x.tamano, 'subido_por', x.subido_por_nombre,
       -- el nombre del archivo solo lo ve la encargada que lo subió, o todos una vez liberado
-      'nombre', case when x.concurso_id is not null and (t.inicio is not null or (v_rol = 'encargada' and x.subido_por = k.id)) then x.nombre end,
-      'vistas', case when v_rol in ('admin', 'encargada') then coalesce((select json_agg(json_build_object('rol', w.rol, 'quien', w.quien, 'momento', w.momento) order by w.momento)
+      'nombre', case when x.concurso_id is not null and (t.inicio is not null or v_rol = 'admin' or (v_rol = 'encargada' and k.codigo_propio)) then x.nombre end,
+      'vistas', case when v_rol in ('admin', 'encargada') then coalesce((select json_agg(json_build_object('rol', w.rol, 'quien', w.quien, 'antes', w.antes, 'momento', w.momento) order by w.momento)
                     from jur_casos_vistas w where w.concurso_id = c), '[]') end)
       order by c) from unnest(v_concursos) c left join jur_casos x on x.concurso_id = c left join jur_concurso_tiempo t on t.concurso_id = c));
 end $$;
@@ -143,8 +141,9 @@ begin
   return json_build_object('anterior', ant);
 end $$;
 
--- (solo la función Edge) ¿Quién puede abrir el caso? La encargada que lo subió (siempre); y, desde que
--- empieza el concurso, el admin, el equipo, los jurados y los coordinadores de ese concurso. Queda registrado.
+-- (solo la función Edge) ¿Quién puede abrir el caso? Las encargadas (con código privado) y el admin, siempre
+-- (si el admin lo abre antes del concurso queda marcado «antes»); desde que empieza el concurso, también el equipo,
+-- los jurados y los coordinadores de ese concurso. Cada apertura queda registrada.
 create or replace function public.jur_casos_autorizar_lectura(p_codigo text, p_concurso text) returns json
 language plpgsql security definer set search_path = public as $$
 declare x jur_casos; libre boolean; k jur_coordinadores; e jur_equipos; j jur_jurados; v_rol text; v_quien text;
@@ -156,7 +155,7 @@ begin
   else
     select * into k from jur_coordinadores where codigo = jur_norm(p_codigo);
     if found then
-      if k.id = x.subido_por and k.codigo_propio and coalesce(k.permisos->>'casos', '') = 'editar' then v_rol := 'encargada'; v_quien := k.nombre;
+      if k.codigo_propio and coalesce(k.permisos->>'casos', '') = 'editar' then v_rol := 'encargada'; v_quien := k.nombre;
       elsif p_concurso = any(k.concursos) or coalesce(k.permisos->>'proyeccion', '') <> '' then v_rol := 'coordinador'; v_quien := k.nombre;
       else raise exception 'Este código no puede abrir este caso'; end if;
     else
@@ -169,8 +168,8 @@ begin
       end if;
     end if;
   end if;
-  if v_rol <> 'encargada' and not libre then raise exception 'Por confidencialidad, el caso se abre recién cuando empieza el concurso'; end if;
-  insert into jur_casos_vistas (concurso_id, rol, quien) values (p_concurso, v_rol, left(v_quien, 120));
+  if v_rol not in ('encargada', 'admin') and not libre then raise exception 'Por confidencialidad, el caso se abre recién cuando empieza el concurso'; end if;
+  insert into jur_casos_vistas (concurso_id, rol, quien, antes) values (p_concurso, v_rol, left(v_quien, 120), not libre);
   return json_build_object('path', x.path, 'nombre', x.nombre, 'tipo', x.tipo);
 end $$;
 

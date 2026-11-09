@@ -9,6 +9,9 @@
 //   { accion: "confirmar", codigo, tipo, path, nombre, tamano, ponencia?, ponente? }                → { ok }
 //   { accion: "leer",      codigo, equipo | ponente, tipo, descargar?, ponencia? }                   → { url, nombre }
 //   { accion: "quitar",    codigo, equipo | ponente, tipos: ["pdf","ppt","video"], ponencia? }        → { ok, quitados } (admin/coordinador)
+// Casos confidenciales (caso: true, concurso = "amateur-1" | "amateur-2" | "iathon"):
+//   subir / confirmar / quitar → solo la encargada (jur_casos_*); leer → encargada, admin y, desde que empieza
+//   el concurso, su equipo, jurados y coordinadores (cada apertura queda registrada en la base).
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
@@ -34,6 +37,33 @@ Deno.serve(async (req: Request) => {
   };
   const pon = b.ponencia === true, ponente = (b.ponente as string) || null;
   try {
+    if (b.caso === true) {
+      const concurso = b.concurso as string;
+      if (b.accion === "subir") {
+        const r = await rpc("jur_casos_autorizar_subida", { p_codigo: b.codigo, p_concurso: concurso, p_nombre: b.nombre, p_tamano: b.tamano });
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUploadUrl(r.path);
+        if (error) throw new Error(error.message);
+        return json({ path: data.path, token: data.token });
+      }
+      if (b.accion === "confirmar") {
+        const r = await rpc("jur_casos_confirmar", { p_codigo: b.codigo, p_concurso: concurso, p_path: b.path, p_nombre: b.nombre, p_tamano: b.tamano });
+        if (r?.anterior && r.anterior !== b.path) await sb.storage.from(BUCKET).remove([r.anterior]);
+        return json({ ok: true });
+      }
+      if (b.accion === "leer") {
+        const r = await rpc("jur_casos_autorizar_lectura", { p_codigo: b.codigo, p_concurso: concurso });
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(r.path, 60 * 30, b.descargar ? { download: r.nombre } : undefined);
+        if (error) throw new Error(error.message);
+        return json({ url: data.signedUrl, nombre: r.nombre, tipo: r.tipo });
+      }
+      if (b.accion === "quitar") {
+        const r = await rpc("jur_casos_quitar", { p_codigo: b.codigo, p_concurso: concurso });
+        const paths = (r?.paths as unknown as string[]) || [];
+        if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+        return json({ ok: true });
+      }
+      return json({ error: "Acción no válida" }, 400);
+    }
     if (b.accion === "subir") {
       const r = pon
         ? await rpc("jur_ponencia_autorizar_subida", { p_codigo: b.codigo, p_tipo: b.tipo, p_nombre: b.nombre, p_tamano: b.tamano, p_ponente: ponente })
