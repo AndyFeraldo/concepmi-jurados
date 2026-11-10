@@ -1867,3 +1867,54 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .ma-card:disabled .ma-card__ir{ display:none; }
 .ma-sin{ display:flex; gap:10px; align-items:flex-start; margin:4px 0 0; padding:12px 14px; border-radius:14px; border:1px dashed var(--borde); color:var(--tenue); font-size:.86rem; }
 .ma-sin svg{ width:18px; height:18px; flex:none; margin-top:1px; }
+
+/* ===== Panel del jurado: decoración y movimiento ===== */
+@keyframes jurEntra{ from{ opacity:0; transform:translateY(22px) scale(.985); filter:blur(10px); } to{ opacity:1; transform:none; filter:blur(0); } }
+@keyframes jurAura{ to{ transform:rotate(360deg); } }
+@keyframes jurBrillo{ 0%{ transform:translateX(-130%) skewX(-18deg); } 55%, 100%{ transform:translateX(230%) skewX(-18deg); } }
+@keyframes jurFlota{ 0%, 100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+@keyframes jurBarra{ from{ width:0; } to{ width:var(--w, 0%); } }
+@keyframes jurAnillo{ from{ --p:0; } }
+@property --p{ syntax:"<number>"; inherits:true; initial-value:0; }
+.jur-entra > *{ animation:jurEntra .7s cubic-bezier(.2,.8,.2,1) both; }
+.jur-entra > *:nth-child(2){ animation-delay:.08s; } .jur-entra > *:nth-child(3){ animation-delay:.16s; } .jur-entra > *:nth-child(n+4){ animation-delay:.22s; }
+.jur-hero{ position:relative; overflow:hidden; gap:22px; padding:26px 26px; border-color:rgba(169,139,255,.45);
+  background:linear-gradient(120deg, rgba(110,43,230,.42), rgba(31,203,234,.16) 60%, rgba(255,106,31,.16)); box-shadow:0 24px 60px -28px rgba(110,43,230,.9); }
+.jur-hero__aura{ position:absolute; inset:-60%; background:conic-gradient(from 0deg, transparent 0 60%, rgba(255,154,85,.22), rgba(31,203,234,.22), transparent 85%); animation:jurAura 14s linear infinite; pointer-events:none; }
+.jur-hero > *:not(.jur-hero__aura){ position:relative; }
+.jur-hero__foto{ position:relative; flex:none; animation:jurFlota 5s ease-in-out infinite; }
+.jur-hero__foto::before{ content:""; position:absolute; inset:-6px; border-radius:50%; background:conic-gradient(#FF8A3D, #A98BFF, #1FCBEA, #FF8A3D); animation:jurAura 6s linear infinite; filter:blur(.5px); }
+.jur-hero__foto .avatar{ position:relative; width:96px; height:96px; font-size:1.9rem; border:4px solid #1a0b3a; }
+.jur-hero__txt{ flex:1; min-width:0; } .jur-hero__sobre{ font-size:.74rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#FFB27F; }
+.jur-hero h1{ font-size:clamp(1.6rem, 4vw, 2.5rem); background:linear-gradient(90deg, #fff, #CBB8FF 55%, #8FE6F6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.jur-hero__chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.jur-anillo{ --p:0; flex:none; display:grid; justify-items:center; gap:4px; animation:jurAnillo 1.4s cubic-bezier(.2,.8,.2,1) both; text-align:center; }
+.jur-anillo b{ width:92px; height:92px; border-radius:50%; display:grid; place-items:center; grid-auto-flow:column; font-family:var(--neon); font-weight:400; font-size:1.6rem;
+  background:radial-gradient(closest-side, #1a0b3a 78%, transparent 80%), conic-gradient(#3BE08F calc(var(--p) * 1%), rgba(255,255,255,.12) 0); }
+.jur-anillo small{ font-size:.8rem; margin-left:1px; } .jur-anillo span{ font-size:.72rem; color:var(--niebla); line-height:1.25; }
+@media (max-width:640px){ .jur-hero{ flex-wrap:wrap; justify-content:center; text-align:center; } .jur-hero__chips{ justify-content:center; } }
+.concurso--vivo{ overflow:hidden; display:grid; gap:4px; animation:jurEntra .7s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.18s + var(--i, 0) * .09s);
+  background:linear-gradient(160deg, color-mix(in srgb, var(--c, #A98BFF) 14%, transparent), var(--panel) 55%); transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s, border-color .25s; }
+.concurso--vivo:hover{ transform:translateY(-6px) scale(1.012); }
+.concurso__brillo{ position:absolute; inset:0; width:45%; background:linear-gradient(90deg, transparent, rgba(255,255,255,.13), transparent); transform:translateX(-130%) skewX(-18deg); pointer-events:none; }
+.concurso--vivo:hover .concurso__brillo{ animation:jurBrillo 1.1s ease-out; }
+.concurso__estado{ position:absolute; top:16px; right:16px; font-size:.68rem; font-weight:700; padding:.2em .7em; border-radius:99px; border:1px solid; }
+.es-abierto{ color:#8FF2C0; border-color:rgba(59,224,143,.5); background:rgba(59,224,143,.12); } .es-cerrado{ color:#FF9C99; border-color:rgba(253,68,63,.5); background:rgba(253,68,63,.12); }
+.es-listo{ color:#1a0b3a; border-color:#3BE08F; background:#3BE08F; }
+.concurso--vivo .progreso > i{ width:var(--w, 0%); animation:jurBarra 1.2s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.5s + var(--i, 0) * .09s); }
+.concurso__ir{ margin-top:6px; font-size:.82rem; font-weight:700; color:var(--c, #CBB8FF); display:flex; align-items:center; gap:6px; opacity:.85; transition:gap .2s, opacity .2s; }
+.concurso__ir svg{ width:15px; height:15px; } .concurso--vivo:hover .concurso__ir{ gap:12px; opacity:1; }
+.concurso--listo{ border-color:rgba(59,224,143,.55); }
+.colegas-lado{ animation:jurEntra .8s cubic-bezier(.2,.8,.2,1) .3s both; }
+.colega-mini{ transition:background .2s, transform .2s; border-radius:10px; } .colega-mini:hover{ background:rgba(255,255,255,.05); transform:translateX(3px); }
+/* Indicadores del caso oficial y la resolución */
+.jc{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 12px; }
+.jc__item{ display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:14px; border:1px solid var(--borde); background:rgba(255,255,255,.04); color:inherit; font:inherit; text-align:left; }
+.jc__item > svg{ width:20px; height:20px; flex:none; } .jc__item span{ display:grid; } .jc__item small{ color:var(--tenue); font-size:.76rem; display:flex; align-items:center; gap:4px; } .jc__item small svg{ width:12px; height:12px; }
+.jc__item--falta{ border-style:dashed; color:var(--tenue); } .jc__item--carga{ color:var(--tenue); } .jc__item--carga .giro{ width:16px; height:16px; border-width:2px; }
+.jc__item--listo{ border-color:rgba(59,224,143,.5); background:rgba(59,224,143,.08); } .jc__item--listo > svg, .jc__item--listo b{ color:#8FF2C0; }
+.jc__item--abrir{ cursor:pointer; border-color:#3BE08F; background:linear-gradient(120deg, rgba(59,224,143,.22), rgba(31,203,234,.14)); box-shadow:0 10px 26px -14px rgba(59,224,143,.9); transition:transform .2s; }
+.jc__item--abrir:hover{ transform:translateY(-2px); } .jc__item--abrir > svg:first-child, .jc__item--abrir b{ color:#8FF2C0; } .jc__item--abrir small{ color:var(--niebla); }
+@media (prefers-reduced-motion: reduce){ .jur-entra > *, .concurso--vivo, .colegas-lado, .jur-hero__aura, .jur-hero__foto, .jur-hero__foto::before, .jur-anillo, .concurso--vivo .progreso > i{ animation:none !important; } }
+.jur-anillo b{ place-content:center; gap:1px; }
+.en-jurado > span{ display:block; } .en-jurado > span svg{ vertical-align:-3px; margin-right:6px; } .en-jurado > span b{ margin-right:4px; }

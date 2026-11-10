@@ -1,16 +1,16 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611101614";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611101614";
-import { CONCURSOS } from "./concursos.js?v=202611101614";
-import { vistaJurado } from "./jurado.js?v=202611101614";
-import { vistaAdmin } from "./admin.js?v=202611101614";
-import { vistaTallerista } from "./tallerista.js?v=202611101614";
-import { vistaQuiz } from "./quiz.js?v=202611101614";
-import { vistaEquipo } from "./equipo.js?v=202611101614";
-import { vistaPonente } from "./ponente.js?v=202611101614";
-import { vistaCoordinador } from "./coordinador.js?v=202611101614";
+import { api, ES_DEMO } from "./api.js?v=202611101637";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611101637";
+import { CONCURSOS } from "./concursos.js?v=202611101637";
+import { vistaJurado } from "./jurado.js?v=202611101637";
+import { vistaAdmin } from "./admin.js?v=202611101637";
+import { vistaTallerista } from "./tallerista.js?v=202611101637";
+import { vistaQuiz } from "./quiz.js?v=202611101637";
+import { vistaEquipo } from "./equipo.js?v=202611101637";
+import { vistaPonente } from "./ponente.js?v=202611101637";
+import { vistaCoordinador } from "./coordinador.js?v=202611101637";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";

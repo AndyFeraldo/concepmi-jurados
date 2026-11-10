@@ -1,17 +1,17 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611101614";
-import { abrirCaso, CONCURSOS_CASO } from "./casos.js?v=202611101614";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611101614";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611101614";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611101614";
-import { salir } from "./app.js?v=202611101614";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611101614";
-import { abrirVisor } from "./entrega-visor.js?v=202611101614";
-import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611101614";
+import { api, ES_DEMO } from "./api.js?v=202611101637";
+import { abrirCaso, CONCURSOS_CASO, PARTES } from "./casos.js?v=202611101637";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611101637";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611101637";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss, fondoAnimado } from "./ui.js?v=202611101637";
+import { salir } from "./app.js?v=202611101637";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611101637";
+import { abrirVisor } from "./entrega-visor.js?v=202611101637";
+import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611101637";
 
-import { pintarColegas } from "./colegas.js?v=202611101614";
+import { pintarColegas } from "./colegas.js?v=202611101637";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
@@ -25,9 +25,9 @@ export async function vistaJurado(app, codigo) {
   const mio = (cid, sub, did) => data.calificaciones.find((x) => x.concurso_id === cid && x.subprueba === sub && x.delegacion_id === did);
   const abierto = (cid) => data.abiertos?.[cid] !== false;
 
-  function shell(contenido) {
+  function shell(contenido, { animado = false } = {}) {
     const j = data.jurado;
-    app.innerHTML = `<div class="fondo fondo--sobrio"></div>
+    app.innerHTML = `${animado ? fondoAnimado(16) : `<div class="fondo fondo--sobrio"></div>`}
     <header class="barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI">
       <span class="sep"></span>
@@ -37,9 +37,24 @@ export async function vistaJurado(app, codigo) {
         <button class="btn btn--mini" data-salir>${I.salir}<span>Salir</span></button>
       </div>
     </header>
-    <main class="contenedor">${contenido}</main>
+    <main class="contenedor jur-entra">${contenido}</main>
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
     $("[data-salir]", app).onclick = salir;
+  }
+
+  // Indicadores del caso oficial y su resolución: solo se pueden abrir cuando ya están subidos y el concurso empezó
+  async function pintarCasos(cid) {
+    const caja = $("[data-casos-jurado]", app); if (!caja) return;
+    let c = null; try { c = (await api.casosEstado(codigo)).concursos.find((x) => x.concurso_id === cid); } catch { /* sin datos */ }
+    if (!document.body.contains(caja)) return;
+    if (!c) { caja.remove(); return; }
+    caja.innerHTML = Object.keys(c.partes || {}).map((pt) => { const x = c.partes[pt], n = PARTES[pt].largo;
+      if (!x) return `<span class="jc__item jc__item--falta" title="La encargada aún no lo sube">${I.reloj}<span><b>${n}</b><small>Aún no está subido</small></span></span>`;
+      if (!c.liberado) return `<span class="jc__item jc__item--listo" title="Por confidencialidad se abre cuando empieza el concurso">${I.check}<span><b>${n} subido</b><small>${I.candado} Se habilita al iniciar el concurso</small></span></span>`;
+      return `<button class="jc__item jc__item--abrir" data-jc="${pt}">${I.check}<span><b>${n} subido</b><small>${x.tipo === "pdf" ? "PDF" : "Word"} · toca para abrirlo</small></span>${I.flecha}</button>`; }).join("");
+    $$("[data-jc]", caja).forEach((b) => (b.onclick = () => abrirCaso(codigo, cid, { parte: b.dataset.jc })));
+    // Mientras falte algo o no haya empezado, se vuelve a revisar solo
+    if (Object.values(c.partes || {}).some((x) => !x) || !c.liberado) setTimeout(() => { if (document.body.contains(caja)) pintarCasos(cid); }, 15000);
   }
 
   // ---------------- Inicio ----------------
@@ -53,21 +68,32 @@ export async function vistaJurado(app, codigo) {
       const hechas = data.calificaciones.filter((x) => x.concurso_id === c.id).length;
       const meta = nd * subs;
       const pct = meta ? Math.min(100, (hechas / meta) * 100) : 0;
-      return `<button class="concurso c-${c.color}" data-cid="${c.id}">
-        <span class="concurso__tipo">${c.tipo === "academico" ? "Concurso académico" : "Evento cultural"}${abierto(c.id) ? "" : " · cerrado"}</span>
+      const listo = meta > 0 && hechas >= meta;
+      return `<button class="concurso concurso--vivo c-${c.color} ${listo ? "concurso--listo" : ""}" data-cid="${c.id}" style="--i:${asignados.indexOf(c)}">
+        <span class="concurso__brillo" aria-hidden="true"></span>
+        <span class="concurso__tipo">${c.tipo === "academico" ? "Concurso académico" : "Evento cultural"}</span>
+        <span class="concurso__estado ${listo ? "es-listo" : abierto(c.id) ? "es-abierto" : "es-cerrado"}">${listo ? "✓ Completado" : abierto(c.id) ? "Abierto" : "Cerrado"}</span>
         <h3>${esc(c.nombre)}</h3>
         <p class="concurso__apodo">${esc(c.apodo)}${c.modo === "gymkana" ? "" : ` · ${c.subpruebas.reduce((s, x) => s + x.max, 0)} pts de rúbrica`}</p>
-        <div class="concurso__pie"><div class="progreso"><i style="width:${pct}%"></i></div><span class="concurso__cuenta">${hechas}/${meta}</span></div>
+        <div class="concurso__pie"><div class="progreso"><i style="--w:${pct}%"></i></div><span class="concurso__cuenta">${hechas}/${meta}</span></div>
+        <span class="concurso__ir">${listo ? "Revisar mis calificaciones" : hechas ? "Seguir calificando" : "Empezar a calificar"} ${I.flecha}</span>
       </button>`;
     }).join("");
     const info = CONCURSOS.filter((c) => c.jurados === 0).map((c) => `
       <div class="concurso concurso--info"><span class="concurso__tipo" style="color:var(--ambar)">${I.info.replace("<svg", '<svg style="width:1em;height:1em;vertical-align:-2px"')} Lo registra el organizador</span>
         <h3>${esc(c.nombre)}</h3><p>${esc(c.nota)}</p></div>`).join("");
+    const totHechas = asignados.reduce((s, c) => s + data.calificaciones.filter((x) => x.concurso_id === c.id).length, 0);
+    const totMeta = asignados.reduce((s, c) => s + nd * c.subpruebas.length, 0), totPct = totMeta ? Math.min(100, Math.round((totHechas / totMeta) * 100)) : 0;
+    const h = new Date().getHours(), saludo = h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches";
     shell(`
-      <section class="tarjeta bienvenida">
-        ${avatar(j.nombre, j.foto)}
-        <div><h1>Hola, ${esc(j.nombre.split(" ")[0])}</h1>
-          <p>${j.descripcion ? esc(j.descripcion) : "Gracias por ser parte del jurado del VI CONCEPMI."}</p></div>
+      <section class="tarjeta bienvenida jur-hero">
+        <span class="jur-hero__aura" aria-hidden="true"></span>
+        <div class="jur-hero__foto">${avatar(j.nombre, j.foto)}</div>
+        <div class="jur-hero__txt"><span class="jur-hero__sobre">Jurado oficial · VI CONCEPMI 2026</span>
+          <h1>${saludo}, ${esc(j.nombre.split(" ")[0])}</h1>
+          <p>${j.descripcion ? esc(j.descripcion) : "Gracias por ser parte del jurado del VI CONCEPMI."}</p>
+          <div class="jur-hero__chips"><span class="chip chip--celeste">${asignados.length} ${asignados.length === 1 ? "concurso" : "concursos"}</span><span class="chip">${nd} delegaciones</span><span class="chip">24 y 26 de noviembre · UNMSM</span></div></div>
+        <div class="jur-anillo" style="--p:${totPct}" title="Tu avance total"><b>${totPct}<small>%</small></b><span>${totHechas} de ${totMeta}<br>calificaciones</span></div>
       </section>
       <div class="jur-layout lado-colegas"><div class="lado-colegas__main">
       <h2 class="seccion-titulo">Tus concursos</h2>
@@ -75,7 +101,7 @@ export async function vistaJurado(app, codigo) {
       ${nd ? "" : `<div class="vacio" style="margin-top:14px"><b>Todavía no hay delegaciones registradas</b>El organizador las agregará antes del concurso.</div>`}
       <h2 class="seccion-titulo">Para tu información</h2>
       <div class="rejilla">${info}</div></div>
-      <aside class="cob-panel colegas-lado" data-colegas aria-label="Tus colegas"></aside></div>`);
+      <aside class="cob-panel colegas-lado" data-colegas aria-label="Tus colegas"></aside></div>`, { animado: true });
     pintarColegas($("[data-colegas]", app), codigo, { rol: "jurado", concursos: j.concursos }, { lado: true });
     $$("[data-cid]", app).forEach((b) => (b.onclick = () => { abrirConcurso(b.dataset.cid); window.scrollTo(0, 0); }));
   }
@@ -117,7 +143,7 @@ export async function vistaJurado(app, codigo) {
       ${c.nota ? `<div class="nota">${esc(c.nota)}</div>` : ""}
       ${ENTREGABLES[cid]?.tipo === "presentacion" ? `<div class="en-jurado en-jurado--pres" data-pres-jurado><span>${I.tabla}<b>Presentación de este equipo</b>: ábrela en tu laptop mientras expone.</span><span class="tenue">Cargando…</span></div>`
       : tieneEntregable(cid) ? `<div class="en-jurado"><span>${I.tabla}<b>${esc(ENTREGABLES[cid].titulo)}</b> en línea: mira lo que escribió cada equipo (se actualiza en vivo).</span>
-        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button>${CONCURSOS_CASO.includes(cid) ? `<button class="btn btn--mini" data-caso-ver="${cid}">${I.libro}Caso oficial</button>${cid !== "iathon" ? `<button class="btn btn--mini" data-sol-ver="${cid}">${I.check}Resolución del caso</button>` : ""}` : ""}</div>` : ""}
+        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button></div>${CONCURSOS_CASO.includes(cid) ? `<div class="jc" data-casos-jurado><span class="jc__item jc__item--carga"><span class="giro"></span>Revisando el caso oficial…</span></div>` : ""}` : ""}
       <div id="criterios">${criterios}</div>
       <label class="campo" style="margin-top:16px"><span>Comentario para el organizador (opcional)</span>
         <textarea id="comentario" maxlength="600" ${editable ? "" : "disabled"} placeholder="Observaciones, fortalezas o motivos de tu puntaje">${esc(form.comentario)}</textarea></label>
@@ -149,8 +175,7 @@ export async function vistaJurado(app, codigo) {
         $$("[data-jpres]", cajaPres).forEach((x) => (x.onclick = () => abrirArchivo(codigo, pr.equipo_id, x.dataset.jpres)));
       }).catch((e) => { cajaPres.innerHTML = `<span>${I.alerta} ${esc(e.message)}</span>`; });
       $("[data-vertodas]", app)?.addEventListener("click", () => ver(null));
-      $("[data-caso-ver]", app)?.addEventListener("click", () => abrirCaso(codigo, cid));
-      $("[data-sol-ver]", app)?.addEventListener("click", () => abrirCaso(codigo, cid, { parte: "solucion" }));
+      pintarCasos(cid);
     }
     if (!data.delegaciones.length) return;
     $("#comentario").oninput = (e) => (form.comentario = e.target.value);

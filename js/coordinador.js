@@ -5,18 +5,18 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611101614";
-import { crearEntregas } from "./admin-entregas.js?v=202611101614";
-import { crearLogistica } from "./admin-logistica.js?v=202611101614";
-import { ENTREGABLES } from "./entregables.js?v=202611101614";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611101614";
-import { vistaProyeccion } from "./proyeccion.js?v=202611101614";
-import { crearCasos } from "./casos.js?v=202611101614";
-import { crearGuia, vistaGuia } from "./diad.js?v=202611101614";
-import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611101614";
-import { vistaAdmin } from "./admin.js?v=202611101614";
-import { crearMiAcceso } from "./mi-acceso.js?v=202611101614";
-import { salir, sesion } from "./app.js?v=202611101614";
+import { api, ES_DEMO } from "./api.js?v=202611101637";
+import { crearEntregas } from "./admin-entregas.js?v=202611101637";
+import { crearLogistica } from "./admin-logistica.js?v=202611101637";
+import { ENTREGABLES } from "./entregables.js?v=202611101637";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611101637";
+import { vistaProyeccion } from "./proyeccion.js?v=202611101637";
+import { crearCasos } from "./casos.js?v=202611101637";
+import { crearGuia, vistaGuia } from "./diad.js?v=202611101637";
+import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611101637";
+import { vistaAdmin } from "./admin.js?v=202611101637";
+import { crearMiAcceso } from "./mi-acceso.js?v=202611101637";
+import { salir, sesion } from "./app.js?v=202611101637";
 
 export async function vistaCoordinador(app, codigo, puerta = "admin") {
   let data = null;
@@ -43,7 +43,7 @@ export async function vistaCoordinador(app, codigo, puerta = "admin") {
   if (puede(k, "casos")) pestanas.unshift({ id: "casos", txt: "Casos confidenciales", icono: "candado", ui: crearCasos({ codigo: () => codigo, cambiarCodigo: (c) => { codigo = c; } }) });
   const ir = (id) => { if (!pestanas.some((p) => p.id === id)) return; actual = id; $$("[data-p]", app).forEach((x) => x.setAttribute("aria-selected", String(x.dataset.p === id))); pintar(); window.scrollTo(0, 0); };
   pestanas.unshift({ id: "inicio", txt: "Mi acceso", icono: "escudo", ui: crearMiAcceso(k, { entregas: () => ir("entregas"), logistica: () => ir("logistica"), casos: () => ir("casos"), guia: () => ir("guia"), proyeccion: abrirProyeccion }) });
-  let actual = pestanas[0]?.id;
+  let actual = puede(k, "casos") ? "casos" : pestanas[0]?.id; // la encargada entra directo a sus casos (y a crear su código privado)
   const titulo = concursos.length && !puede(k, "logistica", "ver") ? "Coordinador de sala" : !concursos.length && puede(k, "logistica", "ver") ? (puede(k, "logistica") ? "Logística" : "Logística · solo lectura") : "Panel de acceso limitado";
 
   app.innerHTML = `<div class="fondo fondo--sobrio"></div>
