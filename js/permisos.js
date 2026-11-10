@@ -14,7 +14,7 @@ export const AREAS = [
   { id: "logistica", txt: "Logística", ver: "Presupuesto, gastos, comprobantes y reporte", editar: "Registrar compras, pagos, proveedores y comprobantes" },
   { id: "diad", txt: "Guía del Día D (voluntario)", ver: "Solo su guía personal del Día D: qué le toca, dónde y a qué hora. Las tareas se asignan en la pestaña Día D", editar: null, guia: true },
   { id: "casos", txt: "Casos confidenciales", ver: null, editar: "Sube el caso oficial de Amateur I, Amateur II e IATHON. Nadie más lo abre antes de «Iniciar tiempo» (si el admin lo abre, queda registrado). Al entrar crea su propio código privado", aparte: true, soloEdita: true },
-  { id: "proyeccion", txt: "Proyección (auditorio)", ver: "Panel de Proyección: solo proyecta ceremonias, charlas, trivia y concursos; maneja la trivia y el tiempo de los concursos", editar: null, unico: true },
+  { id: "proyeccion", txt: "Proyección (auditorio)", ver: "Le agrega el Panel de Proyección (botón «Proyección» en su panel): ceremonias, charlas, trivia y concursos en pantalla grande. No le quita sus otras pestañas", editar: null, unico: true },
 ];
 export const AREA = Object.fromEntries(AREAS.map((a) => [a.id, a]));
 

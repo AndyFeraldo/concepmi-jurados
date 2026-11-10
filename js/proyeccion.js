@@ -5,21 +5,21 @@
 // Al cerrar una pantalla se vuelve a este menú. La base de datos limita lo que puede hacer:
 // leer y proyectar, manejar la trivia (iniciar, detener, confirmar podio) y el tiempo de los concursos.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611100124";
-import { CHARLAS } from "./charlas.js?v=202611100124";
-import { ENTREGABLES } from "./entregables.js?v=202611100124";
-import { porId } from "./concursos.js?v=202611100124";
-import { copaGeneral } from "./calculo.js?v=202611100124";
-import { crearCharlas } from "./admin-charlas.js?v=202611100124";
-import { proyectarCharlas } from "./admin-ponentes.js?v=202611100124";
-import { abrirCeremonia, cargarPrograma } from "./inauguracion.js?v=202611100124";
-import { abrirEscenario } from "./escenario.js?v=202611100124";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611100124";
-import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611100124";
-import { $, $$, esc, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611100124";
-import { salir } from "./app.js?v=202611100124";
+import { api, ES_DEMO } from "./api.js?v=202611101614";
+import { CHARLAS } from "./charlas.js?v=202611101614";
+import { ENTREGABLES } from "./entregables.js?v=202611101614";
+import { porId } from "./concursos.js?v=202611101614";
+import { copaGeneral } from "./calculo.js?v=202611101614";
+import { crearCharlas } from "./admin-charlas.js?v=202611101614";
+import { proyectarCharlas } from "./admin-ponentes.js?v=202611101614";
+import { abrirCeremonia, cargarPrograma } from "./inauguracion.js?v=202611101614";
+import { abrirEscenario } from "./escenario.js?v=202611101614";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611101614";
+import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611101614";
+import { $, $$, esc, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611101614";
+import { salir } from "./app.js?v=202611101614";
 
-export async function vistaProyeccion(app, codigo, acceso) {
+export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {}) {
   let data = null, pausado = false;
   const recargar = async () => { if (pausado) return; try { data = await api.adminDatos(codigo); } catch { /* usa lo cargado */ } };
   app.innerHTML = `<div class="fondo fondo--sobrio"></div><div class="cargando"><div class="giro"></div>Abriendo el panel de proyección…</div>`;
@@ -36,7 +36,7 @@ export async function vistaProyeccion(app, codigo, acceso) {
     <header class="barra pyc-barra">
       <img class="logo" src="${IMG.logo}" alt="CONCEPMI"><span class="sep"></span>
       <div><div class="barra__titulo">Panel de Proyección</div><div class="barra__sub">${esc(acceso.nombre)} · VI CONCEPMI 2026</div></div>
-      <div class="der"><button class="btn btn--mini" data-full>${I.vivo}<span>Pantalla completa</span></button><button class="btn btn--mini btn--icono" data-salir title="Salir" aria-label="Salir">${I.salir}</button></div>
+      <div class="der">${volver ? `<button class="btn btn--mini btn--naranja" data-volver>${I.atras}<span>Volver a mi panel</span></button>` : ""}<button class="btn btn--mini" data-full>${I.vivo}<span>Pantalla completa</span></button><button class="btn btn--mini btn--icono" data-salir title="Salir" aria-label="Salir">${I.salir}</button></div>
     </header>
     <main class="contenedor pyc">
       <p class="pyc-ayuda">Elige qué proyectar. Cada pantalla se abre a pantalla completa y, al cerrarla, vuelves aquí. Los botones de control aparecen al mover el mouse.</p>
@@ -62,6 +62,7 @@ export async function vistaProyeccion(app, codigo, acceso) {
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
 
   $("[data-salir]", app).onclick = salir;
+  if (volver) $("[data-volver]", app).onclick = volver;
   $("[data-full]", app).onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {});
   const ocupado = (b, fn) => async () => { b.disabled = true; try { await fn(); } catch (e) { aviso(e.message, "error"); } b.disabled = false; };
   const ponentes = () => api.adminPonentes(codigo);
@@ -71,7 +72,7 @@ export async function vistaProyeccion(app, codigo, acceso) {
     abrirCeremonia(P, { abrirCharla: async (k = 0) => { try { proyectarCharlas(codigo, await ponentes(), k); } catch (e) { aviso(e.message, "error"); } } });
   });
   $("[data-premiacion]", app).onclick = ocupado($("[data-premiacion]", app), async () => {
-    await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611100124"); abrirPremiacion(copaGeneral(data));
+    await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611101614"); abrirPremiacion(copaGeneral(data));
   });
   $$("[data-ponencia]", app).forEach((b) => (b.onclick = ocupado(b, async () => proyectarCharlas(codigo, await ponentes(), Number(b.dataset.ponencia)))));
   $$("[data-trivia]", app).forEach((b) => (b.onclick = ocupado(b, async () => { await recargar(); charlasUI.proyector(b.dataset.trivia); })));

@@ -1,16 +1,16 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611100124";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611100124";
-import { CONCURSOS } from "./concursos.js?v=202611100124";
-import { vistaJurado } from "./jurado.js?v=202611100124";
-import { vistaAdmin } from "./admin.js?v=202611100124";
-import { vistaTallerista } from "./tallerista.js?v=202611100124";
-import { vistaQuiz } from "./quiz.js?v=202611100124";
-import { vistaEquipo } from "./equipo.js?v=202611100124";
-import { vistaPonente } from "./ponente.js?v=202611100124";
-import { vistaCoordinador } from "./coordinador.js?v=202611100124";
+import { api, ES_DEMO } from "./api.js?v=202611101614";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611101614";
+import { CONCURSOS } from "./concursos.js?v=202611101614";
+import { vistaJurado } from "./jurado.js?v=202611101614";
+import { vistaAdmin } from "./admin.js?v=202611101614";
+import { vistaTallerista } from "./tallerista.js?v=202611101614";
+import { vistaQuiz } from "./quiz.js?v=202611101614";
+import { vistaEquipo } from "./equipo.js?v=202611101614";
+import { vistaPonente } from "./ponente.js?v=202611101614";
+import { vistaCoordinador } from "./coordinador.js?v=202611101614";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -159,7 +159,7 @@ function pedirCodigo(rol) {
         inp.classList.remove("temblor"); void inp.offsetWidth; inp.classList.add("temblor"); inp.select();
         return;
       }
-      sesion.guardar({ rol: r.rol, codigo });
+      sesion.guardar({ rol: r.rol, codigo, puerta: rol });
       m.cerrar();
       abrir();
     } catch (ex) {
@@ -177,7 +177,7 @@ function abrir() {
   if (s?.rol === "tallerista") return vistaTallerista(app, s.codigo);
   if (s?.rol === "equipo") return vistaEquipo(app, s.codigo);
   if (s?.rol === "admin") return vistaAdmin(app, s.codigo);
-  if (s?.rol === "coordinador") return vistaCoordinador(app, s.codigo);
+  if (s?.rol === "coordinador") return vistaCoordinador(app, s.codigo, s.puerta);
   if (s?.rol === "ponente") return vistaPonente(app, s.codigo, salir);
   portada();
 }

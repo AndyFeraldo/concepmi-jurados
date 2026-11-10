@@ -3,17 +3,18 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611100124";
-import { ENTREGABLES } from "./entregables.js?v=202611100124";
-import { porId } from "./concursos.js?v=202611100124";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611100124";
-import { abrirEscenario } from "./escenario.js?v=202611100124";
-import { quitarArchivos } from "./presentacion.js?v=202611100124";
-import { alertaCasos } from "./casos.js?v=202611100124";
-import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611100124";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611100124";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611100124";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611100124";
+import { api } from "./api.js?v=202611101614";
+import { ENTREGABLES } from "./entregables.js?v=202611101614";
+import { porId } from "./concursos.js?v=202611101614";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611101614";
+import { abrirEscenario } from "./escenario.js?v=202611101614";
+import { quitarArchivos } from "./presentacion.js?v=202611101614";
+import { htmlMiAcceso } from "./mi-acceso.js?v=202611101614";
+import { alertaCasos } from "./casos.js?v=202611101614";
+import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611101614";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611101614";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611101614";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611101614";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -277,12 +278,15 @@ export function crearEntregas(ctx) {
     return `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Nombre</th><th>Código</th><th>Permisos</th><th></th></tr></thead><tbody>
       ${coords.map((k) => `<tr><td><b>${esc(k.nombre)}</b></td><td style="white-space:nowrap">${k.codigo ? `<code class="en-codigo">${esc(k.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar-coord="${esc(k.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button>` : `<span class="chip" title="Eligió su propio código; solo ella lo sabe">🔒 Código privado</span>`}</td>
         <td><div class="reparto" style="margin:0">${chips(k)}</div></td>
-        <td><button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>
+        <td style="white-space:nowrap"><button class="btn btn--mini" data-coord-ver="${k.id}" title="Ver lo que esta persona verá al entrar">${I.vivo}Ver como</button> <button class="btn btn--mini btn--icono" data-coord-editar="${k.id}" title="Editar acceso" aria-label="Editar acceso">${I.lapiz}</button></td></tr>`).join("")}</tbody></table></div>
       <p class="ayuda" style="margin-top:8px">Estas mismas personas son las del <b>Día D</b>: ahí les asignas qué hacer, dónde y a qué hora (y puedes crear voluntarios nuevos, que aparecen aquí). <b>Ve</b> = mira la pestaña sin poder cambiar nada (y sin ver códigos de jurados ni talleristas). <b>Edita</b> = puede crear, cambiar y borrar en esa pestaña.</p>`;
   }
   function enlazarCoords(v) {
     if (!esAdmin) return;
     const nuevo = $("[data-coord-nuevo]", v); if (nuevo) nuevo.onclick = () => formCoord(null, v);
+    $$("[data-coord-ver]", v).forEach((b) => (b.onclick = () => { const k = coords.find((x) => x.id === b.dataset.coordVer);
+      const m = modal(`<p class="ayuda" style="margin:0 0 10px">Así ve <b>${esc(k.nombre)}</b> su pantalla de inicio al entrar con su código. Si falta algo, edita su acceso.</p>${htmlMiAcceso(k)}<div class="modal__acciones"><button class="btn" data-x>Cerrar</button></div>`, { ancho: true });
+      $("[data-x]", m.el).onclick = m.cerrar; $$("[data-ma]", m.el).forEach((x) => (x.disabled = true)); }));
     $$("[data-coord-editar]", v).forEach((b) => (b.onclick = () => formCoord(coords.find((k) => k.id === b.dataset.coordEditar), v)));
     $$("[data-copiar-coord]", v).forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copiarCoord); aviso("Código copiado"); } catch { aviso(`Código: ${b.dataset.copiarCoord}`); } }));
   }
@@ -292,9 +296,9 @@ export function crearEntregas(ctx) {
     const fila = (a) => `<div class="perm-fila" data-area="${a.id}">
         <div class="perm-fila__txt"><b>${esc(a.txt)}</b><small data-desc>${esc(per[a.id] === "editar" ? a.editar || a.ver : a.ver)}</small></div>
         <div class="segm perm-segm" role="radiogroup" aria-label="${esc(a.txt)}">
-          <button type="button" data-nv="" class="${!per[a.id] ? "activo" : ""}">No ve</button>
-          ${a.soloEdita ? "" : `<button type="button" data-nv="ver" class="${per[a.id] === "ver" ? "activo" : ""}">Ve</button>`}
-          ${a.editar ? `<button type="button" data-nv="editar" class="${per[a.id] === "editar" ? "activo" : ""}">Edita</button>` : ""}
+          <button type="button" data-nv="" class="${!per[a.id] ? "activo" : ""}">🚫 No ve</button>
+          ${a.soloEdita ? "" : `<button type="button" data-nv="ver" class="${per[a.id] === "ver" ? "activo" : ""}">👁 Solo ve</button>`}
+          ${a.editar ? `<button type="button" data-nv="editar" class="${per[a.id] === "editar" ? "activo" : ""}">✏️ Ve y edita</button>` : ""}
         </div></div>`;
     const m = modal(`<h2>${k ? "Editar acceso" : "Nuevo acceso limitado"}</h2><form class="form">
       <label class="campo"><span>Nombre</span><input name="nombre" maxlength="120" required value="${esc(k?.nombre || "")}" placeholder="Ej. Coordinador de Relaciones Públicas"></label>
@@ -312,7 +316,8 @@ export function crearEntregas(ctx) {
       const ve = AREAS.filter((a) => per[a.id] === "ver").map((a) => a.txt), ed = AREAS.filter((a) => per[a.id] === "editar").map((a) => a.txt);
       const cc = $$("[name=cc]", f).filter((x) => x.checked).map((x) => porId(x.value)?.nombre || x.value);
       $("[data-resumen]", f).innerHTML = !ve.length && !ed.length && !cc.length ? "Elige al menos una pestaña o un concurso."
-        : [ve.length && `<b>Solo mira:</b> ${esc(ve.join(", "))}`, ed.length && `<b>Puede editar:</b> ${esc(ed.join(", "))}`, cc.length && `<b>Entregas de:</b> ${esc(cc.join(", "))}`].filter(Boolean).join("<br>");
+        : [ed.length && `✏️ <b>Ve y edita:</b> ${esc(ed.join(", "))}`, ve.length && `👁 <b>Solo ve:</b> ${esc(ve.join(", "))}`, cc.length && `📝 <b>Entregas de:</b> ${esc(cc.join(", "))}`,
+           `Al entrar verá la pantalla <b>«Mi acceso»</b> con una tarjeta por cada cosa que le habilitaste.`].filter(Boolean).join("<br>");
     };
     const pintarFila = (id) => { const a = AREAS.find((x) => x.id === id), el = $(`[data-area="${id}"]`, f);
       $$("[data-nv]", el).forEach((b) => b.classList.toggle("activo", b.dataset.nv === (per[id] || "")));
