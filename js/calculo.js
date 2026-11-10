@@ -3,9 +3,9 @@
 // Regla general: promedio de jurados, redondeado a entero,
 // sin superar nunca el máximo de las bases.
 // =========================================================
-import { CONCURSOS, porId } from "./concursos.js?v=202611101637";
-import { TALLERES, puntosTalleres } from "./talleres.js?v=202611101637";
-import { CHARLAS, puntosCharlas } from "./charlas.js?v=202611101637";
+import { CONCURSOS, porId } from "./concursos.js?v=202611102322";
+import { TALLERES, puntosTalleres } from "./talleres.js?v=202611102322";
+import { CHARLAS, puntosCharlas } from "./charlas.js?v=202611102322";
 
 export const redondear = (x) => Math.round(Number(x) + 1e-9);
 const prom = (a) => (a.length ? a.reduce((s, x) => s + Number(x), 0) / a.length : null);
@@ -60,15 +60,34 @@ function calcRubrica(c, data) {
     filas.push({ delegacion: d, califs: mias, porSub, promCrit, bruto, penal, neto, ajuste: aj,
       rubrica: anulado(aj) ? 0 : tope(redondear(neto), c.subpruebas.reduce((s, x) => s + x.max, 0)) });
   }
-  // Ranking
+  // Ranking con desempate en 4 pasos: 1) promedio exacto sin redondear, 2) criterios (los de las bases si
+  // las hay y luego los de mayor puntaje), 3) quién envió primero su entregable, 4) decisión del jurado en sala.
   const validos = filas.filter((f) => !anulado(f.ajuste));
-  let cmp = (a, b) => b.neto - a.neto;
-  if (c.desempate) {
-    cmp = (a, b) => {
-      const d = b.neto - a.neto; if (Math.abs(d) > 1e-9) return d;
-      for (const k of c.desempate) { const e = (b.promCrit[k] || 0) - (a.promCrit[k] || 0); if (Math.abs(e) > 1e-9) return e; }
-      return 0;
-    };
+  const todos = c.subpruebas.flatMap((s) => s.criterios);
+  const ordenCrit = [...(c.desempate || []).map((id) => todos.find((k) => k.id === id)).filter(Boolean),
+    ...[...todos].sort((a, b) => (b.max || 0) - (a.max || 0))].filter((k, i, l) => l.findIndex((x) => x.id === k.id) === i);
+  const envio = (did) => { const e = (data.envios || []).find((x) => x.concurso_id === c.id && x.delegacion_id === did); return e ? Date.parse(e.enviado) : null; };
+  const manual = (did) => (data.desempates || []).find((x) => x.concurso_id === c.id && x.delegacion_id === did) || null;
+  const comparar = (a, b) => {
+    const d = b.neto - a.neto; if (Math.abs(d) > 1e-9) return { d, por: "promedio exacto", paso: 1 };
+    for (const k of ordenCrit) { const e = (b.promCrit[k.id] || 0) - (a.promCrit[k.id] || 0); if (Math.abs(e) > 1e-9) return { d: e, por: `criterio «${k.nombre}»`, paso: 2 }; }
+    const ea = envio(a.delegacion.id), eb = envio(b.delegacion.id);
+    if (ea != null && eb != null && ea !== eb) return { d: ea - eb, por: "hora de envío del entregable (gana quien envió primero)", paso: 3 };
+    const ma = manual(a.delegacion.id), mb = manual(b.delegacion.id);
+    if ((ma || mb) && (ma?.orden ?? 99) !== (mb?.orden ?? 99)) return { d: (ma?.orden ?? 99) - (mb?.orden ?? 99), por: `decisión del jurado: ${(ma || mb).motivo}`, paso: 4 };
+    return { d: 0 };
+  };
+  const cmp = (a, b) => comparar(a, b).d;
+  // Si dos quedan con la misma rúbrica final (entero), se anota qué los separó: cada uno dice por qué quedó
+  // debajo del de arriba (▼); el primero del grupo, por qué ganó (▲). Los que siguen empatados no llevan nota.
+  const enOrden = [...validos].sort(cmp);
+  for (let i = 1; i < enOrden.length; i++) {
+    const a = enOrden[i - 1], b = enOrden[i];
+    if (a.rubrica !== b.rubrica) continue;
+    const r = comparar(a, b); if (!r.d) continue;
+    b.desempate = { por: r.por, paso: r.paso, gana: false };
+    const atadoArriba = i > 1 && enOrden[i - 2].rubrica === a.rubrica && !cmp(enOrden[i - 2], a);
+    if (!a.desempate && !atadoArriba) a.desempate = { por: r.por, paso: r.paso, gana: true };
   }
   const puntos = c.conversion ? tablaTail(c.conversion.tabla, c.conversion.resto) : () => 0;
   const rk = asignarPorRanking(validos.map((f) => ({ ...f, id: f.delegacion.id })), cmp, puntos);

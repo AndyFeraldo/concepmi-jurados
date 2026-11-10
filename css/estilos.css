@@ -1918,3 +1918,7 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 @media (prefers-reduced-motion: reduce){ .jur-entra > *, .concurso--vivo, .colegas-lado, .jur-hero__aura, .jur-hero__foto, .jur-hero__foto::before, .jur-anillo, .concurso--vivo .progreso > i{ animation:none !important; } }
 .jur-anillo b{ place-content:center; gap:1px; }
 .en-jurado > span{ display:block; } .en-jurado > span svg{ vertical-align:-3px; margin-right:6px; } .en-jurado > span b{ margin-right:4px; }
+
+/* Desempates en Resultados */
+.des-nota{ color:var(--tenue); font-size:.74rem; } .des-nota--gana{ color:#8FF2C0; }
+.des-quitar{ background:none; border:0; color:#FF9C99; font:inherit; font-size:.72rem; text-decoration:underline; cursor:pointer; padding:0; }

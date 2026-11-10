@@ -1,27 +1,27 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611101637";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611101637";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611101637";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611101637";
-import { exportarExcel } from "./excel.js?v=202611101637";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611101637";
-import { crearLogistica } from "./admin-logistica.js?v=202611101637";
-import { crearEntregas } from "./admin-entregas.js?v=202611101637";
-import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611101637";
-import { crearInauguracion } from "./inauguracion.js?v=202611101637";
-import { crearMiAcceso } from "./mi-acceso.js?v=202611101637";
-import { crearCasos } from "./casos.js?v=202611101637";
-import { crearDiaD, crearGuia } from "./diad.js?v=202611101637";
-import { crearCertificados } from "./certificados.js?v=202611101637";
-import { crearCharlas } from "./admin-charlas.js?v=202611101637";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611101637";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611101637";
-import { puede, soloVer } from "./permisos.js?v=202611101637";
-import { ENTREGABLES } from "./entregables.js?v=202611101637";
-import { enlaceLinkedin } from "./colegas.js?v=202611101637";
-import { salir } from "./app.js?v=202611101637";
+import { api, ES_DEMO } from "./api.js?v=202611102322";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611102322";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611102322";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611102322";
+import { exportarExcel } from "./excel.js?v=202611102322";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611102322";
+import { crearLogistica } from "./admin-logistica.js?v=202611102322";
+import { crearEntregas } from "./admin-entregas.js?v=202611102322";
+import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611102322";
+import { crearInauguracion } from "./inauguracion.js?v=202611102322";
+import { crearMiAcceso } from "./mi-acceso.js?v=202611102322";
+import { crearCasos } from "./casos.js?v=202611102322";
+import { crearDiaD, crearGuia } from "./diad.js?v=202611102322";
+import { crearCertificados } from "./certificados.js?v=202611102322";
+import { crearCharlas } from "./admin-charlas.js?v=202611102322";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611102322";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611102322";
+import { puede, soloVer } from "./permisos.js?v=202611102322";
+import { ENTREGABLES } from "./entregables.js?v=202611102322";
+import { enlaceLinkedin } from "./colegas.js?v=202611102322";
+import { salir } from "./app.js?v=202611102322";
 
 const PESTANAS = [
   { id: "inicio", txt: "Mi acceso", icono: "escudo", soloAcceso: true },
@@ -235,6 +235,32 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
     }));
   }
 
+  // Paso 4 del desempate: el jurado decide en sala y el admin lo registra con motivo
+  function desempatar(c, empatados) {
+    const m = modal(`<h2>Desempate · ${esc(c.nombre)}</h2>
+      <p class="ayuda" style="margin-top:-6px">Estas delegaciones siguen empatadas después del promedio exacto, los criterios y la hora de envío. Registra la <b>decisión del jurado en sala</b> (por ejemplo, tras una pregunta extra): elige el orden y escribe el motivo.</p>
+      <form class="form">${empatados.map((f, i) => `<label class="campo" style="display:flex;align-items:center;gap:10px"><select name="o_${f.delegacion.id}" style="max-width:110px">${empatados.map((_, k) => `<option value="${k + 1}" ${k === i ? "selected" : ""}>${k + 1}.º</option>`).join("")}</select><b>${esc(f.delegacion.nombre)}</b></label>`).join("")}
+        <label class="campo"><span>Motivo (queda registrado)</span><textarea name="motivo" rows="2" maxlength="300" required placeholder="Ej. Respondió mejor la pregunta de desempate del jurado"></textarea></label>
+        <p class="error"></p>
+        <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Guardar decisión</button></div></form>`);
+    const f = $("form", m.el); $("[data-cancelar]", m.el).onclick = m.cerrar;
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const ord = empatados.map((x) => +f[`o_${x.delegacion.id}`].value);
+      if (new Set(ord).size !== ord.length) { $(".error", f).textContent = "Cada delegación debe tener un puesto distinto"; return; }
+      try { for (const x of empatados) await api.adminDesempate(codigo, c.id, x.delegacion.id, +f[`o_${x.delegacion.id}`].value, f.motivo.value);
+        m.cerrar(); await recargar(true); aviso("Desempate registrado"); } catch (ex) { $(".error", f).textContent = ex.message; }
+    };
+  }
+  function enlazarDesempate(c, r, filas) {
+    $$("[data-desempatar]", r).forEach((b) => (b.onclick = () => desempatar(c, filas.filter((f) => f.empate && String(f.puesto) === b.dataset.desempatar))));
+    $$("[data-des-quitar]", r).forEach((b) => (b.onclick = async () => {
+      if (!(await confirmar("¿Quitar la decisión del jurado?", "Las delegaciones de ese desempate volverán a quedar empatadas.", { boton: "Quitar", peligro: true }))) return;
+      try { for (const x of (data.desempates || []).filter((d) => d.concurso_id === c.id)) await api.adminDesempate(codigo, c.id, x.delegacion_id, null);
+        await recargar(true); aviso("Decisión quitada"); } catch (e) { aviso(e.message, "error"); }
+    }));
+  }
+
   function resRubrica(c, r) {
     const filas = resultados(c.id, data);
     const jurs = data.jurados.filter((j) => j.concursos.includes(c.id) || data.calificaciones.some((x) => x.concurso_id === c.id && x.jurado_id === j.id));
@@ -250,8 +276,8 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
         <thead><tr><th>Puesto</th><th>Delegación</th>${jurs.map((j) => `<th class="num" title="${esc(j.nombre)}">${esc(j.nombre.split(" ")[0])}</th>`).join("")}
           <th class="num">Promedio${varias ? " (V + P)" : ""}</th><th>Sanción</th><th class="num">Rúbrica final</th><th class="num">Puntos Copa</th></tr></thead>
         <tbody>${filas.map((f) => `<tr>
-          <td>${medalla(f.puesto)}${f.empate ? ' <span class="chip chip--ambar">empate</span>' : ""}</td>
-          <td><b>${esc(f.delegacion.nombre)}</b></td>
+          <td>${medalla(f.puesto)}${f.empate ? ` <span class="chip chip--ambar">empate</span>${editable("resultados") ? ` <button class="btn btn--mini btn--naranja" data-desempatar="${f.puesto}">Desempatar</button>` : ""}` : ""}</td>
+          <td><b>${esc(f.delegacion.nombre)}</b>${f.desempate ? `<br><small class="des-nota ${f.desempate.gana ? "des-nota--gana" : ""}" title="Tenían la misma rúbrica final">${f.desempate.gana ? "▲ Gana el desempate" : "▼ Pierde el desempate"} · ${esc(f.desempate.por)}${f.desempate.paso === 4 && editable("resultados") ? ` <button class="des-quitar" data-des-quitar="${f.delegacion.id}" title="Quitar la decisión del jurado">quitar</button>` : ""}</small>` : ""}</td>
           ${jurs.map((j) => celdaJur(f, j)).join("")}
           <td class="num">${c.subpruebas.map((sp) => fmt(f.porSub[sp.id]?.promedio, 2)).join(" + ")}${f.penal ? `<br><small class="tenue">−${fmt(f.penal, 2)} retraso</small>` : ""}</td>
           <td>${selectSancion(c, f.delegacion.id)}</td>
@@ -259,10 +285,12 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
           <td class="num grande">${f.copa}</td></tr>`).join("")}
           ${sinVoto.map((d) => `<tr><td><span class="tenue">—</span></td><td>${esc(d.nombre)}</td>${jurs.map(() => '<td class="num tenue">—</td>').join("")}<td class="num tenue">Sin votos</td><td>${selectSancion(c, d.id)}</td><td></td><td></td></tr>`).join("")}
         </tbody></table></div>
-      ${c.conversion ? `<p class="ayuda" style="margin-top:10px">Conversión de puesto a Copa: ${c.conversion.txt.map((t, i) => `${t} = ${i < c.conversion.tabla.length ? c.conversion.tabla[i] : c.conversion.resto}`).join(" · ")}. Desempate automático por criterio 3, luego 1, luego 2.</p>` : ""}
+      ${c.conversion ? `<p class="ayuda" style="margin-top:10px">Conversión de puesto a Copa: ${c.conversion.txt.map((t, i) => `${t} = ${i < c.conversion.tabla.length ? c.conversion.tabla[i] : c.conversion.resto}`).join(" · ")}. Las bases desempatan por criterio 3, luego 1, luego 2.</p>` : ""}
+      <p class="ayuda" style="margin-top:8px"><b>Desempate automático</b> (el jurado sigue calificando en enteros): 1) promedio exacto sin redondear · 2) criterios de mayor puntaje · 3) quién envió primero su entregable · 4) si aún empatan, <b>decisión del jurado en sala</b> (botón «Desempatar», con motivo).</p>
       ${c.subpruebas.map((sp) => detalle(c, sp)).join("")}
       ${historialBorrados(c)}`;
     conectarSanciones(c, r);
+    enlazarDesempate(c, r, filas);
     $$("[data-borrar]", r).forEach((b) => (b.onclick = () => {
       const x = data.calificaciones.find((y) => y.id === b.dataset.borrar);
       borrarCalificaciones({ cid: c.id, jid: x?.jurado_id, ids: [b.dataset.borrar] });
@@ -687,7 +715,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       ${data.delegaciones.length ? `<p class="ayuda" style="margin-top:12px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611101637"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611102322"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------

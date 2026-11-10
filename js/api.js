@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611101637";
-import { CONCURSOS, porId } from "./concursos.js?v=202611101637";
-import { TALLERES } from "./talleres.js?v=202611101637";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611101637";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611102322";
+import { CONCURSOS, porId } from "./concursos.js?v=202611102322";
+import { TALLERES } from "./talleres.js?v=202611102322";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611102322";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -87,6 +87,7 @@ const real = {
     rpc("jur_admin_jurado", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_concursos: concursos, p_descripcion: descripcion, p_foto: foto, p_borrar: borrar, p_nuevo_codigo: nuevoCodigo, p_codigo_fijo: codigoFijo, p_linkedin: linkedin }),
   // Colegas (jurados y talleristas con foto, descripción y LinkedIn) para el jurado o el tallerista
   colegas: (codigo) => rpc("jur_colegas", { p_codigo: codigo }),
+  adminDesempate: (codigo, concurso, delegacion, orden, motivo = "") => rpc("jur_admin_desempate", { p_codigo: codigo, p_concurso: concurso, p_delegacion: delegacion, p_orden: orden, p_motivo: motivo }),
   adminAjuste: (codigo, concurso, delegacion, a) =>
     rpc("jur_admin_ajuste", { p_codigo: codigo, p_concurso: concurso, p_delegacion: delegacion, p_retraso: !!a.retraso, p_walkover: !!a.walkover,
       p_descalificado: !!a.descalificado, p_valor: a.valor ?? null, p_nota: a.nota || "" }),
@@ -212,7 +213,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611101637");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611102322");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -363,7 +364,10 @@ const demo = {
     return { concursos: CONCURSOS.map((c) => ({ id: c.id, abierto: d.abiertos[c.id] })), delegaciones: [...d.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
       jurados: d.jurados.filter((j) => ve("jurados") || verRes || j.concursos.some((c) => cc.includes(c))).map((j) => sinCod(j, "jurados")),
       calificaciones: [...d.calificaciones].filter((x) => verRes || cc.includes(x.concurso_id)).sort((a, b) => new Date(b.actualizado) - new Date(a.actualizado)),
-      ajustes: d.ajustes.filter((x) => verRes || cc.includes(x.concurso_id)), borrados: verRes ? d.borrados || [] : [],
+      ajustes: d.ajustes.filter((x) => verRes || cc.includes(x.concurso_id)),
+      desempates: (d.desempates || []).filter((x) => verRes || cc.includes(x.concurso_id)),
+      envios: (d.equipos || []).filter((e) => d.entregas?.[e.id]?.estado === "enviado" && (verRes || cc.includes(e.concurso_id))).map((e) => ({ concurso_id: e.concurso_id, delegacion_id: e.delegacion_id, enviado: d.entregas[e.id].enviado })),
+      borrados: verRes ? d.borrados || [] : [],
       talleres: TALLERES.map((t) => ({ id: t.id, abierto: d.talleresAbiertos[t.id] })), talleristas: ve("talleristas") ? d.talleristas.map((t) => sinCod(t, "talleristas")) : [], ganadores_talleres: ve("talleristas") || verRes ? d.ganadores : [],
       charlas: CHARLAS.map((c) => { const x = quizC(c.id); return { id: c.id, fase: quizFase(c.id), confirmado: x.confirmado || null, ganador_nombre: x.ganador_nombre || null, podio: x.podio || [],
         ganador_delegacion: x.ganador_delegacion || null, preguntas: d.preguntas[c.id].length, jugadores: d.jugadores.filter((j) => j.charla_id === c.id).length }; }),
@@ -396,6 +400,10 @@ const demo = {
     if (regen) j.codigo = nuevoCodigo();
     if (fijo) j.codigo = fijo;
     guardar(); return { id: j.id, codigo: j.codigo }; },
+  async adminDesempate(codigo, concurso, delegacion, orden, motivo = "") { await espera(); exigirPermiso(codigo, "resultados", "editar"); const d = db(); d.desempates ||= [];
+    d.desempates = d.desempates.filter((x) => !(x.concurso_id === concurso && x.delegacion_id === delegacion));
+    if (orden != null) { if (String(motivo).trim().length < 5) throw new Error("Escribe el motivo de la decisión (queda registrado)"); d.desempates.push({ concurso_id: concurso, delegacion_id: delegacion, orden, motivo: String(motivo).trim() }); }
+    guardar(); },
   async adminAjuste(codigo, concurso, delegacion, a) { await espera(); exigirPermiso(codigo, "resultados", "editar"); const d = db();
     let r = d.ajustes.find((x) => x.concurso_id === concurso && x.delegacion_id === delegacion);
     if (!r) { r = { concurso_id: concurso, delegacion_id: delegacion }; d.ajustes.push(r); }
