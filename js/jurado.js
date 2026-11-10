@@ -1,17 +1,17 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611091738";
-import { abrirCaso, CONCURSOS_CASO } from "./casos.js?v=202611091738";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611091738";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611091738";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611091738";
-import { salir } from "./app.js?v=202611091738";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611091738";
-import { abrirVisor } from "./entrega-visor.js?v=202611091738";
-import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611091738";
+import { api, ES_DEMO } from "./api.js?v=202611100124";
+import { abrirCaso, CONCURSOS_CASO } from "./casos.js?v=202611100124";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611100124";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611100124";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss } from "./ui.js?v=202611100124";
+import { salir } from "./app.js?v=202611100124";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611100124";
+import { abrirVisor } from "./entrega-visor.js?v=202611100124";
+import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611100124";
 
-import { pintarColegas } from "./colegas.js?v=202611091738";
+import { pintarColegas } from "./colegas.js?v=202611100124";
 
 export async function vistaJurado(app, codigo) {
   let data = null;
@@ -117,7 +117,7 @@ export async function vistaJurado(app, codigo) {
       ${c.nota ? `<div class="nota">${esc(c.nota)}</div>` : ""}
       ${ENTREGABLES[cid]?.tipo === "presentacion" ? `<div class="en-jurado en-jurado--pres" data-pres-jurado><span>${I.tabla}<b>Presentación de este equipo</b>: ábrela en tu laptop mientras expone.</span><span class="tenue">Cargando…</span></div>`
       : tieneEntregable(cid) ? `<div class="en-jurado"><span>${I.tabla}<b>${esc(ENTREGABLES[cid].titulo)}</b> en línea: mira lo que escribió cada equipo (se actualiza en vivo).</span>
-        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button>${CONCURSOS_CASO.includes(cid) ? `<button class="btn btn--mini" data-caso-ver="${cid}">${I.libro}Caso oficial</button><button class="btn btn--mini" data-sol-ver="${cid}">${I.check}Resolución del caso</button>` : ""}</div>` : ""}
+        <button class="btn btn--mini btn--naranja" data-vermatriz>${I.vivo}Ver ${ENTREGABLES[cid].nombre} de este equipo</button><button class="btn btn--mini" data-vertodas>Ver todas</button>${CONCURSOS_CASO.includes(cid) ? `<button class="btn btn--mini" data-caso-ver="${cid}">${I.libro}Caso oficial</button>${cid !== "iathon" ? `<button class="btn btn--mini" data-sol-ver="${cid}">${I.check}Resolución del caso</button>` : ""}` : ""}</div>` : ""}
       <div id="criterios">${criterios}</div>
       <label class="campo" style="margin-top:16px"><span>Comentario para el organizador (opcional)</span>
         <textarea id="comentario" maxlength="600" ${editable ? "" : "disabled"} placeholder="Observaciones, fortalezas o motivos de tu puntaje">${esc(form.comentario)}</textarea></label>

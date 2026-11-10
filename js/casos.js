@@ -7,10 +7,10 @@
 //  · El admin ve el estado y puede abrirlos para verificar, pero queda registrado («antes del concurso»).
 // La base de datos decide todo (jur_casos_*); esto es solo la pantalla.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611091738";
-import { porId } from "./concursos.js?v=202611091738";
-import { $, $$, esc, I, aviso, confirmar } from "./ui.js?v=202611091738";
-import { sesion } from "./app.js?v=202611091738";
+import { api, ES_DEMO } from "./api.js?v=202611100124";
+import { porId } from "./concursos.js?v=202611100124";
+import { $, $$, esc, I, aviso, confirmar } from "./ui.js?v=202611100124";
+import { sesion } from "./app.js?v=202611100124";
 
 export const CONCURSOS_CASO = ["iathon", "amateur-1", "amateur-2"];
 export const PARTES = {
@@ -44,9 +44,9 @@ export function crearCasos(ctx) {
     let E;
     try { E = await api.casosEstado(ctx.codigo()); } catch (e) { v.innerHTML = `<div class="vacio"><b>No se pudo cargar</b>${esc(e.message)}</div>`; return; }
     if (!E.codigo_propio) return pintarCodigo(v);
-    const total = E.concursos.length * 2, listos = E.concursos.reduce((n, c) => n + lista(c).filter((p) => p.x).length, 0);
+    const total = E.concursos.reduce((n, c) => n + lista(c).length, 0), listos = E.concursos.reduce((n, c) => n + lista(c).filter((p) => p.x).length, 0);
     v.innerHTML = `<div class="cabeza" style="margin-top:0"><div><h1>${I.candado} Casos confidenciales</h1>
-        <p>Por cada concurso sube <b>2 archivos</b> (PDF o Word, máx. 25 MB): el <b>Caso</b>, que resuelven los equipos, y la <b>Resolución</b>, que <b>solo ven los jurados</b>. <b>Nadie más los puede abrir</b> hasta que se pulse <b>«Iniciar tiempo»</b> el día del concurso. Si el administrador los abre antes para verificar, quedará en el registro.</p></div>
+        <p>Sube el <b>Caso</b> de cada concurso (PDF o Word, máx. 25 MB), que resuelven los equipos, y en <b>Amateur I y II</b> también la <b>Resolución</b>, que <b>solo ven los jurados</b> (IATHON no lleva resolución: la solución la crean los equipos). <b>Nadie más los puede abrir</b> hasta que se pulse <b>«Iniciar tiempo»</b> el día del concurso. Si el administrador los abre antes para verificar, quedará en el registro.</p></div>
         <span class="chip ${listos === total ? "chip--verde" : "chip--ambar"}" style="font-size:.9rem">${listos} de ${total} archivos subidos</span></div>
       <div class="cs-grid">${E.concursos.map(tarjeta).join("")}</div>
       <p class="ayuda">Encargadas con este permiso: ${esc((E.encargadas || []).join(", "))}. Tu código es privado: guárdalo bien; el administrador no lo ve.</p>`;
@@ -122,7 +122,7 @@ export async function alertaCasos(v, codigo, esAdmin) {
   caja.classList.add(faltan.length ? "cs-alerta--falta" : "cs-alerta--ok");
   caja.innerHTML = `<div class="cs-alerta__txt">${I.candado}<div>${!encargadas ? `<b>Casos confidenciales: aún no hay encargada.</b> Dale el permiso «Casos confidenciales» a la presidenta en Accesos limitados.`
       : faltan.length ? `<b>Casos confidenciales: faltan ${faltan.length} de ${todos.length} archivos</b> (${esc(faltan.map((p) => `${PARTES[p.pt].txt} de ${nom(p.c.concurso_id)}`).join(", "))}). Encargada: ${esc(encargadas)}.`
-      : `<b>✓ La encargada ya subió los ${todos.length} archivos</b> (caso${esAdmin ? " y resolución" : ""} de cada concurso). Se abren solos al «Iniciar tiempo».`}</div></div>
+      : `<b>✓ La encargada ya subió los ${todos.length} archivos</b> (casos${esAdmin ? " y resoluciones de Amateur I y II" : ""}). Se abren solos al «Iniciar tiempo».`}</div></div>
     <div class="cs-alerta__lista">${E.concursos.map((c) => `<div class="cs-mini ${lista(c).every((p) => p.x) ? "cs-mini--ok" : ""}"><b>${esc(nom(c.concurso_id))}${c.liberado ? " · liberado" : ""}</b>
       ${lista(c).map(({ pt, x }) => `<div class="cs-mini__fila"><span>${x ? "✓" : "✗"} ${PARTES[pt].txt}</span>
         <small>${x ? `${esc(x.tipo === "pdf" ? "PDF" : "Word")} · ${esc(peso(x.tamano))} · ${esc(fecha(x.fecha))}${esAdmin && x.nombre ? ` · «${esc(x.nombre)}»` : ""}` : "Falta subir"}</small>

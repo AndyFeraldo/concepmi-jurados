@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611091738";
-import { CONCURSOS, porId } from "./concursos.js?v=202611091738";
-import { TALLERES } from "./talleres.js?v=202611091738";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611091738";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611100124";
+import { CONCURSOS, porId } from "./concursos.js?v=202611100124";
+import { TALLERES } from "./talleres.js?v=202611100124";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611100124";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -212,7 +212,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611091738");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611100124");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -684,7 +684,7 @@ const demo = {
     else { const e = d.equipos.find((x) => x.codigo === c); if (e) { rol = "equipo"; cc = [e.concurso_id]; } else { const j = d.jurados.find((x) => x.codigo === c); if (!j) throw new Error("Código incorrecto"); rol = "jurado"; cc = cc.filter((x) => j.concursos.includes(x)); } }
     const partes = ["equipo", "coordinador"].includes(rol) ? ["caso"] : ["caso", "solucion"];
     return structuredClone({ rol, codigo_propio: !!k?.codigo_propio, encargadas: d.coordinadores.filter((x) => x.permisos?.casos === "editar").map((x) => x.nombre).sort(),
-      concursos: cc.sort().map((ci) => { const lib = !!d.tiempos[ci]?.inicio; return { concurso_id: ci, liberado: lib, partes: Object.fromEntries(partes.map((pt) => { const x = d.casos[`${ci}|${pt}`];
+      concursos: cc.sort().map((ci) => { const lib = !!d.tiempos[ci]?.inicio; return { concurso_id: ci, liberado: lib, partes: Object.fromEntries((ci === "iathon" ? ["caso"] : partes).map((pt) => { const x = d.casos[`${ci}|${pt}`];
         return [pt, x ? { fecha: x.subido, tipo: x.tipo, tamano: x.tamano, subido_por: x.subido_por, nombre: lib || rol === "admin" || (rol === "encargada" && k.codigo_propio) ? x.nombre : null,
           vistas: ["admin", "encargada"].includes(rol) ? d.casosVistas.filter((w) => w.concurso_id === ci && (w.parte || "caso") === pt) : null } : null]; })) }; }) }); },
   async coordCambiarCodigo(codigo, nuevo) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede cambiarse aquí");
@@ -692,6 +692,7 @@ const demo = {
     if (codigoUsado(n, k.id)) throw new Error("Ese código no se puede usar; elige otro"); k.codigo = n; k.codigo_propio = true; guardar(); return { ok: true }; },
   async casoSubir(codigo, concurso, parte, archivo, alAvanzar) { await espera(); const k = accesoDe(codigo); if (!k || k.permisos?.casos !== "editar") throw new Error("Este código no puede manejar los casos confidenciales");
     if (!k.codigo_propio) throw new Error("Primero crea tu código privado"); if (db().tiempos[concurso]?.inicio) throw new Error("Ese concurso ya empezó: el archivo ya no se puede cambiar");
+    if (concurso === "iathon" && parte === "solucion") throw new Error("IATHON no lleva resolución: solo el caso");
     if (!/\.(pdf|docx?)$/i.test(archivo.name)) throw new Error("Debe ser un PDF o un Word (.pdf, .docx o .doc)");
     for (let i = 1; i <= 10; i++) { await espera(40); alAvanzar?.(i / 10); }
     ARCHIVOS_DEMO.set(`caso:${concurso}|${parte}`, archivo); db().casos[`${concurso}|${parte}`] = { nombre: archivo.name, tipo: /\.pdf$/i.test(archivo.name) ? "pdf" : "word", tamano: archivo.size, subido: new Date().toISOString(), subido_por: k.nombre }; guardar(); },
