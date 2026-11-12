@@ -1991,3 +1991,30 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .tg-buscar{ grid-template-columns:minmax(0, 1fr); } .tg-buscar > *, .tg-buscar__cab > div{ min-width:0; }
 .tg-codigo__caja{ flex-basis:200px; }
 @media (max-width:520px){ .tg-codigo__cvi{ padding:0 10px; font-size:1.1rem; } .tg-codigo__caja input{ font-size:1.1rem; padding:10px; } .tg-buscar__ico{ display:none; } }
+
+/* ===== Panel del ponente (decoración como el del jurado) ===== */
+.pon-charlas{ display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); margin-bottom:16px; }
+.pon-charla.concurso--vivo{ cursor:default; } .pon-charla.concurso--vivo:hover{ transform:translateY(-4px); }
+.pp-linea{ display:flex; gap:4px; margin-top:10px; border-radius:12px; overflow:hidden; }
+.pp-linea span{ display:grid; padding:8px 10px; min-width:0; } .pp-linea b{ font-family:var(--neon); font-weight:400; font-size:1.05rem; } .pp-linea small{ font-size:.7rem; opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pp-linea--pon{ background:linear-gradient(135deg, rgba(255,106,31,.5), rgba(255,138,61,.3)); } .pp-linea--preg{ background:rgba(31,203,234,.28); } .pp-linea--triv{ background:rgba(169,139,255,.3); }
+.pp-previa__cab{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.pp-previa__cab h2{ font-size:1.1rem; margin:0; display:flex; align-items:center; gap:8px; } .pp-previa__cab h2 svg{ width:20px; height:20px; }
+.pp-minis{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+.pp-mini{ margin:0; display:grid; gap:4px; animation:jurEntra .6s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i, 0) * .05s); }
+.pp-mini canvas{ width:100%; height:auto; aspect-ratio:16/9; object-fit:contain; border-radius:10px; background:#000; box-shadow:0 10px 26px -14px rgba(0,0,0,.9); border:1px solid var(--borde); transition:transform .2s; }
+.pp-mini:hover canvas{ transform:scale(1.04); } .pp-mini figcaption{ font-size:.74rem; color:var(--tenue); text-align:center; }
+.pp-mini--mas{ display:grid; place-content:center; text-align:center; aspect-ratio:16/9; border-radius:10px; border:1px dashed var(--borde); } .pp-mini--mas b{ font-family:var(--neon); font-size:1.6rem; font-weight:400; } .pp-mini--mas small{ color:var(--tenue); }
+.pp-ok, .pp-aviso{ display:flex; gap:8px; align-items:flex-start; margin:0 0 12px; font-size:.86rem; } .pp-ok svg, .pp-aviso svg{ width:18px; height:18px; flex:none; }
+.pp-ok{ color:#8FF2C0; } .pp-aviso{ color:#FFD48A; }
+.pp-clicker{ border-color:rgba(169,139,255,.45); background:linear-gradient(120deg, rgba(110,43,230,.2), rgba(31,203,234,.08) 60%, var(--panel)); }
+.pp-clicker__cab h2{ font-size:1.1rem; margin:0 0 4px; } .pp-clicker__cab p{ margin:0 0 12px; color:var(--niebla); font-size:.9rem; }
+.pp-teclas{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap:10px; }
+.pp-tecla{ display:grid; gap:4px; justify-items:start; padding:12px 14px; border-radius:14px; border:1px solid var(--borde); background:rgba(255,255,255,.04); transition:transform .15s, border-color .15s, background .15s, box-shadow .15s; }
+.pp-tecla__ico{ width:38px; height:38px; border-radius:10px; display:grid; place-items:center; font-size:1.05rem; background:rgba(255,255,255,.08); }
+.pp-tecla small{ display:flex; flex-wrap:wrap; gap:4px; } .pp-tecla kbd{ font:inherit; font-size:.72rem; padding:.1em .5em; border-radius:6px; border:1px solid var(--borde); background:#140830; color:var(--niebla); }
+.pp-tecla--on{ transform:translateY(-3px) scale(1.03); border-color:#3BE08F; background:rgba(59,224,143,.16); box-shadow:0 12px 28px -14px rgba(59,224,143,.9); }
+.pp-tecla--on .pp-tecla__ico{ background:#3BE08F; color:#1a0b3a; }
+.pp-clicker__estado{ margin:12px 0 0; font-size:.88rem; color:var(--tenue); } .pp-clicker__estado--ok{ color:#8FF2C0; }
+.pp-datos{ display:grid; gap:12px; }
+@media (prefers-reduced-motion: reduce){ .pp-mini{ animation:none !important; } }

@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611120159";
-import { CONCURSOS, porId } from "./concursos.js?v=202611120159";
-import { TALLERES } from "./talleres.js?v=202611120159";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611120159";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611121132";
+import { CONCURSOS, porId } from "./concursos.js?v=202611121132";
+import { TALLERES } from "./talleres.js?v=202611121132";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611121132";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -61,6 +61,7 @@ const real = {
   presUrl: async (codigo, equipo, tipo, descargar = false) => (await edge({ accion: "leer", codigo, equipo, tipo, descargar })).url,
   // ---- Ponentes de las charlas magistrales ----
   ponenteDatos: (codigo) => rpc("jur_ponente_datos", { p_codigo: codigo }),
+  ponenteLinkedin: (codigo, linkedin, id = null) => rpc("jur_ponente_linkedin", { p_codigo: codigo, p_linkedin: linkedin, p_id: id }),
   ponenteGuardar: (codigo, titulo, videoDespues) => rpc("jur_ponente_guardar", { p_codigo: codigo, p_titulo: titulo, p_video_despues: videoDespues }),
   adminPonentes: (codigo) => rpc("jur_admin_ponentes", { p_codigo: codigo }),
   // Programa de la inauguración guardado en la base (lo arma el admin y lo lee el operador de proyección)
@@ -223,7 +224,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611120159");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611121132");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -392,10 +393,11 @@ const demo = {
     else if (id) Object.assign(d.delegaciones.find((x) => x.id === id), { nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
     else d.delegaciones.push({ id: uid(), nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
     guardar(); },
-  async colegas(codigo) { await espera(); const d = db(), c = norm(codigo); const j = d.jurados.find((x) => x.codigo === c), t = d.talleristas.find((x) => x.codigo === c);
-    if (!j && !t && c !== d.admin) throw new Error("Código incorrecto");
+  async colegas(codigo) { await espera(); const d = db(), c = norm(codigo); const j = d.jurados.find((x) => x.codigo === c), t = d.talleristas.find((x) => x.codigo === c), o = (d.ponentes || []).find((x) => x.codigo === c);
+    if (!j && !t && !o && c !== d.admin) throw new Error("Código incorrecto");
     const sin = ({ codigo: _c, ...x }) => ({ linkedin: "", ...x });
-    return { yo: (j || t)?.id || null, rol: j ? "jurado" : t ? "tallerista" : null, jurados: d.jurados.map(sin), talleristas: d.talleristas.map(sin) }; },
+    return { yo: (j || t || o)?.id || null, rol: j ? "jurado" : t ? "tallerista" : o ? "ponente" : null, jurados: d.jurados.map(sin), talleristas: d.talleristas.map(sin),
+      ponentes: (d.ponentes || []).map(({ id, nombre, foto, descripcion, charlas, linkedin }) => ({ id, nombre, foto: foto || "", descripcion: descripcion || "", charlas, linkedin: linkedin || "" })) }; },
   async adminJurado(codigo, { id = null, nombre = "", concursos = [], descripcion = "", foto = null, borrar = false, nuevoCodigo: regen = false, codigoFijo = null, linkedin = null }) {
     await espera(); exigirPermiso(codigo, "jurados", "editar"); const d = db();
     if (borrar) { d.jurados = d.jurados.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.jurado_id !== id); guardar(); return null; }
@@ -755,7 +757,10 @@ const demo = {
     ARCHIVOS_DEMO.set(`${e.id}:${tipo}`, archivo); const d = db(); d.pres ||= {};
     d.pres[e.id] = { ...(d.pres[e.id] || {}), [tipo]: { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() } }; guardar(); },
   // ---- Ponentes (vista previa: los archivos quedan solo en esta pestaña) ----
-  async ponenteDatos(codigo) { await espera(); const o = ponenteDe(codigo); return { ponente: { ...o, codigo: null } }; },
+  async ponenteDatos(codigo) { await espera(); const o = ponenteDe(codigo); return { ponente: { linkedin: "", ...o, codigo: null } }; },
+  async ponenteLinkedin(codigo, linkedin, id = null) { await espera(80); let v = String(linkedin || "").trim().slice(0, 300);
+    if (v && !/^(https?:\/\/)?([a-z0-9-]+\.)*linkedin\.com\//i.test(v)) throw new Error("Pega el enlace de tu perfil de LinkedIn (linkedin.com/in/…)"); if (v && !/^https?:\/\//i.test(v)) v = `https://${v}`;
+    const o = id ? (exigirPermiso(codigo, "charlas", "editar"), (db().ponentes || []).find((x) => x.id === id)) : ponenteDe(codigo); if (!o) throw new Error("Ese ponente ya no existe"); o.linkedin = v; guardar(); return { linkedin: v }; },
   async ponenteGuardar(codigo, titulo, videoDespues) { await espera(80); const o = ponenteDe(codigo); o.titulo = String(titulo || "").trim().slice(0, 160); o.video_despues = String(videoDespues || "").replace(/\D/g, "").slice(0, 3); guardar(); return { ok: true }; },
   async programaLeer(codigo, clave) { await espera(); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "ver"); const x = (db().programas || {})[clave]; return x ? { datos: x.datos, actualizado: x.actualizado } : null; },
   async adminPrograma(codigo, clave, datos) { await espera(60); exigirPermiso(codigo, "charlas", "editar"); const d = db(); d.programas ||= {}; d.programas[clave] = { datos, actualizado: new Date().toISOString() }; guardar(); return { ok: true }; },

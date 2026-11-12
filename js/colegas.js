@@ -3,10 +3,11 @@
 // talleristas (foto, nombre, descripción y LinkedIn), primero los de su propio concurso
 // o taller y luego el resto, agrupados por concurso / evento cultural / taller.
 // =========================================================
-import { api } from "./api.js?v=202611120159";
-import { CONCURSOS } from "./concursos.js?v=202611120159";
-import { TALLERES } from "./talleres.js?v=202611120159";
-import { $$, esc, I, avatar } from "./ui.js?v=202611120159";
+import { api } from "./api.js?v=202611121132";
+import { CONCURSOS } from "./concursos.js?v=202611121132";
+import { TALLERES } from "./talleres.js?v=202611121132";
+import { CHARLAS } from "./charlas.js?v=202611121132";
+import { $$, esc, I, avatar } from "./ui.js?v=202611121132";
 
 // Normaliza «linkedin.com/in/maria» → «https://linkedin.com/in/maria»
 export const enlaceLinkedin = (u) => { const t = String(u || "").trim(); if (!t) return ""; return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, "")}`; };
@@ -25,11 +26,12 @@ function htmlLado(grupos, yo, n, quien) {
   const propios = grupos.filter((g) => g.propio), resto = grupos.filter((g) => !g.propio && g.personas.length);
   const bloque = (g) => `<div class="cob ${g.propio ? "cob--ok colegas-lado__propio" : ""}"><div class="cob__cab"><b>${esc(g.titulo)}</b><div class="cob__estado"><span>${g.personas.length}</span></div></div>
     <div class="colegas-lado__lista">${g.personas.map((p) => fila(p, yo)).join("") || `<small class="tenue">Aún sin colegas asignados</small>`}</div></div>`;
-  return `<div class="cob-resumen cob-resumen--ok"><b>${n}</b><span>colegas del VI CONCEPMI</span><small>Jurados y talleristas · toca «in» para ver su LinkedIn</small></div>
-    ${propios.length ? `<h4 class="cob-grupo">${quien.rol === "jurado" ? "Tu concurso" : "Tu taller"}</h4>${propios.map(bloque).join("")}` : ""}
+  return `<div class="cob-resumen cob-resumen--ok"><b>${n}</b><span>colegas del VI CONCEPMI</span><small>Ponentes, jurados y talleristas · toca «in» para ver su LinkedIn</small></div>
+    ${propios.length ? `<h4 class="cob-grupo">${quien.rol === "jurado" ? "Tu concurso" : quien.rol === "ponente" ? "Tu charla" : "Tu taller"}</h4>${propios.map(bloque).join("")}` : ""}
     ${resto.filter((g) => g.tipo === "academico").length ? `<h4 class="cob-grupo">Concursos académicos</h4>${resto.filter((g) => g.tipo === "academico").map(bloque).join("")}` : ""}
     ${resto.filter((g) => g.tipo === "cultural").length ? `<h4 class="cob-grupo">Eventos culturales</h4>${resto.filter((g) => g.tipo === "cultural").map(bloque).join("")}` : ""}
-    ${resto.filter((g) => g.tipo === "taller").length ? `<h4 class="cob-grupo">Talleres</h4>${resto.filter((g) => g.tipo === "taller").map(bloque).join("")}` : ""}`;
+    ${resto.filter((g) => g.tipo === "taller").length ? `<h4 class="cob-grupo">Talleres</h4>${resto.filter((g) => g.tipo === "taller").map(bloque).join("")}` : ""}
+    ${resto.filter((g) => g.tipo === "charla").length ? `<h4 class="cob-grupo">Charlas magistrales</h4>${resto.filter((g) => g.tipo === "charla").map(bloque).join("")}` : ""}`;
 }
 
 function tarjeta(p, yo) {
@@ -62,13 +64,18 @@ export async function pintarColegas(caja, codigo, quien, { lado = false } = {}) 
   const grupoC = (c, propio) => ({ titulo: c.nombre, sub: propio ? "Tu concurso" : c.tipo === "academico" ? "Concurso académico" : "Evento cultural", personas: porConcurso(c), propio, tipo: c.tipo === "academico" ? "academico" : "cultural" });
   const grupoT = (t, propio) => ({ titulo: `Taller ${t.num} · ${t.nombre}`, sub: propio ? "Tu taller" : "Taller", personas: porTaller(t), propio, tipo: "taller" });
   const otros = conJurado.filter((c) => !mios.includes(c));
+  // Ponentes: un solo grupo «Charlas magistrales» (el ponente lo ve primero, como su grupo propio)
+  const ponentes = (d.ponentes || []).map((o) => ({ ...o, descripcion: o.descripcion || CHARLAS.filter((c) => o.charlas?.includes(c.id)).map((c) => `Charla ${c.num} · ${c.nombre}`).join(" · ") }));
+  const grupoP = { titulo: "Charlas magistrales", sub: quien.rol === "ponente" ? "Tus colegas ponentes" : "Ponentes", personas: ponentes, propio: quien.rol === "ponente", tipo: "charla" };
   const grupos = [
+    ...(quien.rol === "ponente" ? [grupoP] : []),
     ...mios.map((c) => grupoC(c, true)), ...misTalleres.map((t) => grupoT(t, true)),
     ...otros.filter((c) => c.tipo === "academico").map((c) => grupoC(c, false)),
     ...otros.filter((c) => c.tipo !== "academico").map((c) => grupoC(c, false)),
     ...TALLERES.filter((t) => !misTalleres.includes(t)).map((t) => grupoT(t, false)),
+    ...(quien.rol === "ponente" ? [] : [grupoP]),
   ];
-  const n = new Set([...d.jurados.map((x) => x.id), ...d.talleristas.map((x) => x.id)]).size;
+  const n = new Set([...d.jurados.map((x) => x.id), ...d.talleristas.map((x) => x.id), ...ponentes.map((x) => x.id)]).size;
   if (lado) { caja.innerHTML = htmlLado(grupos, d.yo, n, quien); return; }
   caja.innerHTML = `<p class="ayuda" style="margin:0 0 12px">${n} jurados y talleristas del VI CONCEPMI. Arriba, los de ${quien.rol === "jurado" ? "tu concurso" : "tu taller"}. Pulsa «Ver LinkedIn» para conectar con ellos.</p>${htmlGrupos(grupos, d.yo)}`;
   $$(".colega__in", caja).forEach((a) => a.addEventListener("click", (e) => e.stopPropagation()));

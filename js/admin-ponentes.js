@@ -4,12 +4,13 @@
 // con la misma pantalla del Concurso de Proyectos (PDF dentro, puntero, cronómetro).
 // Permiso: el de la pestaña Charlas (ver / editar).
 // =========================================================
-import { api } from "./api.js?v=202611120159";
-import { CHARLAS } from "./charlas.js?v=202611120159";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611120159";
-import { quitarArchivos } from "./presentacion.js?v=202611120159";
-import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611120159";
-import { $, $$, esc, I, aviso, modal, confirmar, avatar } from "./ui.js?v=202611120159";
+import { api } from "./api.js?v=202611121132";
+import { CHARLAS } from "./charlas.js?v=202611121132";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611121132";
+import { quitarArchivos } from "./presentacion.js?v=202611121132";
+import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611121132";
+import { $, $$, esc, I, aviso, modal, confirmar, avatar } from "./ui.js?v=202611121132";
+import { enlaceLinkedin } from "./colegas.js?v=202611121132";
 
 const charlaDe = (id) => CHARLAS.find((c) => c.id === id);
 function reducirFoto(file) {
@@ -58,6 +59,7 @@ export function crearPonentes(ctx) {
         ${lista.map((o) => `<article class="jurado">
           <div class="jurado__cab">${avatar(o.nombre, o.foto)}<div><h4>${esc(o.nombre)}</h4><p>${o.titulo ? `«${esc(o.titulo)}»` : "Sin título de ponencia"}</p></div></div>
           ${o.descripcion ? `<p>${esc(o.descripcion)}</p>` : ""}
+          ${o.linkedin ? `<a class="jurado__in" href="${esc(enlaceLinkedin(o.linkedin))}" target="_blank" rel="noopener noreferrer">in · LinkedIn</a>` : ""}
           <div class="jurado__chips">${o.charlas.map((id) => `<span class="chip">Charla ${esc(charlaDe(id)?.num || id)} · ${esc(charlaDe(id)?.nombre || "")}</span>`).join("")}</div>
           <div class="jurado__chips">${["pdf", "ppt", "video"].map((t) => `<span class="chip ${o[t] ? "chip--verde" : t === "video" ? "" : "chip--ambar"}">${t === "video" ? "Video" : t.toUpperCase()} ${o[t] ? "✓" : t === "video" ? "—" : "pendiente"}</span>`).join("")}</div>
           ${o.codigo ? `<div class="jurado__codigo"><code>${esc(o.codigo)}</code><button class="btn btn--mini btn--icono" data-copiar="${esc(o.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></div>` : ""}
@@ -113,6 +115,7 @@ export function crearPonentes(ctx) {
         <div style="display:grid;gap:6px"><label class="btn btn--mini" style="cursor:pointer">${I.camara}Subir foto<input type="file" accept="image/*" hidden name="foto"></label><p class="ayuda">JPG o PNG. Sale en la portada de su charla.</p></div></div>
       <label class="campo"><span>Nombre completo</span><input name="nombre" maxlength="120" required value="${esc(o?.nombre || "")}" placeholder="Ej. Ing. Alexis Rodríguez"></label>
       <label class="campo"><span>Descripción breve (opcional)</span><textarea name="desc" rows="2" maxlength="400" placeholder="Ej. PMP, gerente de proyectos en…">${esc(o?.descripcion || "")}</textarea></label>
+      <label class="campo"><span>LinkedIn (opcional; el ponente también lo puede escribir)</span><input name="li" maxlength="300" value="${esc(o?.linkedin || "")}" placeholder="linkedin.com/in/…"></label>
       <fieldset class="campo"><span>Charla(s)</span><div class="reparto" style="margin:4px 0 0">${CHARLAS.map((c) => `<label class="chip" style="cursor:pointer"><input type="checkbox" name="ch" value="${c.id}" ${o?.charlas.includes(c.id) || (!o && !lista.some((x) => x.charlas.includes(c.id)) && c.id === CHARLAS.find((y) => !lista.some((x) => x.charlas.includes(y.id)))?.id) ? "checked" : ""}> Charla ${c.num} · ${esc(c.nombre)}</label>`).join("")}</div></fieldset>
       <label class="campo"><span>Título de la ponencia (opcional; el ponente también lo puede escribir)</span><input name="titulo" maxlength="160" value="${esc(o?.titulo || "")}"></label>
       <label class="campo"><span>Código de acceso ${o ? "" : "(opcional)"}</span><input name="cod" maxlength="16" autocomplete="off" value="${esc(o?.codigo || "")}" placeholder="Vacío = se genera uno automático" style="font-family:var(--neon);letter-spacing:.15em;text-transform:uppercase"></label>
@@ -127,6 +130,7 @@ export function crearPonentes(ctx) {
       try {
         const r = await api.adminPonente(ctx.codigo(), { id: o?.id || null, nombre: f.nombre.value, descripcion: f.desc.value, charlas: $$("[name=ch]", f).filter((x) => x.checked).map((x) => x.value),
           foto, titulo: f.titulo.value, codigoFijo: cod && cod !== o?.codigo ? cod : null });
+        if ((f.li.value.trim()) !== (o?.linkedin || "")) { try { await api.ponenteLinkedin(ctx.codigo(), f.li.value, r.id); } catch (e) { aviso(`Ponente guardado, pero el LinkedIn no: ${e.message}`, "error"); } }
         m.cerrar(); await cargar(); pintar(v); aviso(o ? "Ponente actualizado" : `Ponente creado · código ${r.codigo}`);
       } catch (ex) { $(".error", f).textContent = ex.message; }
     };

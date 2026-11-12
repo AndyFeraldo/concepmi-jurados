@@ -5,9 +5,9 @@
 // y delegación para CONFIRMAR. La delegación es lo que suma los 40 pts en la Copa.
 // Si alguien no aparece (o no tiene delegación), se puede agregar a mano como antes.
 // =========================================================
-import { api } from "./api.js?v=202611120159";
-import { PUNTOS_TALLER, delegacionesGanadoras } from "./talleres.js?v=202611120159";
-import { $, $$, esc, hace, I, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611120159";
+import { api } from "./api.js?v=202611121132";
+import { PUNTOS_TALLER, delegacionesGanadoras } from "./talleres.js?v=202611121132";
+import { $, $$, esc, hace, I, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611121132";
 
 const MAX = 15;
 // «CVI12345678», «cvi 1234 5678» o «12345678» → «12345678»
