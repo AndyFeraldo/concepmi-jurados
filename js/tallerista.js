@@ -5,15 +5,16 @@
 //   2 · Ganadores: registra al equipo ganador (nombre, apellido y delegación) → +40 pts por delegación.
 // A la derecha, sus colegas (jurados y talleristas) con LinkedIn. Decoración igual que el panel del jurado.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611120128";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611120128";
-import { $, $$, esc, avatar, hace, I, IMG, aviso, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611120128";
-import { salir } from "./app.js?v=202611120128";
-import { pintarColegas } from "./colegas.js?v=202611120128";
-import { htmlArchivos, conectarArchivos } from "./ponente.js?v=202611120128";
-import { INFO_TALLER, MIN_TALLER, proyectarTalleres, abrirTallerArchivo } from "./talleres-pres.js?v=202611120128";
+import { api, ES_DEMO } from "./api.js?v=202611120159";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611120159";
+import { $, $$, esc, avatar, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611120159";
+import { salir } from "./app.js?v=202611120159";
+import { pintarColegas } from "./colegas.js?v=202611120159";
+import { htmlArchivos, conectarArchivos } from "./ponente.js?v=202611120159";
+import { ganadoresTaller } from "./taller-ganadores.js?v=202611120159";
+import { INFO_TALLER, MIN_TALLER, proyectarTalleres, abrirTallerArchivo } from "./talleres-pres.js?v=202611120159";
 
-const INICIALES = 4;
+
 
 export async function vistaTallerista(app, codigo) {
   let data = null, pres = [], presError = "", guardarT = null;
@@ -90,7 +91,7 @@ export async function vistaTallerista(app, codigo) {
       <div class="tal-guia">
         <div style="--i:0"><span>1</span><b>Antes del taller</b><small>Sube tu presentación en <b>PDF</b> (y el PPT de respaldo). Si quieres mostrar un video, súbelo aparte.</small></div>
         <div style="--i:1"><span>2</span><b>En el aula</b><small>Toca <b>Proyectar</b>: sale tu PDF a pantalla completa con el logo y un cronómetro de ${MIN_TALLER.exp} + ${MIN_TALLER.preg} min. Avanzas con el puntero o las flechas.</small></div>
-        <div style="--i:2"><span>3</span><b>Al terminar</b><small>Registra al <b>equipo ganador</b>: cada delegación de sus integrantes suma <b>${PUNTOS_TALLER} pts</b> a la Copa (una vez por delegación).</small></div>
+        <div style="--i:2"><span>3</span><b>Al terminar</b><small>Registra al <b>equipo ganador</b> con el <b>DNI</b> de cada uno (código CVI): sale su nombre y delegación para confirmar. Cada delegación de sus integrantes suma <b>${PUNTOS_TALLER} pts</b> a la Copa (una vez por delegación).</small></div>
       </div></div>
       <aside class="cob-panel colegas-lado" data-colegas aria-label="Tus colegas"></aside></div>`, { animado: true });
     pintarColegas($("[data-colegas]", app), codigo, { rol: "tallerista", talleres: t.talleres }, { lado: true });
@@ -108,13 +109,15 @@ export async function vistaTallerista(app, codigo) {
       </div>
       <div class="tal-tabs" role="tablist">
         <button role="tab" class="tal-tab" data-tab="pres" aria-selected="${parte === "pres"}"><span class="tal-tab__n">${p.pdf ? "✓" : "1"}</span><span><b>Presentación y proyección</b><small>${p.pdf ? "PDF listo para proyectar" : "Sube tu PDF"}</small></span></button>
-        <button role="tab" class="tal-tab" data-tab="gan" aria-selected="${parte === "gan"}"><span class="tal-tab__n">${hayGan(tid) ? "✓" : "2"}</span><span><b>Equipo ganador</b><small>${hayGan(tid) ? "Ganadores registrados" : "Nombre, apellido y delegación"}</small></span></button>
+        <button role="tab" class="tal-tab" data-tab="gan" aria-selected="${parte === "gan"}"><span class="tal-tab__n">${hayGan(tid) ? "✓" : "2"}</span><span><b>Equipo ganador</b><small>${hayGan(tid) ? "Ganadores registrados" : "Solo con el DNI de cada integrante"}</small></span></button>
       </div>
       <div data-parte></div>`);
     $("[data-volver]", app).onclick = () => { inicio(); window.scrollTo(0, 0); };
     $$("[data-tab]", app).forEach((b) => (b.onclick = () => abrirTaller(tid, b.dataset.tab)));
     const caja = $("[data-parte]", app);
-    if (parte === "gan") ganadores(tid, caja); else presentacion(tid, caja);
+    if (parte === "gan") ganadoresTaller({ caja, codigo, tid, editable: abierto(tid), previo: ganador(tid), delegaciones: data.delegaciones,
+      guardado: async () => { data = await api.datosTallerista(codigo); abrirTaller(tid, "gan"); } });
+    else presentacion(tid, caja);
   }
 
   // ---------------- 1 · Presentación y proyección ----------------
@@ -143,89 +146,6 @@ export async function vistaTallerista(app, codigo) {
     $("[data-proyectar]", caja).onclick = () => proyectarTalleres(codigo, pres.filter((q) => data.tallerista.talleres.includes(q.id)), tid);
     conectarArchivos(caja, { subir: (tipo, f, pr) => api.tallerSubir(codigo, tid, tipo, f, pr), ver: (tipo) => abrirTallerArchivo(codigo, tid, tipo),
       listo: async () => { await cargarPres(); abrirTaller(tid, "pres"); } });
-  }
-
-  // ---------------- 2 · Registro del equipo ganador ----------------
-  function ganadores(tid, caja) {
-    const editable = abierto(tid);
-    const previo = ganador(tid);
-    let filas = previo?.integrantes.length ? previo.integrantes.map((i) => ({ ...i })) : Array.from({ length: INICIALES }, () => ({ nombre: "", delegacion: "" }));
-
-    caja.innerHTML = `
-      ${editable ? "" : `<div class="cerrado">${I.candado}El organizador cerró este taller. Puedes ver a los ganadores, pero ya no cambiarlos.</div>`}
-      ${previo?.integrantes.length ? `<p class="ayuda">Último registro: ${hace(previo.actualizado)}${previo.tallerista ? ` por ${esc(previo.tallerista)}` : ""}. Si guardas de nuevo, se reemplaza.</p>` : ""}
-      ${data.delegaciones.length ? `
-      <h2 class="seccion-titulo">Equipo ganador (1.er lugar)</h2>
-      <p class="ayuda">Escribe el nombre y apellido de cada integrante y elige su delegación. Usa <b>+ Agregar integrante</b> si el equipo tiene más personas.</p>
-      <div class="integrantes" id="integrantes"></div>
-      ${editable ? `<button class="btn btn--mini" data-mas style="margin-top:10px">${I.mas}Agregar integrante</button>` : ""}
-      <h2 class="seccion-titulo">Puntos que se suman a la Copa</h2>
-      <div class="reparto" id="reparto"></div>
-      <p class="error" aria-live="polite"></p>
-      <div class="enviar">
-        <div class="enviar__info"><span id="resumen"></span></div>
-        ${editable && previo?.integrantes.length ? `<button class="btn btn--peligro" data-quitar>${I.basura}Quitar ganadores</button>` : ""}
-        <button class="btn btn--naranja" data-guardar ${editable ? "" : "disabled"}>${I.copa}${previo?.integrantes.length ? "Actualizar ganadores" : "Registrar ganadores"}</button>
-      </div>` : `<div class="vacio"><b>Todavía no hay delegaciones registradas</b>El organizador las agregará antes del taller.</div>`}`;
-    if (!data.delegaciones.length) return;
-
-    const opciones = (sel) => `<option value="">Delegación…</option>${data.delegaciones.map((d) => `<option value="${d.id}" ${d.id === sel ? "selected" : ""}>${esc(d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre)}</option>`).join("")}`;
-
-    function pintarFilas() {
-      $("#integrantes", caja).innerHTML = filas.map((f, i) => `<div class="integrante">
-        <span class="integrante__n">${i + 1}</span>
-        <input data-nombre="${i}" maxlength="120" placeholder="Nombre y apellido" value="${esc(f.nombre)}" ${editable ? "" : "disabled"} aria-label="Nombre y apellido del integrante ${i + 1}">
-        <select data-del="${i}" ${editable ? "" : "disabled"} aria-label="Delegación del integrante ${i + 1}">${opciones(f.delegacion)}</select>
-        ${editable ? `<button class="btn btn--mini btn--icono" data-menos="${i}" title="Quitar integrante" aria-label="Quitar integrante ${i + 1}">${I.cerrar}</button>` : "<span></span>"}
-      </div>`).join("");
-      $$("[data-nombre]", caja).forEach((el) => (el.oninput = () => { filas[el.dataset.nombre].nombre = el.value; }));
-      $$("[data-del]", caja).forEach((el) => (el.onchange = () => { filas[el.dataset.del].delegacion = el.value; reparto(); }));
-      $$("[data-menos]", caja).forEach((b) => (b.onclick = () => { filas.splice(Number(b.dataset.menos), 1); if (!filas.length) filas.push({ nombre: "", delegacion: "" }); pintarFilas(); }));
-      reparto();
-    }
-
-    function reparto() {
-      const ids = delegacionesGanadoras({ integrantes: filas });
-      $("#reparto", caja).innerHTML = ids.length
-        ? ids.map((id) => `<span class="chip chip--verde">+${PUNTOS_TALLER} · ${esc(del(id)?.siglas || del(id)?.nombre)}</span>`).join("")
-        : `<span class="tenue" style="color:var(--tenue)">Elige la delegación de cada integrante para ver los puntos.</span>`;
-      $("#resumen", caja).textContent = `${filas.length} integrante${filas.length === 1 ? "" : "s"} · ${ids.length} delegaci${ids.length === 1 ? "ón" : "ones"} · +${ids.length * PUNTOS_TALLER} pts en total`;
-    }
-
-    pintarFilas();
-    $("[data-mas]", caja)?.addEventListener("click", () => {
-      if (filas.length >= 15) return aviso("Máximo 15 integrantes por equipo", "error");
-      filas.push({ nombre: "", delegacion: "" }); pintarFilas(); $(`[data-nombre="${filas.length - 1}"]`, caja)?.focus();
-    });
-
-    async function guardar(lista) {
-      const err = $(".error", caja); err.textContent = "";
-      try {
-        await api.registrarTaller(codigo, tid, lista);
-        data = await api.datosTallerista(codigo);
-        return true;
-      } catch (e) { err.textContent = e.message; aviso(e.message, "error"); return false; }
-    }
-
-    $("[data-guardar]", caja)?.addEventListener("click", async (ev) => {
-      const btn = ev.currentTarget;
-      const err = $(".error", caja);
-      const lista = filas.map((f) => ({ nombre: f.nombre.trim(), delegacion: f.delegacion })).filter((f) => f.nombre || f.delegacion);
-      if (!lista.length) { err.textContent = "Escribe al menos un integrante."; return; }
-      const falta = lista.findIndex((f) => !f.nombre || !f.delegacion);
-      if (falta >= 0) { err.textContent = `Al integrante ${falta + 1} le falta ${lista[falta].nombre ? "la delegación" : "el nombre y apellido"}.`; return; }
-      const ids = delegacionesGanadoras({ integrantes: lista });
-      const ok = await confirmar("¿Registrar a los ganadores?", `Se sumarán <b>${PUNTOS_TALLER} puntos</b> a: <b>${ids.map((id) => esc(del(id)?.siglas || del(id)?.nombre)).join(", ")}</b>.`, { boton: "Registrar ganadores" });
-      if (!ok) return;
-      btn.disabled = true;
-      if (await guardar(lista)) { lanzarConfeti(); aviso("Ganadores registrados"); abrirTaller(tid, "gan"); }
-      else btn.disabled = false;
-    });
-
-    $("[data-quitar]", caja)?.addEventListener("click", async () => {
-      if (!(await confirmar("¿Quitar a los ganadores?", "Las delegaciones de este equipo dejarán de recibir los puntos del taller. Puedes registrarlos otra vez cuando quieras.", { boton: "Quitar ganadores", peligro: true }))) return;
-      if (await guardar([])) { aviso("Ganadores quitados"); abrirTaller(tid, "gan"); }
-    });
   }
 
   inicio();

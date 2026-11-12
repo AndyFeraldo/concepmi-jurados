@@ -1958,3 +1958,36 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 @media (prefers-reduced-motion: reduce){ .tal-guia > div, .tal-proyectar--listo .tal-proyectar__ico{ animation:none !important; } }
 /* Admin → Talleristas: presentación de cada taller */
 .tal-adm{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; }
+/* Ganadores del taller por código CVI + DNI */
+.tg-buscar{ display:grid; gap:14px; margin-bottom:6px; border-color:rgba(255,138,61,.45); background:linear-gradient(120deg, rgba(255,106,31,.12), rgba(110,43,230,.14) 60%, var(--panel)); }
+.tg-buscar__cab{ display:flex; gap:14px; align-items:center; } .tg-buscar__cab h2{ font-size:1.12rem; margin:0 0 2px; } .tg-buscar__cab p{ margin:0; color:var(--niebla); font-size:.9rem; }
+.tg-buscar__ico{ flex:none; width:48px; height:48px; border-radius:14px; display:grid; place-items:center; background:linear-gradient(135deg, #FF8A3D, #A98BFF); color:#fff; } .tg-buscar__ico svg{ width:24px; height:24px; }
+.tg-codigo{ display:flex; gap:10px; flex-wrap:wrap; }
+.tg-codigo__caja{ flex:1 1 260px; display:flex; align-items:stretch; border-radius:14px; border:2px solid rgba(255,138,61,.6); background:#140830; overflow:hidden; transition:border-color .2s, box-shadow .2s; }
+.tg-codigo__caja:focus-within{ border-color:#FF8A3D; box-shadow:0 0 0 4px rgba(255,138,61,.18); }
+.tg-codigo__cvi{ display:grid; place-items:center; padding:0 16px; font-family:var(--neon); font-size:1.35rem; letter-spacing:.08em; color:#FFB27F; background:rgba(255,138,61,.14); border-right:1px solid rgba(255,138,61,.35); }
+.tg-codigo__caja input{ flex:1; min-width:0; border:0; background:transparent; color:#fff; font-family:var(--neon); font-size:1.35rem; letter-spacing:.12em; padding:12px 14px; outline:none; }
+.tg-codigo__caja input::placeholder{ font-family:inherit; font-size:.95rem; letter-spacing:0; color:var(--tenue); }
+.tg-codigo .btn{ font-size:1rem; padding:.8em 1.4em; }
+@keyframes tgAparece{ from{ opacity:0; transform:translateY(-8px) scale(.98); } to{ opacity:1; transform:none; } }
+.tg-hallado{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:14px 16px; border-radius:16px; border:1px solid #3BE08F; background:linear-gradient(120deg, rgba(59,224,143,.16), rgba(31,203,234,.1)); animation:tgAparece .35s cubic-bezier(.2,.8,.2,1) both; }
+.tg-hallado__ini, .tg-miembro__ini{ flex:none; width:52px; height:52px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:1.1rem; background:linear-gradient(135deg, #3BE08F, #1FCBEA); color:#1a0b3a; }
+.tg-hallado__txt{ flex:1 1 220px; display:grid; gap:2px; min-width:0; } .tg-hallado__txt small{ color:#8FF2C0; font-weight:700; font-size:.74rem; text-transform:uppercase; letter-spacing:.06em; }
+.tg-hallado__txt b{ font-size:1.25rem; } .tg-hallado__txt > span{ color:var(--niebla); font-size:.86rem; }
+.tg-hallado__deleg{ display:inline-flex !important; align-items:center; gap:6px; margin-top:4px; font-weight:700; color:#fff !important; font-size:1rem !important; } .tg-hallado__deleg svg{ width:18px; height:18px; color:#8FF2C0; }
+.tg-hallado__del{ display:grid; gap:4px; margin-top:6px; } .tg-hallado__del span{ color:#FFD48A; font-size:.82rem; }
+.tg-hallado__acc{ display:flex; gap:8px; flex-wrap:wrap; }
+.tg-hallado--no{ border-color:rgba(253,68,63,.55); background:rgba(253,68,63,.1); } .tg-hallado--no > svg{ width:24px; height:24px; color:#FF9C99; flex:none; }
+.tg-hallado--no div{ display:grid; gap:2px; } .tg-hallado--no small{ color:var(--niebla); }
+.tg-manual summary{ cursor:pointer; color:var(--niebla); font-size:.86rem; }
+.tg-manual__form{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; } .tg-manual__form input, .tg-manual__form select{ flex:1 1 200px; min-width:0; }
+.tg-lista{ display:grid; gap:8px; }
+.tg-miembro{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; border:1px solid var(--borde); background:var(--panel); animation:tgAparece .35s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i, 0) * .04s); }
+.tg-miembro__ini{ width:40px; height:40px; font-size:.9rem; }
+.tg-miembro__txt{ flex:1; display:grid; min-width:0; } .tg-miembro__txt b{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .tg-miembro__txt small{ color:var(--tenue); font-family:var(--neon); letter-spacing:.06em; font-size:.74rem; }
+.tg-vacio{ padding:18px; }
+@media (max-width:520px){ .tg-miembro{ flex-wrap:wrap; } .tg-miembro .chip{ order:3; } .tg-codigo .btn{ width:100%; justify-content:center; } }
+@media (prefers-reduced-motion: reduce){ .tg-hallado, .tg-miembro{ animation:none !important; } }
+.tg-buscar{ grid-template-columns:minmax(0, 1fr); } .tg-buscar > *, .tg-buscar__cab > div{ min-width:0; }
+.tg-codigo__caja{ flex-basis:200px; }
+@media (max-width:520px){ .tg-codigo__cvi{ padding:0 10px; font-size:1.1rem; } .tg-codigo__caja input{ font-size:1.1rem; padding:10px; } .tg-buscar__ico{ display:none; } }
