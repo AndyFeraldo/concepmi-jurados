@@ -3,10 +3,10 @@
 // y sube su presentación en PDF (la que se proyecta), su PPT de respaldo y un video opcional.
 // Mismo sistema de archivos privados del Concurso de Proyectos (función Edge jur-presentaciones).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611102322";
-import { CHARLAS } from "./charlas.js?v=202611102322";
-import { $, $$, esc, I, IMG, aviso, avatar, lanzarConfeti } from "./ui.js?v=202611102322";
-import { mb, fechaLima } from "./presentacion.js?v=202611102322";
+import { api, ES_DEMO } from "./api.js?v=202611120128";
+import { CHARLAS } from "./charlas.js?v=202611120128";
+import { $, $$, esc, I, IMG, aviso, avatar, lanzarConfeti } from "./ui.js?v=202611120128";
+import { mb, fechaLima } from "./presentacion.js?v=202611120128";
 
 const charlaDe = (id) => CHARLAS.find((c) => c.id === id);
 const INFO = {
@@ -16,9 +16,9 @@ const INFO = {
 };
 
 // Tarjetas de archivos. o = ponente; subir(tipo, archivo, progreso) y ver(tipo) los da quien llama.
-export function htmlArchivos(o, { videoDespues = true, editable = true } = {}) {
+export function htmlArchivos(o, { videoDespues = true, editable = true, info = {} } = {}) {
   return `<div class="pres-slots">${["pdf", "ppt", "video"].map((tipo) => {
-    const f = o[tipo], k = INFO[tipo], opcional = tipo === "video";
+    const f = o[tipo], k = { ...INFO[tipo], ...(info[tipo] || {}) }, opcional = tipo === "video";
     return `<article class="tarjeta pres-slot ${f ? "pres-slot--ok" : ""} ${tipo === "pdf" ? "pres-slot--clave" : ""}" data-slot="${tipo}">
       <div class="pres-slot__ico pres-slot__ico--${tipo}">${k.ico}</div>
       <div class="pres-slot__txt"><h3>${k.t} <span class="chip ${f ? "chip--verde" : opcional ? "" : "chip--ambar"}">${f ? "✓ Subido" : opcional ? "Opcional" : "Pendiente"}</span></h3>

@@ -1,17 +1,17 @@
 // =========================================================
 // Vista del JURADO
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611102322";
-import { abrirCaso, CONCURSOS_CASO, PARTES } from "./casos.js?v=202611102322";
-import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611102322";
-import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611102322";
-import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss, fondoAnimado } from "./ui.js?v=202611102322";
-import { salir } from "./app.js?v=202611102322";
-import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611102322";
-import { abrirVisor } from "./entrega-visor.js?v=202611102322";
-import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611102322";
+import { api, ES_DEMO } from "./api.js?v=202611120128";
+import { abrirCaso, CONCURSOS_CASO, PARTES } from "./casos.js?v=202611120128";
+import { CONCURSOS, porId, NIVELES_RAPIDOS, sumaMax, tonoNivel } from "./concursos.js?v=202611120128";
+import { rankingMinijuego, textoGymkana } from "./calculo.js?v=202611120128";
+import { $, $$, esc, fmt, avatar, I, IMG, aviso, modal, confirmar, lanzarConfeti, mmss, fondoAnimado } from "./ui.js?v=202611120128";
+import { salir } from "./app.js?v=202611120128";
+import { tieneEntregable, ENTREGABLES } from "./entregables.js?v=202611120128";
+import { abrirVisor } from "./entrega-visor.js?v=202611120128";
+import { abrirArchivo, mb, ordenarPorSorteo } from "./presentacion.js?v=202611120128";
 
-import { pintarColegas } from "./colegas.js?v=202611102322";
+import { pintarColegas } from "./colegas.js?v=202611120128";
 
 export async function vistaJurado(app, codigo) {
   let data = null;

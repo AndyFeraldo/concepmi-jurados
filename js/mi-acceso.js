@@ -3,10 +3,10 @@
 // todo lo que el administrador le habilitó (qué puede EDITAR, qué puede solo VER) y lo lleva ahí.
 //   destinos: { areaId | "entregas" | "proyeccion" | "casos" | "guia": función que abre esa parte }
 // =========================================================
-import { AREAS, nivel } from "./permisos.js?v=202611102322";
-import { ENTREGABLES } from "./entregables.js?v=202611102322";
-import { porId } from "./concursos.js?v=202611102322";
-import { $$, esc, I } from "./ui.js?v=202611102322";
+import { AREAS, nivel } from "./permisos.js?v=202611120128";
+import { ENTREGABLES } from "./entregables.js?v=202611120128";
+import { porId } from "./concursos.js?v=202611120128";
+import { $$, esc, I } from "./ui.js?v=202611120128";
 
 const ICONO = { vivo: "vivo", resultados: "tabla", copa: "copa", jurados: "personas", talleristas: "pizarra", charlas: "vivo", delegaciones: "bandera", logistica: "caja", proyeccion: "pizarra", casos: "candado", diad: "reloj" };
 // Lo que encuentra en cada pestaña, dicho en simple
@@ -15,7 +15,7 @@ const QUE_HAY = {
   resultados: "Las tablas de resultados de cada concurso, con el detalle por jurado.",
   copa: "La tabla general de la Copa CONCEPMI, la ceremonia de premiación y el Excel.",
   jurados: "Quiénes son los jurados: foto, perfil, LinkedIn y a qué concursos van. También los que faltan por concurso.",
-  talleristas: "Quiénes son los talleristas, sus talleres y los equipos ganadores.",
+  talleristas: "Los 4 talleres: sus talleristas, si ya subieron su presentación (PDF) y el botón Proyectar; también los equipos ganadores.",
   charlas: "Las 3 charlas magistrales, sus ponentes (pestaña Ponentes), las trivias, preguntas y podios.",
   delegaciones: "La lista de delegaciones (universidades) participantes.",
   logistica: "El presupuesto, los gastos, comprobantes, proveedores y el reporte.",

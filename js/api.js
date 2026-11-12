@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611102322";
-import { CONCURSOS, porId } from "./concursos.js?v=202611102322";
-import { TALLERES } from "./talleres.js?v=202611102322";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611102322";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611120128";
+import { CONCURSOS, porId } from "./concursos.js?v=202611120128";
+import { TALLERES } from "./talleres.js?v=202611120128";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611120128";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -77,6 +77,16 @@ const real = {
   // Quitar archivos subidos (admin o coordinador del concurso): no borra al equipo ni al ponente
   presQuitar: (codigo, equipo, tipos) => edge({ accion: "quitar", codigo, equipo, tipos }),
   ponenciaQuitar: (codigo, ponente, tipos) => edge({ accion: "quitar", ponencia: true, codigo, ponente, tipos }),
+  // Presentaciones de los talleres (tallerista, admin, Talleristas ver/editar y Proyección)
+  talleresPres: (codigo) => rpc("jur_talleres_presentaciones", { p_codigo: codigo }),
+  tallerGuardar: (codigo, taller, titulo, videoDespues) => rpc("jur_taller_guardar", { p_codigo: codigo, p_taller: taller, p_titulo: titulo, p_video_despues: videoDespues }),
+  async tallerSubir(codigo, taller, tipo, archivo, alAvanzar) {
+    const { path, token } = await edge({ accion: "subir", taller_pres: true, taller, codigo, tipo, nombre: archivo.name, tamano: archivo.size });
+    await subirConProgreso(path, token, archivo, alAvanzar);
+    await edge({ accion: "confirmar", taller_pres: true, taller, codigo, tipo, path, nombre: archivo.name, tamano: archivo.size });
+  },
+  tallerUrl: async (codigo, taller, tipo, descargar = false) => (await edge({ accion: "leer", taller_pres: true, codigo, taller, tipo, descargar })).url,
+  tallerQuitar: (codigo, taller, tipos) => edge({ accion: "quitar", taller_pres: true, codigo, taller, tipos }),
   datosJurado: (codigo) => rpc("jur_datos_jurado", { p_codigo: codigo }),
   calificar: (codigo, concurso, subprueba, delegacion, datos, comentario = "") =>
     rpc("jur_calificar", { p_codigo: codigo, p_concurso: concurso, p_subprueba: subprueba, p_delegacion: delegacion, p_datos: datos, p_comentario: comentario }),
@@ -213,7 +223,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611102322");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611120128");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -292,6 +302,10 @@ const entJson = (e) => { const x = db().entregas[e.id] || {}; return { equipo_id
   datos: x.datos || {}, estado: x.estado || "borrador", enviado: x.enviado || null, tarde: !!x.tarde, actualizado: x.actualizado || null }; };
 const tiempoJson = (cid) => { const t = db().tiempos[cid] || {}; return { inicio: t.inicio || null, fin: t.fin || null, ahora: new Date().toISOString() }; };
 const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; do { c = Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); } while (codigoUsado(c)); return c; };
+// Presentación de un taller: su tallerista, admin, Talleristas (ver para mirar/proyectar, editar para subir) y Proyección (solo ver)
+const puedeTaller = (c, tid, editar) => { if (norm(c) === db().admin) return true;
+  if (db().talleristas.some((x) => x.codigo === norm(c) && x.talleres.includes(tid))) return true;
+  const k = accesoDe(c), v = nivelDe(k, "talleristas"); return v === "editar" || (!editar && (v === "ver" || !!nivelDe(k, "proyeccion"))); };
 const talleristaDe = (c) => { const t = db().talleristas.find((x) => x.codigo === norm(c)); if (!t) throw new Error("Código de tallerista incorrecto"); return t; };
 
 const quizC = (id) => (db().charlas[id] ||= {});
@@ -776,6 +790,25 @@ const demo = {
     let n = 0; for (const t of tipos) { if (o[t]) n++; o[t] = null; ARCHIVOS_DEMO.delete(`p:${ponente}:${t}`); } guardar(); return { ok: true, quitados: n }; },
   async ponenciaUrl(codigo, ponente, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`p:${ponente}:${tipo}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
+  async talleresPres(codigo) { await espera(); const d = db(); d.tallerPres ||= {};
+    const ids = TALLERES.map((t) => t.id).filter((tid) => puedeTaller(codigo, tid, false));
+    if (!ids.length) throw new Error("No tienes acceso a las presentaciones de los talleres");
+    return ids.map((tid) => { const p = d.tallerPres[tid] || {}; return { id: tid, abierto: d.talleresAbiertos?.[tid] !== false, titulo: p.titulo || "", video_despues: p.video_despues || "",
+      pdf: p.pdf || null, ppt: p.ppt || null, video: p.video || null, talleristas: d.talleristas.filter((x) => x.talleres.includes(tid)).map((x) => ({ nombre: x.nombre, foto: x.foto || "" })) }; }); },
+  async tallerGuardar(codigo, taller, titulo, videoDespues) { await espera(80); if (!puedeTaller(codigo, taller, true)) throw new Error("No puedes cambiar la presentación de este taller");
+    const d = db(); d.tallerPres ||= {}; const p = (d.tallerPres[taller] ||= {}); p.titulo = String(titulo || "").trim().slice(0, 160); p.video_despues = String(videoDespues || "").replace(/\D/g, "").slice(0, 3); guardar(); return { ok: true }; },
+  async tallerSubir(codigo, taller, tipo, archivo, alAvanzar) { await espera(); if (!puedeTaller(codigo, taller, true)) throw new Error("No puedes subir archivos a este taller");
+    const ext = String(archivo.name).split(".").pop().toLowerCase();
+    if (tipo === "ppt" && !["pptx", "ppt"].includes(ext)) throw new Error("El archivo de PowerPoint debe ser .pptx o .ppt");
+    if (tipo === "pdf" && ext !== "pdf") throw new Error("La presentación debe ser un archivo .pdf");
+    if (tipo === "video" && !["mp4", "mov", "webm", "m4v"].includes(ext)) throw new Error("El video debe ser .mp4 (también se acepta .mov o .webm)");
+    if (archivo.size > 52428800) throw new Error("El archivo debe pesar como máximo 50 MB");
+    for (let k = 1; k <= 10; k++) { await espera(50); alAvanzar?.(k / 10); }
+    const d = db(); d.tallerPres ||= {}; ARCHIVOS_DEMO.set(`t:${taller}:${tipo}`, archivo); (d.tallerPres[taller] ||= {})[tipo] = { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() }; guardar(); },
+  async tallerUrl(codigo, taller, tipo) { await espera(); if (!puedeTaller(codigo, taller, false)) throw new Error("No tienes permiso para ver esta presentación");
+    const f = ARCHIVOS_DEMO.get(`t:${taller}:${tipo}`); if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
+  async tallerQuitar(codigo, taller, tipos) { await espera(); if (!puedeTaller(codigo, taller, true)) throw new Error("No puedes quitar archivos de este taller");
+    const p = (db().tallerPres || {})[taller] || {}; let n = 0; for (const t of tipos) { if (p[t]) n++; delete p[t]; ARCHIVOS_DEMO.delete(`t:${taller}:${t}`); } guardar(); return { ok: true, quitados: n }; },
   async presUrl(codigo, equipo, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`${equipo}:${tipo}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
   reiniciar() { mem = semilla(); guardar(); },

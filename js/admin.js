@@ -1,27 +1,28 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611102322";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611102322";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611102322";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611102322";
-import { exportarExcel } from "./excel.js?v=202611102322";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611102322";
-import { crearLogistica } from "./admin-logistica.js?v=202611102322";
-import { crearEntregas } from "./admin-entregas.js?v=202611102322";
-import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611102322";
-import { crearInauguracion } from "./inauguracion.js?v=202611102322";
-import { crearMiAcceso } from "./mi-acceso.js?v=202611102322";
-import { crearCasos } from "./casos.js?v=202611102322";
-import { crearDiaD, crearGuia } from "./diad.js?v=202611102322";
-import { crearCertificados } from "./certificados.js?v=202611102322";
-import { crearCharlas } from "./admin-charlas.js?v=202611102322";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611102322";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611102322";
-import { puede, soloVer } from "./permisos.js?v=202611102322";
-import { ENTREGABLES } from "./entregables.js?v=202611102322";
-import { enlaceLinkedin } from "./colegas.js?v=202611102322";
-import { salir } from "./app.js?v=202611102322";
+import { api, ES_DEMO } from "./api.js?v=202611120128";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611120128";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611120128";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611120128";
+import { exportarExcel } from "./excel.js?v=202611120128";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611120128";
+import { crearLogistica } from "./admin-logistica.js?v=202611120128";
+import { crearEntregas } from "./admin-entregas.js?v=202611120128";
+import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611120128";
+import { crearInauguracion } from "./inauguracion.js?v=202611120128";
+import { crearMiAcceso } from "./mi-acceso.js?v=202611120128";
+import { crearCasos } from "./casos.js?v=202611120128";
+import { crearDiaD, crearGuia } from "./diad.js?v=202611120128";
+import { crearCertificados } from "./certificados.js?v=202611120128";
+import { crearCharlas } from "./admin-charlas.js?v=202611120128";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611120128";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611120128";
+import { puede, soloVer } from "./permisos.js?v=202611120128";
+import { ENTREGABLES } from "./entregables.js?v=202611120128";
+import { enlaceLinkedin } from "./colegas.js?v=202611120128";
+import { proyectarTalleres, archivosTaller, chipsTaller } from "./talleres-pres.js?v=202611120128";
+import { salir } from "./app.js?v=202611120128";
 
 const PESTANAS = [
   { id: "inicio", txt: "Mi acceso", icono: "escudo", soloAcceso: true },
@@ -715,7 +716,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       ${data.delegaciones.length ? `<p class="ayuda" style="margin-top:12px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611102322"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611120128"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
@@ -849,10 +850,14 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
   }
 
   // ---------------- Talleristas y ganadores de talleres ----------------
+  let presTalleres = null; // presentaciones de los talleres (PDF, PPT, video), se piden aparte
   function talleristas(v) {
+    if (!presTalleres) { presTalleres = []; api.talleresPres(codigo).then((r) => { presTalleres = r; if (document.body.contains(v)) talleristas(v); }).catch(() => { presTalleres = null; }); }
+    const presDe = (tid) => (presTalleres || []).find((p) => p.id === tid);
     const del2 = (id) => del(id)?.siglas || del(id)?.nombre || "Delegación eliminada";
     v.innerHTML = `
-      <div class="cabeza" style="margin-top:0"><div><h1>Talleres</h1><p>Los ${TALLERES.length} talleres son en paralelo (${HORA_TALLERES}). Cada integrante del equipo ganador suma ${PUNTOS_TALLER} pts a su delegación (una vez por delegación).</p></div></div>
+      <div class="cabeza" style="margin-top:0"><div><h1>Talleres</h1><p>Los ${TALLERES.length} talleres son en paralelo (${HORA_TALLERES}). Cada tallerista sube su <b>presentación en PDF</b> desde su panel y la puede proyectar él mismo; también tú aquí. Cada integrante del equipo ganador suma ${PUNTOS_TALLER} pts a su delegación (una vez por delegación).</p></div>
+        <button class="btn btn--naranja" data-proy-talleres ${(presTalleres || []).some((p) => p.pdf) ? "" : "disabled"} title="Pantalla de proyección con los 4 talleres">${I.vivo}Proyectar talleres</button></div>
       <div class="ganadores">${TALLERES.map((t) => {
         const g = ganador(t.id); const ids = delegacionesGanadoras(g); const ab = tallerAbierto(t.id);
         return `<article class="concurso concurso--info c-${t.color}">
@@ -864,6 +869,9 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
           : `<p class="concurso__apodo">Aún no hay ganadores registrados.</p>`}
           <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button class="interruptor ${ab ? "interruptor--abierto" : "interruptor--cerrado"}" data-taller="${t.id}" title="${ab ? "Cerrar el registro" : "Reabrir el registro"}">${ab ? I.abierto + "Abierto" : I.candado + "Cerrado"}</button>
             ${g?.integrantes.length ? `<button class="btn btn--mini btn--peligro" data-borrar-ganadores="${t.id}" title="Borrar los ganadores registrados de este taller">${I.basura}Borrar resultado</button>` : ""}</div>
+          <div class="tal-adm"><b style="font-size:.78rem;color:var(--niebla)">Presentación${presDe(t.id)?.titulo ? ` · «${esc(presDe(t.id).titulo)}»` : ""}:</b> ${presTalleres?.length ? chipsTaller(presDe(t.id)) : `<span class="tenue" style="font-size:.78rem">cargando…</span>`}</div>
+          <div class="tal-adm"><button class="btn btn--mini btn--naranja" data-proy-taller="${t.id}" ${presDe(t.id)?.pdf ? "" : "disabled"}>${I.vivo}Proyectar</button>
+            <button class="btn btn--mini" data-arch-taller="${t.id}" ${presDe(t.id) ? "" : "disabled"}>${I.descargar}Archivos (${["pdf", "ppt", "video"].filter((x) => presDe(t.id)?.[x]).length})</button></div>
         </article>`; }).join("")}</div>
       <div class="cabeza"><div><h1>Talleristas</h1><p>Crea un código para cada tallerista y elige qué talleres tiene habilitados. A la derecha ves qué talleres todavía no tienen tallerista.</p></div></div>
       <div class="jur-layout"><div class="jurados">
@@ -880,6 +888,10 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
               <button class="btn btn--mini btn--peligro" data-quitar="${t.id}">${I.basura}Eliminar</button>
             </div></article>`).join("")}
       </div>${tarjetasTalleristas()}</div>`;
+    $("[data-proy-talleres]", v).onclick = () => proyectarTalleres(codigo, presTalleres);
+    $$("[data-proy-taller]", v).forEach((b) => (b.onclick = () => proyectarTalleres(codigo, presTalleres, b.dataset.proyTaller)));
+    $$("[data-arch-taller]", v).forEach((b) => (b.onclick = () => archivosTaller(codigo, presDe(b.dataset.archTaller), { editable: editable("talleristas"),
+      listo: async () => { presTalleres = await api.talleresPres(codigo); talleristas(v); return presDe(b.dataset.archTaller); } })));
     $("[data-crear]", v).onclick = () => formPersona("tallerista", null);
     $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona("tallerista", tal(b.dataset.editar))));
     $$("[data-copiar]", v).forEach((b) => (b.onclick = () => copiar(b.dataset.copiar)));

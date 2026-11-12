@@ -1922,3 +1922,39 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 /* Desempates en Resultados */
 .des-nota{ color:var(--tenue); font-size:.74rem; } .des-nota--gana{ color:#8FF2C0; }
 .des-quitar{ background:none; border:0; color:#FF9C99; font:inherit; font-size:.72rem; text-decoration:underline; cursor:pointer; padding:0; }
+
+/* ===== Panel del tallerista (misma decoración que el del jurado) ===== */
+.tal-card{ cursor:default; }
+.tal-card:hover{ transform:translateY(-4px); }
+.tal-hora svg{ width:1em; height:1em; vertical-align:-2px; }
+.tal-pasos{ display:grid; gap:8px; margin:10px 0 4px; }
+.tal-paso{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; border:1px dashed var(--borde); background:rgba(255,255,255,.03); }
+.tal-paso span:last-child{ display:grid; } .tal-paso small{ color:var(--tenue); font-size:.76rem; }
+.tal-paso__n{ flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:.85rem; background:rgba(255,255,255,.08); color:var(--niebla); }
+.tal-paso--ok{ border-style:solid; border-color:rgba(59,224,143,.45); background:rgba(59,224,143,.07); }
+.tal-paso--ok .tal-paso__n{ background:#3BE08F; color:#1a0b3a; } .tal-paso--ok b{ color:#8FF2C0; }
+.tal-acc{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center; }
+.tal-acc .btn{ flex:1 1 auto; justify-content:center; }
+.tal-acc .tal-proy{ flex:0 0 auto; border-color:rgba(59,224,143,.6); color:#8FF2C0; }
+.tal-guia{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+.tal-guia > div{ display:grid; gap:4px; padding:16px; border-radius:16px; border:1px solid var(--borde); background:var(--panel); animation:jurEntra .7s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.35s + var(--i, 0) * .1s); }
+.tal-guia > div > span{ width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-family:var(--neon); background:linear-gradient(135deg, #FF8A3D, #A98BFF); color:#fff; }
+.tal-guia small{ color:var(--niebla); line-height:1.45; }
+.tal-tabs{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:10px; margin:6px 0 18px; }
+.tal-tab{ display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:16px; border:1px solid var(--borde); background:var(--panel); color:inherit; font:inherit; text-align:left; cursor:pointer; transition:transform .2s, border-color .2s, background .2s; }
+.tal-tab span:last-child{ display:grid; } .tal-tab small{ color:var(--tenue); font-size:.78rem; }
+.tal-tab:hover{ transform:translateY(-2px); }
+.tal-tab[aria-selected="true"]{ border-color:#FF8A3D; background:linear-gradient(120deg, rgba(255,106,31,.22), rgba(110,43,230,.22)); box-shadow:0 14px 34px -20px rgba(255,106,31,.9); }
+.tal-tab__n{ flex:none; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-weight:700; background:rgba(255,255,255,.1); }
+.tal-tab[aria-selected="true"] .tal-tab__n{ background:#FF8A3D; color:#fff; }
+.tal-proyectar{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:14px; border-style:dashed; }
+.tal-proyectar > div:nth-child(2){ flex:1 1 280px; min-width:0; } .tal-proyectar h2{ font-size:1.15rem; margin:0 0 4px; } .tal-proyectar p{ margin:0; color:var(--niebla); font-size:.9rem; }
+.tal-proyectar__ico{ flex:none; width:56px; height:56px; border-radius:16px; display:grid; place-items:center; background:rgba(255,255,255,.08); color:var(--niebla); }
+.tal-proyectar__ico svg{ width:28px; height:28px; }
+.tal-proyectar--listo{ border-style:solid; border-color:rgba(59,224,143,.55); background:linear-gradient(120deg, rgba(59,224,143,.14), rgba(31,203,234,.1) 60%, var(--panel)); }
+.tal-proyectar--listo .tal-proyectar__ico{ background:#3BE08F; color:#1a0b3a; animation:jurFlota 4s ease-in-out infinite; }
+.tal-proyectar__btn{ font-size:1rem; padding:.85em 1.4em; }
+@media (max-width:640px){ .tal-proyectar__btn{ width:100%; justify-content:center; } }
+@media (prefers-reduced-motion: reduce){ .tal-guia > div, .tal-proyectar--listo .tal-proyectar__ico{ animation:none !important; } }
+/* Admin → Talleristas: presentación de cada taller */
+.tal-adm{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; }

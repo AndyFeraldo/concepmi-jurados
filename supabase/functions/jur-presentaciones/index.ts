@@ -12,6 +12,8 @@
 // Casos confidenciales (caso: true, concurso = "amateur-1" | "amateur-2" | "iathon", parte = "caso" | "solucion"):
 //   subir / confirmar / quitar → solo la encargada (jur_casos_*); leer → encargada, admin y, desde que empieza
 //   el concurso, su equipo, jurados y coordinadores (cada apertura queda registrada en la base).
+// Talleres (taller_pres: true, taller = "t1".."t4"): subir / confirmar / quitar → tallerista del taller, admin o
+//   Talleristas «editar» (jur_taller_*); leer → además Talleristas «ver» y Proyección.
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
@@ -61,6 +63,33 @@ Deno.serve(async (req: Request) => {
         const paths = (r?.paths as unknown as string[]) || [];
         if (paths.length) await sb.storage.from(BUCKET).remove(paths);
         return json({ ok: true });
+      }
+      return json({ error: "Acción no válida" }, 400);
+    }
+    if (b.taller_pres === true) {
+      const taller = b.taller as string;
+      if (b.accion === "subir") {
+        const r = await rpc("jur_taller_autorizar_subida", { p_codigo: b.codigo, p_taller: taller, p_tipo: b.tipo, p_nombre: b.nombre, p_tamano: b.tamano });
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUploadUrl(r.path);
+        if (error) throw new Error(error.message);
+        return json({ path: data.path, token: data.token });
+      }
+      if (b.accion === "confirmar") {
+        const r = await rpc("jur_taller_confirmar", { p_codigo: b.codigo, p_taller: taller, p_tipo: b.tipo, p_path: b.path, p_nombre: b.nombre, p_tamano: b.tamano });
+        if (r?.anterior && r.anterior !== b.path) await sb.storage.from(BUCKET).remove([r.anterior]);
+        return json({ ok: true });
+      }
+      if (b.accion === "leer") {
+        const r = await rpc("jur_taller_autorizar_lectura", { p_codigo: b.codigo, p_taller: taller, p_tipo: b.tipo });
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(r.path, 60 * 60 * 3, b.descargar ? { download: r.nombre } : undefined);
+        if (error) throw new Error(error.message);
+        return json({ url: data.signedUrl, nombre: r.nombre });
+      }
+      if (b.accion === "quitar") {
+        const r = await rpc("jur_taller_quitar", { p_codigo: b.codigo, p_taller: taller, p_tipos: b.tipos });
+        const paths = (r?.paths as unknown as string[]) || [];
+        if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+        return json({ ok: true, quitados: paths.length });
       }
       return json({ error: "Acción no válida" }, 400);
     }

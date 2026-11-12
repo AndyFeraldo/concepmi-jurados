@@ -8,7 +8,7 @@ export const AREAS = [
   { id: "resultados", txt: "Resultados", ver: "Tablas de resultados de cada concurso", editar: "Sanciones, registro manual, borrar calificaciones y traer Conocimientos" },
   { id: "copa", txt: "Copa CONCEPMI", ver: "Tabla general, ceremonia de premiación y Excel", editar: null },
   { id: "jurados", txt: "Jurados", ver: "Perfiles, concursos asignados y jurados que faltan (sin códigos)", editar: "Crear, editar y borrar jurados y ver sus códigos" },
-  { id: "talleristas", txt: "Talleristas", ver: "Perfiles, talleres y ganadores (sin códigos)", editar: "Crear talleristas, ver códigos, abrir/cerrar y borrar resultados" },
+  { id: "talleristas", txt: "Talleristas", ver: "Perfiles, talleres, ganadores y presentaciones de los talleres: ver si subieron su PDF y proyectarlo (sin códigos)", editar: "Crear talleristas, ver códigos, abrir/cerrar y borrar resultados, subir o quitar la presentación de un taller" },
   { id: "charlas", txt: "Charlas", ver: "Estado de las trivias, preguntas y podios", editar: "Iniciar o detener la trivia, confirmar podio, cargar preguntas e inscritos" },
   { id: "delegaciones", txt: "Delegaciones", ver: "Lista de delegaciones", editar: "Crear, editar y borrar delegaciones" },
   { id: "logistica", txt: "Logística", ver: "Presupuesto, gastos, comprobantes y reporte", editar: "Registrar compras, pagos, proveedores y comprobantes" },
@@ -22,6 +22,7 @@ export const AREA = Object.fromEntries(AREAS.map((a) => [a.id, a]));
 export const PLANTILLAS = [
   { id: "sala", txt: "Coordinador de sala", permisos: {}, entregas: true, ayuda: "Solo Entregas del concurso que elijas" },
   { id: "rrpp", txt: "Relaciones públicas", permisos: { jurados: "ver", talleristas: "ver", charlas: "ver" }, ayuda: "Ve jurados, talleristas y charlas" },
+  { id: "talleres", txt: "Coordinador de talleres", permisos: { talleristas: "ver" }, ayuda: "Ve los 4 talleres: si el tallerista subió su PDF, y los proyecta en el aula. Con «Edita» también sube archivos por el tallerista" },
   { id: "logistica", txt: "Logística", permisos: { logistica: "editar" }, ayuda: "Maneja la pestaña Logística" },
   { id: "proyeccion", txt: "Proyección (auditorio)", permisos: { proyeccion: "ver" }, ayuda: "Laptop del proyector: su propio Panel de Proyección" },
   { id: "casos", txt: "Encargada de casos (confidencial)", permisos: { casos: "editar" }, entregas: true, ayuda: "Sube los casos de Amateur I, II e IATHON; marca abajo sus concursos si también es coordinadora de sala" },
