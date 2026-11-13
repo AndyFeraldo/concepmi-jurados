@@ -7,14 +7,14 @@
 //  · Guía personal: cada persona entra con su código (botón «Voluntarios» de la portada o
 //    su panel) y ve qué le toca, a qué hora llegar, dónde, con quién y qué hacer.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611121132";
-import { CONCURSOS, porId } from "./concursos.js?v=202611121132";
-import { TALLERES } from "./talleres.js?v=202611121132";
-import { CHARLAS } from "./charlas.js?v=202611121132";
-import { ENTREGABLES } from "./entregables.js?v=202611121132";
-import { importarExcel } from "./certificados.js?v=202611121132";
-import { AREAS, nivel } from "./permisos.js?v=202611121132";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611121132";
+import { api, ES_DEMO } from "./api.js?v=202611131348";
+import { CONCURSOS, porId } from "./concursos.js?v=202611131348";
+import { TALLERES } from "./talleres.js?v=202611131348";
+import { CHARLAS } from "./charlas.js?v=202611131348";
+import { ENTREGABLES } from "./entregables.js?v=202611131348";
+import { importarExcel } from "./certificados.js?v=202611131348";
+import { AREAS, nivel } from "./permisos.js?v=202611131348";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611131348";
 
 export const DIAS = {
   d1: { txt: "Día 1 · Martes 24 de noviembre", num: "Día 1", largo: "Martes 24 de noviembre", corto: "Mar 24/11", fecha: "2026-11-24" },
@@ -143,6 +143,7 @@ export function htmlGuia(g, { vistaAdmin = false } = {}) {
         ${yo.area ? `<span class="chip chip--celeste">Área: ${esc(yo.area)}</span>` : ""}</div>
       ${prox ? `<div class="dd-hola__prox"><small>Tu próxima tarea</small><b>${esc(prox.rol || prox.bloque)}</b><span>${esc(DIAS[prox.dia]?.corto)} · llega ${esc(llegada(prox))}</span><span>${esc(prox.lugar || "Salón por confirmar")}</span></div>` : ""}
     </section>
+    ${htmlMiHorario(yo, tareas)}
     ${cfg.mensaje ? `<div class="dd-msg">${I.info}<p>${esc(cfg.mensaje).replace(/\n/g, "<br>")}</p></div>` : ""}
     ${encuentro.length || cfg.contacto_nombre || cfg.contacto_tel ? `<div class="dd-datos">
       ${encuentro.length ? `<div class="tarjeta"><small>Punto de encuentro del equipo</small><p>${encuentro.join("<br>")}</p></div>` : ""}
@@ -156,6 +157,37 @@ export function htmlGuia(g, { vistaAdmin = false } = {}) {
     }).join("")}</details>` : ""}
     ${vistaAdmin ? "" : `<p class="ayuda" style="text-align:center">¿Algo no cuadra? Escribe al organizador. Esta guía se actualiza sola cuando el organizador cambia algo.</p>`}
   </div>`;
+}
+
+// «Tu horario disponible»: lo que el admin marcó en Día D → Voluntarios, con una barra de 7:00 a. m. a 10:00 p. m.
+// y encima sus tareas (verde si caen dentro de su horario, ámbar si no). Si la base aún no envía la
+// disponibilidad (yo.disponibilidad indefinida) no se muestra nada.
+const LINEA = [420, 1320];
+function htmlMiHorario(yo, tareas) {
+  if (!yo || yo.disponibilidad === undefined) return "";
+  const pos = (m) => `${(Math.max(0, Math.min(1, (m - LINEA[0]) / (LINEA[1] - LINEA[0]))) * 100).toFixed(2)}%`;
+  const ancho = (a, b) => `${(Math.max(0, (Math.min(b, LINEA[1]) - Math.max(a, LINEA[0])) / (LINEA[1] - LINEA[0])) * 100).toFixed(2)}%`;
+  const algo = tieneHorario(yo);
+  const dia = (d) => {
+    const r = [...dispDe(yo, d)].sort((x, y) => x[0] - y[0]), ts = tareas.filter((t) => t.dia === d);
+    const total = r.reduce((s, [a, b]) => s + (b - a), 0), hh = Math.floor(total / 60), mm = total % 60;
+    return `<article class="dd-mh__dia ${r.length ? "" : "dd-mh__dia--no"}">
+      <div class="dd-mh__cab"><small>${esc(DIAS[d].num)}</small><b>${esc(DIAS[d].largo)}</b>
+        <span class="chip ${r.length ? "chip--verde" : ""}">${r.length ? `${hh ? `${hh} h` : ""}${mm ? ` ${mm} min` : ""} disponible` : algo ? "No disponible" : "Sin horario"}</span></div>
+      <p class="dd-mh__rangos">${r.length ? r.map(([a, b]) => `<span>🕘 <b>${esc(hora(a))}</b> a <b>${esc(hora(b))}</b></span>`).join("") : algo ? "Indicaste que <b>no puedes</b> este día." : "Aún no está registrado."}</p>
+      <div class="dd-mh__linea" aria-hidden="true">
+        ${r.map(([a, b]) => `<i class="dd-mh__libre" style="left:${pos(a)};width:${ancho(a, b)}"></i>`).join("")}
+        ${ts.map((t) => { const [a, b] = rangoT(t), ok = r.some(([x, y]) => x <= a && y >= b); return `<i class="dd-mh__tarea ${ok ? "" : "dd-mh__tarea--fuera"}" style="left:${pos(a)};width:${ancho(a, b)}" title="${esc(t.rol || t.bloque)} · ${esc(rango(t))}"></i>`; }).join("")}
+      </div>
+      <div class="dd-mh__reglas"><span>7 a. m.</span><span>10 a. m.</span><span>1 p. m.</span><span>4 p. m.</span><span>7 p. m.</span><span>10 p. m.</span></div>
+      ${ts.length ? `<p class="dd-mh__nota">${ts.every((t) => { const [a, b] = rangoT(t); return r.some(([x, y]) => x <= a && y >= b); }) ? "✓ Tus tareas de este día están dentro de tu horario." : "⚠ Alguna tarea cae fuera de tu horario: avísale al organizador si no puedes."}</p>` : ""}
+    </article>`;
+  };
+  return `<section class="tarjeta dd-mh">
+    <div class="dd-mh__tit"><h2>🗓 Tu horario disponible</h2><p>${algo ? "Esto es lo que registraste con el organizador. Las barras moradas son tus tareas." : "El organizador aún no registró tu horario. Escríbele para indicarle qué días y horas puedes."}</p></div>
+    <div class="dd-mh__dias">${Object.keys(DIAS).map(dia).join("")}</div>
+    ${algo ? `<p class="dd-mh__pie"><span class="dd-mh__ley dd-mh__ley--libre"></span> Disponible <span class="dd-mh__ley dd-mh__ley--tarea"></span> Tu tarea <span class="dd-mh__ley dd-mh__ley--fuera"></span> Tarea fuera de tu horario · ¿Cambió tu horario? Avísale al organizador.</p>` : ""}
+  </section>`;
 }
 
 // La guía de una persona armada desde los datos del admin (vista previa y mensaje de WhatsApp)

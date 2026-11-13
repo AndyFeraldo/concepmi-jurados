@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611121132";
-import { CONCURSOS, porId } from "./concursos.js?v=202611121132";
-import { TALLERES } from "./talleres.js?v=202611121132";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611121132";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611131348";
+import { CONCURSOS, porId } from "./concursos.js?v=202611131348";
+import { TALLERES } from "./talleres.js?v=202611131348";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611131348";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -224,7 +224,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611121132");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611131348");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -735,7 +735,7 @@ const demo = {
   async diadMio(codigo) { await espera(); const d = db(); const k = d.coordinadores.find((x) => x.codigo === norm(codigo)); if (!k) throw new Error("Código incorrecto");
     const tareas = d.diad.tareas.filter((t) => t.personas.includes(k.id)).map((t) => ({ ...t, equipo: t.personas.filter((x) => x !== k.id).map((x) => d.coordinadores.find((o) => o.id === x)).filter(Boolean).map(({ nombre, area, telefono }) => ({ nombre, area, telefono })) }));
     const vistos = new Set(), agenda = []; d.diad.tareas.forEach((t) => { const c = t.dia + t.hora_ini + t.bloque; if (t.bloque && !vistos.has(c)) { vistos.add(c); agenda.push(t); } });
-    return structuredClone({ yo: { id: k.id, nombre: k.nombre, area: k.area, concursos: k.concursos, permisos: k.permisos }, tareas, agenda, config: d.diad.config || {} }); },
+    return structuredClone({ yo: { id: k.id, nombre: k.nombre, area: k.area, concursos: k.concursos, permisos: k.permisos, disponibilidad: k.disponibilidad || {} }, tareas, agenda, config: d.diad.config || {} }); },
   // ---- Concurso de Proyectos (vista previa: los archivos quedan solo en esta pestaña) ----
   async equipoPresentacion(codigo) { await espera(); const e = eqDe(codigo); return { presentacion: presJson(e), config: presCfg(e.concurso_id) }; },
   async adminPresentaciones(codigo, concurso) { await espera(80); exigirVistaSala(codigo, concurso);

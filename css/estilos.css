@@ -2018,3 +2018,23 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .pp-clicker__estado{ margin:12px 0 0; font-size:.88rem; color:var(--tenue); } .pp-clicker__estado--ok{ color:#8FF2C0; }
 .pp-datos{ display:grid; gap:12px; }
 @media (prefers-reduced-motion: reduce){ .pp-mini{ animation:none !important; } }
+
+/* Guía del voluntario: «Tu horario disponible» */
+.dd-mh{ border-color:rgba(59,224,143,.4); background:linear-gradient(120deg, rgba(59,224,143,.1), rgba(110,43,230,.14) 60%, var(--panel)); }
+.dd-mh__tit h2{ font-size:1.15rem; margin:0 0 2px; } .dd-mh__tit p{ margin:0 0 12px; color:var(--niebla); font-size:.9rem; }
+.dd-mh__dias{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap:12px; }
+.dd-mh__dia{ display:grid; gap:8px; padding:14px; border-radius:14px; border:1px solid var(--borde); background:rgba(255,255,255,.04); min-width:0; }
+.dd-mh__dia--no{ opacity:.8; border-style:dashed; }
+.dd-mh__cab{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; } .dd-mh__cab small{ color:#FFB27F; font-weight:700; font-size:.74rem; text-transform:uppercase; letter-spacing:.06em; }
+.dd-mh__cab b{ font-size:1.02rem; } .dd-mh__cab .chip{ margin-left:auto; }
+.dd-mh__rangos{ margin:0; display:flex; flex-wrap:wrap; gap:6px 14px; font-size:.95rem; } .dd-mh__rangos b{ color:#8FF2C0; }
+.dd-mh__linea{ position:relative; height:20px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+.dd-mh__linea i{ position:absolute; top:0; bottom:0; border-radius:99px; }
+.dd-mh__libre{ background:linear-gradient(90deg, #3BE08F, #1FCBEA); opacity:.85; }
+.dd-mh__tarea{ top:5px !important; bottom:5px !important; background:#A98BFF; box-shadow:0 0 0 2px #1a0b3a; } .dd-mh__tarea--fuera{ background:#FFB020; }
+.dd-mh__reglas{ display:flex; justify-content:space-between; font-size:.66rem; color:var(--tenue); margin-top:-4px; }
+.dd-mh__nota{ margin:0; font-size:.8rem; color:var(--niebla); }
+.dd-mh__pie{ margin:12px 0 0; font-size:.78rem; color:var(--tenue); display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.dd-mh__ley{ display:inline-block; width:22px; height:9px; border-radius:99px; } .dd-mh__ley--libre{ background:linear-gradient(90deg, #3BE08F, #1FCBEA); } .dd-mh__ley--tarea{ background:#A98BFF; } .dd-mh__ley--fuera{ background:#FFB020; }
+@media print{ .dd-mh{ background:none; } }
+.dd-mh{ padding:18px 20px; } @media (max-width:520px){ .dd-mh{ padding:14px; } }

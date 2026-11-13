@@ -5,21 +5,21 @@
 // Al cerrar una pantalla se vuelve a este menú. La base de datos limita lo que puede hacer:
 // leer y proyectar, manejar la trivia (iniciar, detener, confirmar podio) y el tiempo de los concursos.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611121132";
-import { CHARLAS } from "./charlas.js?v=202611121132";
-import { ENTREGABLES } from "./entregables.js?v=202611121132";
-import { porId } from "./concursos.js?v=202611121132";
-import { copaGeneral } from "./calculo.js?v=202611121132";
-import { crearCharlas } from "./admin-charlas.js?v=202611121132";
-import { proyectarCharlas } from "./admin-ponentes.js?v=202611121132";
-import { TALLERES, HORA_TALLERES } from "./talleres.js?v=202611121132";
-import { proyectarTalleres } from "./talleres-pres.js?v=202611121132";
-import { abrirCeremonia, cargarPrograma } from "./inauguracion.js?v=202611121132";
-import { abrirEscenario } from "./escenario.js?v=202611121132";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611121132";
-import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611121132";
-import { $, $$, esc, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611121132";
-import { salir } from "./app.js?v=202611121132";
+import { api, ES_DEMO } from "./api.js?v=202611131348";
+import { CHARLAS } from "./charlas.js?v=202611131348";
+import { ENTREGABLES } from "./entregables.js?v=202611131348";
+import { porId } from "./concursos.js?v=202611131348";
+import { copaGeneral } from "./calculo.js?v=202611131348";
+import { crearCharlas } from "./admin-charlas.js?v=202611131348";
+import { proyectarCharlas } from "./admin-ponentes.js?v=202611131348";
+import { TALLERES, HORA_TALLERES } from "./talleres.js?v=202611131348";
+import { proyectarTalleres } from "./talleres-pres.js?v=202611131348";
+import { abrirCeremonia, cargarPrograma } from "./inauguracion.js?v=202611131348";
+import { abrirEscenario } from "./escenario.js?v=202611131348";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611131348";
+import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611131348";
+import { $, $$, esc, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611131348";
+import { salir } from "./app.js?v=202611131348";
 
 export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {}) {
   let data = null, pausado = false;
@@ -77,7 +77,7 @@ export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {
     abrirCeremonia(P, { abrirCharla: async (k = 0) => { try { proyectarCharlas(codigo, await ponentes(), k); } catch (e) { aviso(e.message, "error"); } } });
   });
   $("[data-premiacion]", app).onclick = ocupado($("[data-premiacion]", app), async () => {
-    await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611121132"); abrirPremiacion(copaGeneral(data));
+    await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611131348"); abrirPremiacion(copaGeneral(data));
   });
   $$("[data-ponencia]", app).forEach((b) => (b.onclick = ocupado(b, async () => proyectarCharlas(codigo, await ponentes(), Number(b.dataset.ponencia)))));
   $$("[data-trivia]", app).forEach((b) => (b.onclick = ocupado(b, async () => { await recargar(); charlasUI.proyector(b.dataset.trivia); })));
