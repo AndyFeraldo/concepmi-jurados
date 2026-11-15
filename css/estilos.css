@@ -2038,3 +2038,13 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .dd-mh__ley{ display:inline-block; width:22px; height:9px; border-radius:99px; } .dd-mh__ley--libre{ background:linear-gradient(90deg, #3BE08F, #1FCBEA); } .dd-mh__ley--tarea{ background:#A98BFF; } .dd-mh__ley--fuera{ background:#FFB020; }
 @media print{ .dd-mh{ background:none; } }
 .dd-mh{ padding:18px 20px; } @media (max-width:520px){ .dd-mh{ padding:14px; } }
+
+/* Copa → Eliminar resultados */
+.cb-grupos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap:12px; max-height:46vh; overflow:auto; padding-right:4px; }
+.cb-grupo{ display:grid; gap:6px; align-content:start; padding:12px; border-radius:14px; border:1px solid var(--borde); background:rgba(255,255,255,.03); }
+.cb-grupo__cab{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px; }
+.cb-fila{ display:flex; gap:10px; align-items:flex-start; padding:6px 8px; border-radius:10px; cursor:pointer; }
+.cb-fila:hover{ background:rgba(255,255,255,.05); } .cb-fila input{ margin-top:3px; accent-color:#FD443F; }
+.cb-fila span{ display:grid; min-width:0; } .cb-fila small{ color:var(--tenue); font-size:.76rem; }
+.cb-fila--vacia{ opacity:.45; cursor:default; }
+.cb-progreso{ display:grid; gap:6px; } .cb-progreso small{ color:var(--niebla); }
