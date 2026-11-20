@@ -3,12 +3,12 @@
 // todo lo que el administrador le habilitó (qué puede EDITAR, qué puede solo VER) y lo lleva ahí.
 //   destinos: { areaId | "entregas" | "proyeccion" | "casos" | "guia": función que abre esa parte }
 // =========================================================
-import { AREAS, nivel } from "./permisos.js?v=202611152127";
-import { ENTREGABLES } from "./entregables.js?v=202611152127";
-import { porId } from "./concursos.js?v=202611152127";
-import { $$, esc, I } from "./ui.js?v=202611152127";
+import { AREAS, nivel } from "./permisos.js?v=202611201334";
+import { ENTREGABLES } from "./entregables.js?v=202611201334";
+import { porId } from "./concursos.js?v=202611201334";
+import { $$, esc, I } from "./ui.js?v=202611201334";
 
-const ICONO = { vivo: "vivo", resultados: "tabla", copa: "copa", jurados: "personas", talleristas: "pizarra", charlas: "vivo", delegaciones: "bandera", logistica: "caja", proyeccion: "pizarra", casos: "candado", diad: "reloj" };
+const ICONO = { vivo: "vivo", resultados: "tabla", copa: "copa", jurados: "personas", talleristas: "pizarra", charlas: "vivo", delegaciones: "bandera", logistica: "caja", proyeccion: "pizarra", casos: "candado", diad: "reloj", show: "copa" };
 // Lo que encuentra en cada pestaña, dicho en simple
 const QUE_HAY = {
   vivo: "El avance de cada concurso en tiempo real y las últimas calificaciones.",
@@ -19,6 +19,7 @@ const QUE_HAY = {
   charlas: "Las 3 charlas magistrales, sus ponentes (pestaña Ponentes), las trivias, preguntas y podios.",
   delegaciones: "La lista de delegaciones (universidades) participantes.",
   logistica: "El presupuesto, los gastos, comprobantes, proveedores y el reporte.",
+  show: "El Show en vivo del 24/11 (5:00–6:30 p. m.): muro de networking, ruleta de delegaciones, casos, transmisión y el sorteo de becas con los sponsors.",
 };
 
 export function htmlMiAcceso(k) {

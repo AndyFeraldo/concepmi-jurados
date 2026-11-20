@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611152127";
-import { CONCURSOS, porId } from "./concursos.js?v=202611152127";
-import { TALLERES } from "./talleres.js?v=202611152127";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611152127";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611201334";
+import { CONCURSOS, porId } from "./concursos.js?v=202611201334";
+import { TALLERES } from "./talleres.js?v=202611201334";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611201334";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -88,6 +88,27 @@ const real = {
   },
   tallerUrl: async (codigo, taller, tipo, descargar = false) => (await edge({ accion: "leer", taller_pres: true, codigo, taller, tipo, descargar })).url,
   tallerQuitar: (codigo, taller, tipos) => edge({ accion: "quitar", taller_pres: true, codigo, taller, tipos }),
+  // Show en vivo (24/11): networking, casos, transmisión y sorteo de becas
+  showDatos: (codigo) => rpc("jur_show_datos", { p_codigo: codigo }),
+  showParticipantes: (codigo) => rpc("jur_show_participantes", { p_codigo: codigo }),
+  showConfig: (codigo, datos) => rpc("jur_admin_show_config", { p_codigo: codigo, p_datos: datos }),
+  showSponsor: (codigo, { id = null, nombre = "", logo = null, borrar = false }) => rpc("jur_admin_show_sponsor", { p_codigo: codigo, p_id: id, p_nombre: nombre, p_logo: logo, p_borrar: borrar }),
+  showPremio: (codigo, { id = null, tipo = "beca", titulo = "", detalle = "", sponsor = null, cantidad = 1, borrar = false }) =>
+    rpc("jur_admin_show_premio", { p_codigo: codigo, p_id: id, p_tipo: tipo, p_titulo: titulo, p_detalle: detalle, p_sponsor: sponsor, p_cantidad: cantidad, p_borrar: borrar }),
+  showSortear: (codigo, premio) => rpc("jur_show_sortear", { p_codigo: codigo, p_premio: premio }),
+  showAnular: (codigo, ganador, motivo = "") => rpc("jur_show_anular", { p_codigo: codigo, p_ganador: ganador, p_motivo: motivo }),
+  showLimpiar: (codigo, que) => rpc("jur_admin_show_limpiar", { p_codigo: codigo, p_que: que }),
+  showMuroInfo: () => rpc("jur_show_muro_info", {}),
+  showMuroEnviar: (dni, texto) => rpc("jur_show_muro_enviar", { p_dni: dni, p_texto: texto }),
+  showMuro: (codigo) => rpc("jur_show_muro", { p_codigo: codigo }),
+  showMensaje: (codigo, id, oculto) => rpc("jur_admin_show_mensaje", { p_codigo: codigo, p_id: id, p_oculto: oculto }),
+  async showCasoSubir(codigo, concurso, archivo, alAvanzar) {
+    const { path, token } = await edge({ accion: "subir", show_caso: true, codigo, concurso, nombre: archivo.name, tamano: archivo.size });
+    await subirConProgreso(path, token, archivo, alAvanzar);
+    await edge({ accion: "confirmar", show_caso: true, codigo, concurso, path, nombre: archivo.name, tamano: archivo.size });
+  },
+  showCasoUrl: async (codigo, concurso) => (await edge({ accion: "leer", show_caso: true, codigo, concurso })).url,
+  showCasoQuitar: (codigo, concurso) => edge({ accion: "quitar", show_caso: true, codigo, concurso }),
   datosJurado: (codigo) => rpc("jur_datos_jurado", { p_codigo: codigo }),
   calificar: (codigo, concurso, subprueba, delegacion, datos, comentario = "") =>
     rpc("jur_calificar", { p_codigo: codigo, p_concurso: concurso, p_subprueba: subprueba, p_delegacion: delegacion, p_datos: datos, p_comentario: comentario }),
@@ -224,7 +245,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611152127");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611201334");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -303,6 +324,12 @@ const entJson = (e) => { const x = db().entregas[e.id] || {}; return { equipo_id
   datos: x.datos || {}, estado: x.estado || "borrador", enviado: x.enviado || null, tarde: !!x.tarde, actualizado: x.actualizado || null }; };
 const tiempoJson = (cid) => { const t = db().tiempos[cid] || {}; return { inicio: t.inicio || null, fin: t.fin || null, ahora: new Date().toISOString() }; };
 const nuevoCodigo = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let c; do { c = Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); } while (codigoUsado(c)); return c; };
+// Show en vivo: «editar» (admin o Show editar), «operar» (Proyección), «ver» (Show ver)
+const showDb = () => { const d = db(); return (d.show ||= { config: {}, sponsors: [], premios: [], ganadores: [], archivos: {}, mensajes: [] }); };
+const showNivel = (c) => { if (norm(c) === db().admin) return "editar"; const k = accesoDe(c); const v = nivelDe(k, "show");
+  return v === "editar" ? "editar" : nivelDe(k, "proyeccion") ? "operar" : v === "ver" ? "ver" : ""; };
+const showExigir = (c, que) => { const n = showNivel(c); if (!n) throw new Error("Tu acceso no incluye el Show en vivo");
+  if ((que === "editar" && n !== "editar") || (que === "operar" && !["editar", "operar"].includes(n))) throw new Error("Tu acceso al Show en vivo es solo para ver"); };
 // Presentación de un taller: su tallerista, admin, Talleristas (ver para mirar/proyectar, editar para subir) y Proyección (solo ver)
 const puedeTaller = (c, tid, editar) => { if (norm(c) === db().admin) return true;
   if (db().talleristas.some((x) => x.codigo === norm(c) && x.talleres.includes(tid))) return true;
@@ -814,6 +841,56 @@ const demo = {
     const f = ARCHIVOS_DEMO.get(`t:${taller}:${tipo}`); if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
   async tallerQuitar(codigo, taller, tipos) { await espera(); if (!puedeTaller(codigo, taller, true)) throw new Error("No puedes quitar archivos de este taller");
     const p = (db().tallerPres || {})[taller] || {}; let n = 0; for (const t of tipos) { if (p[t]) n++; delete p[t]; ARCHIVOS_DEMO.delete(`t:${taller}:${t}`); } guardar(); return { ok: true, quitados: n }; },
+  // ---- Show en vivo (vista previa) ----
+  async showDatos(codigo) { await espera(); const n = showNivel(codigo); if (!n) throw new Error("Tu acceso no incluye el Show en vivo"); const s = showDb(), d = db();
+    const del = (id) => d.delegaciones.find((x) => x.id === id);
+    return structuredClone({ nivel: n, config: s.config, sponsors: s.sponsors, premios: s.premios.map((p) => ({ ...p, sorteados: s.ganadores.filter((g) => g.premio_id === p.id && !g.anulado).length })),
+      ganadores: s.ganadores.map((g) => ({ ...g, delegacion: del(g.delegacion_id)?.siglas || g.delegacion_texto || "—", delegacion_nombre: del(g.delegacion_id)?.nombre || g.delegacion_texto })),
+      archivos: Object.fromEntries(Object.entries(s.archivos).map(([k, v]) => [k, { nombre: v.nombre, tamano: v.tamano, subido: v.subido }])),
+      participantes: d.asistentes.filter((a) => a.codigo).length, mensajes: s.mensajes.filter((m) => !m.oculto).length }); },
+  async showParticipantes(codigo) { await espera(); showExigir(codigo, "ver"); return db().asistentes.filter((a) => a.codigo).map((a) => a.codigo).sort(() => Math.random() - 0.5); },
+  async showConfig(codigo, datos) { await espera(80); showExigir(codigo, Object.keys(datos).some((k) => !["muro_abierto", "muro_pregunta"].includes(k)) ? "editar" : "operar");
+    const s = showDb(); for (const k of ["link", "link_titulo", "muro_abierto", "muro_pregunta", "retos"]) if (k in datos) s.config[k] = k === "retos" ? (datos.retos || []).map((x) => String(x).trim()).filter(Boolean).slice(0, 40) : datos[k];
+    guardar(); return structuredClone(s.config); },
+  async showSponsor(codigo, { id = null, nombre = "", logo = null, borrar = false }) { await espera(); showExigir(codigo, "editar"); const s = showDb();
+    if (borrar) { s.sponsors = s.sponsors.filter((x) => x.id !== id); s.premios.forEach((p) => { if (p.sponsor_id === id) p.sponsor_id = null; }); guardar(); return null; }
+    if (String(nombre).trim().length < 2) throw new Error("Escribe el nombre del sponsor");
+    let x = id && s.sponsors.find((y) => y.id === id); if (!x) { x = { id: uid(), logo: "", orden: s.sponsors.length + 1 }; s.sponsors.push(x); }
+    x.nombre = String(nombre).trim(); if (logo != null) x.logo = logo; guardar(); return { id: x.id }; },
+  async showPremio(codigo, { id = null, tipo = "beca", titulo = "", detalle = "", sponsor = null, cantidad = 1, borrar = false }) { await espera(); showExigir(codigo, "editar"); const s = showDb();
+    if (borrar) { s.premios = s.premios.filter((x) => x.id !== id); s.ganadores = s.ganadores.filter((g) => g.premio_id !== id); guardar(); return null; }
+    if (!(cantidad >= 1 && cantidad <= 100)) throw new Error("La cantidad va de 1 a 100");
+    let x = id && s.premios.find((y) => y.id === id); if (!x) { x = { id: uid(), orden: s.premios.length + 1 }; s.premios.push(x); }
+    Object.assign(x, { tipo, titulo: String(titulo).trim(), detalle: String(detalle).trim(), sponsor_id: sponsor || null, cantidad: Number(cantidad) }); guardar(); return { id: x.id }; },
+  async showSortear(codigo, premio) { await espera(300); showExigir(codigo, "operar"); const s = showDb(), d = db(); const p = s.premios.find((x) => x.id === premio); if (!p) throw new Error("Ese premio ya no existe");
+    if (s.ganadores.filter((g) => g.premio_id === p.id && !g.anulado).length >= p.cantidad) throw new Error("Ya se sortearon todos los premios de este tipo");
+    const libres = d.asistentes.filter((a) => a.codigo && !s.ganadores.some((g) => g.dni === a.dni && (!g.anulado || g.premio_id === p.id)));
+    if (!libres.length) throw new Error("Ya no quedan participantes sin premio");
+    const a = libres[Math.floor(Math.random() * libres.length)], del = d.delegaciones.find((x) => x.id === a.delegacion_id);
+    const g = { id: uid(), premio_id: p.id, dni: a.dni, codigo: a.codigo, nombre: a.nombre, delegacion_id: a.delegacion_id, delegacion_texto: a.delegacion_texto || "", anulado: false, motivo: "", creado: new Date().toISOString() };
+    s.ganadores.push(g); guardar(); return { id: g.id, premio_id: p.id, codigo: g.codigo, nombre: g.nombre, delegacion: del?.siglas || g.delegacion_texto || "—", delegacion_nombre: del?.nombre || g.delegacion_texto }; },
+  async showAnular(codigo, ganador, motivo = "") { await espera(); showExigir(codigo, "operar"); const g = showDb().ganadores.find((x) => x.id === ganador); if (!g) throw new Error("Ese ganador ya no existe");
+    g.anulado = true; g.motivo = motivo || "No estaba presente"; guardar(); },
+  async showLimpiar(codigo, que) { await espera(); showExigir(codigo, "editar"); const s = showDb(); if (que === "sorteos") s.ganadores = []; else if (que === "muro") s.mensajes = []; guardar(); },
+  async showMuroInfo() { await espera(80); const c = showDb().config; return { abierto: !!c.muro_abierto, pregunta: c.muro_pregunta || "" }; },
+  async showMuroEnviar(dni, texto) { await espera(); const s = showDb(), d = db(); if (!s.config.muro_abierto) throw new Error("El muro está cerrado por ahora");
+    const a = d.asistentes.find((x) => x.dni === norm(dni)); if (!a) throw new Error("No encontramos tu DNI en la lista de inscritos");
+    const t = String(texto || "").trim().replace(/\s+/g, " ").slice(0, 140); if (t.length < 2) throw new Error("Escribe tu comentario");
+    if (s.mensajes.some((m) => m.dni === a.dni && Date.now() - Date.parse(m.creado) < 20000)) throw new Error("Espera unos segundos antes de enviar otro");
+    s.mensajes.push({ id: uid(), dni: a.dni, nombre: a.nombre, delegacion_id: a.delegacion_id, delegacion_texto: a.delegacion_texto || "", texto: t, oculto: false, creado: new Date().toISOString() }); guardar();
+    return { nombre: a.nombre, delegacion: d.delegaciones.find((x) => x.id === a.delegacion_id)?.siglas || a.delegacion_texto || "" }; },
+  async showMuro(codigo) { await espera(80); showExigir(codigo, "ver"); const s = showDb(), d = db(); const sig = (m) => d.delegaciones.find((x) => x.id === m.delegacion_id)?.siglas || m.delegacion_texto || "—";
+    const r = {}; s.mensajes.filter((m) => !m.oculto).forEach((m) => { const k = sig(m); (r[k] ||= { delegacion: k, mensajes: 0, p: new Set() }).mensajes++; r[k].p.add(m.dni); });
+    return { info: { abierto: !!s.config.muro_abierto, pregunta: s.config.muro_pregunta || "" }, mensajes: [...s.mensajes].reverse().slice(0, 120).map((m) => ({ id: m.id, nombre: m.nombre, delegacion: sig(m), texto: m.texto, oculto: m.oculto, creado: m.creado })),
+      ranking: Object.values(r).map((x) => ({ delegacion: x.delegacion, mensajes: x.mensajes, personas: x.p.size })).sort((a, b) => b.mensajes - a.mensajes) }; },
+  async showMensaje(codigo, id, oculto) { await espera(80); showExigir(codigo, "operar"); const m = showDb().mensajes.find((x) => x.id === id); if (m) m.oculto = !!oculto; guardar(); },
+  async showCasoSubir(codigo, concurso, archivo, alAvanzar) { await espera(); showExigir(codigo, "editar");
+    if (!/\.pdf$/i.test(archivo.name)) throw new Error("Sube el caso en PDF (es lo que se proyecta)"); if (archivo.size > 52428800) throw new Error("El archivo debe pesar como máximo 50 MB");
+    for (let k = 1; k <= 10; k++) { await espera(40); alAvanzar?.(k / 10); }
+    ARCHIVOS_DEMO.set(`show:${concurso}`, archivo); showDb().archivos[concurso] = { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() }; guardar(); },
+  async showCasoUrl(codigo, concurso) { await espera(); showExigir(codigo, "ver"); const f = ARCHIVOS_DEMO.get(`show:${concurso}`);
+    if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
+  async showCasoQuitar(codigo, concurso) { await espera(); showExigir(codigo, "editar"); delete showDb().archivos[concurso]; ARCHIVOS_DEMO.delete(`show:${concurso}`); guardar(); return { ok: true }; },
   async presUrl(codigo, equipo, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`${equipo}:${tipo}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
   reiniciar() { mem = semilla(); guardar(); },

@@ -8,12 +8,12 @@
 //   · Título, LinkedIn y archivos (PDF que se proyecta, PPT de respaldo, video opcional).
 //   · A la derecha, sus colegas: los otros ponentes, jurados y talleristas con LinkedIn.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611152127";
-import { CHARLAS } from "./charlas.js?v=202611152127";
-import { $, $$, esc, I, IMG, aviso, avatar, fondoAnimado } from "./ui.js?v=202611152127";
-import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611152127";
-import { abrirSalaProyectos, cargarPdfjs } from "./sala-proyectos.js?v=202611152127";
-import { pintarColegas } from "./colegas.js?v=202611152127";
+import { api, ES_DEMO } from "./api.js?v=202611201334";
+import { CHARLAS } from "./charlas.js?v=202611201334";
+import { $, $$, esc, I, IMG, aviso, avatar, fondoAnimado } from "./ui.js?v=202611201334";
+import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611201334";
+import { abrirSalaProyectos, cargarPdfjs } from "./sala-proyectos.js?v=202611201334";
+import { pintarColegas } from "./colegas.js?v=202611201334";
 
 const charlaDe = (id) => CHARLAS.find((c) => c.id === id);
 const MAX_MINI = 12;

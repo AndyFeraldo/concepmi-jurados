@@ -2,9 +2,9 @@
 // Admin · Charlas principales: trivia, pantalla del auditorio,
 // inscritos (Excel de inscripción) y preguntas (Excel)
 // =========================================================
-import { api } from "./api.js?v=202611152127";
-import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202611152127";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611152127";
+import { api } from "./api.js?v=202611201334";
+import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202611201334";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611201334";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];
@@ -56,7 +56,7 @@ export function crearCharlas(ctx) {
       if (!(await confirmar("¿Borrar el resultado de esta charla?", `Se vacía la sala, se borran las respuestas y, si había podio confirmado, sus delegaciones <b>pierden los puntos</b> de la Charla ${c.num}. Las preguntas se conservan.`, { boton: "Borrar resultado", peligro: true }))) return;
       try { await api.adminCharla(ctx.codigo(), c.id, "borrar"); aviso("Resultado borrado"); ctx.recargar(true); } catch (e) { aviso(e.message, "error"); }
     }));
-    $("[data-inscritos]", v).onclick = importarInscritos;
+    $("[data-inscritos]", v).onclick = () => importarInscritos();
   }
 
   // ---------------- Pantalla del auditorio ----------------
@@ -328,7 +328,7 @@ export function crearCharlas(ctx) {
   }
 
   // ---------------- Inscritos ----------------
-  function importarInscritos() {
+  function importarInscritos(listo) {
     let libro = null, hoja = null, filas = [], cab = 0, cols = {}, mapa = {};
     const m = modal(`
       <h2>Importar inscritos</h2>
@@ -426,13 +426,13 @@ export function crearCharlas(ctx) {
       try {
         let r = null;
         for (let i = 0; i < dat.length; i += 300) r = await api.adminAsistentes(ctx.codigo(), dat.slice(i, i + 300));
-        m.cerrar(); await ctx.recargar(true);
+        m.cerrar(); await ctx.recargar(true); listo?.();
         aviso(`${dat.length} inscritos importados · ${r.total} en total${r.sin_delegacion ? ` · ${r.sin_delegacion} sin delegación` : ""}`, r.sin_delegacion ? "error" : "ok");
       } catch (ex) { err.textContent = ex.message; btn.disabled = false; }
     };
   }
 
-  return { vista, proyector };
+  return { vista, proyector, importarInscritos };
 }
 
 function leerExcel(file) {

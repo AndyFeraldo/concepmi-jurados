@@ -14,6 +14,8 @@
 //   el concurso, su equipo, jurados y coordinadores (cada apertura queda registrada en la base).
 // Talleres (taller_pres: true, taller = "t1".."t4"): subir / confirmar / quitar → tallerista del taller, admin o
 //   Talleristas «editar» (jur_taller_*); leer → además Talleristas «ver» y Proyección.
+// Show en vivo (show_caso: true, concurso = "amateur-1" | "amateur-2" | "iathon"): PDF del caso para comentarlo en el
+//   auditorio. subir / confirmar / quitar → Show «editar» (jur_show_*); leer → Show «ver» o Proyección.
 // =========================================================
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
@@ -60,6 +62,33 @@ Deno.serve(async (req: Request) => {
       }
       if (b.accion === "quitar") {
         const r = await rpc("jur_casos_quitar", { p_codigo: b.codigo, p_concurso: concurso, p_parte: parte });
+        const paths = (r?.paths as unknown as string[]) || [];
+        if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+        return json({ ok: true });
+      }
+      return json({ error: "Acción no válida" }, 400);
+    }
+    if (b.show_caso === true) {
+      const concurso = b.concurso as string;
+      if (b.accion === "subir") {
+        const r = await rpc("jur_show_autorizar_subida", { p_codigo: b.codigo, p_concurso: concurso, p_nombre: b.nombre, p_tamano: b.tamano });
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUploadUrl(r.path);
+        if (error) throw new Error(error.message);
+        return json({ path: data.path, token: data.token });
+      }
+      if (b.accion === "confirmar") {
+        const r = await rpc("jur_show_confirmar", { p_codigo: b.codigo, p_concurso: concurso, p_path: b.path, p_nombre: b.nombre, p_tamano: b.tamano });
+        if (r?.anterior && r.anterior !== b.path) await sb.storage.from(BUCKET).remove([r.anterior]);
+        return json({ ok: true });
+      }
+      if (b.accion === "leer") {
+        const r = await rpc("jur_show_autorizar_lectura", { p_codigo: b.codigo, p_concurso: concurso });
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(r.path, 60 * 60 * 3);
+        if (error) throw new Error(error.message);
+        return json({ url: data.signedUrl, nombre: r.nombre });
+      }
+      if (b.accion === "quitar") {
+        const r = await rpc("jur_show_quitar", { p_codigo: b.codigo, p_concurso: concurso });
         const paths = (r?.paths as unknown as string[]) || [];
         if (paths.length) await sb.storage.from(BUCKET).remove(paths);
         return json({ ok: true });

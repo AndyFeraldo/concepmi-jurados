@@ -5,18 +5,18 @@
 //  · Líder de logística: solo la pestaña Logística.
 // No ve calificaciones sueltas, códigos de jurados, la Copa ni nada más.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611152127";
-import { crearEntregas } from "./admin-entregas.js?v=202611152127";
-import { crearLogistica } from "./admin-logistica.js?v=202611152127";
-import { ENTREGABLES } from "./entregables.js?v=202611152127";
-import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611152127";
-import { vistaProyeccion } from "./proyeccion.js?v=202611152127";
-import { crearCasos } from "./casos.js?v=202611152127";
-import { crearGuia, vistaGuia } from "./diad.js?v=202611152127";
-import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611152127";
-import { vistaAdmin } from "./admin.js?v=202611152127";
-import { crearMiAcceso } from "./mi-acceso.js?v=202611152127";
-import { salir, sesion } from "./app.js?v=202611152127";
+import { api, ES_DEMO } from "./api.js?v=202611201334";
+import { crearEntregas } from "./admin-entregas.js?v=202611201334";
+import { crearLogistica } from "./admin-logistica.js?v=202611201334";
+import { ENTREGABLES } from "./entregables.js?v=202611201334";
+import { $, $$, esc, I, IMG, aviso } from "./ui.js?v=202611201334";
+import { vistaProyeccion } from "./proyeccion.js?v=202611201334";
+import { crearCasos } from "./casos.js?v=202611201334";
+import { crearGuia, vistaGuia } from "./diad.js?v=202611201334";
+import { usaPanel, puede, soloVer, esProyeccion, soloGuia } from "./permisos.js?v=202611201334";
+import { vistaAdmin } from "./admin.js?v=202611201334";
+import { crearMiAcceso } from "./mi-acceso.js?v=202611201334";
+import { salir, sesion } from "./app.js?v=202611201334";
 
 export async function vistaCoordinador(app, codigo, puerta = "admin") {
   let data = null;
