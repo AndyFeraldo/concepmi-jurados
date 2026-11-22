@@ -4,13 +4,13 @@
 // con la misma pantalla del Concurso de Proyectos (PDF dentro, puntero, cronómetro).
 // Permiso: el de la pestaña Charlas (ver / editar).
 // =========================================================
-import { api } from "./api.js?v=202611201334";
-import { CHARLAS } from "./charlas.js?v=202611201334";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611201334";
-import { quitarArchivos } from "./presentacion.js?v=202611201334";
-import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611201334";
-import { $, $$, esc, I, aviso, modal, confirmar, avatar } from "./ui.js?v=202611201334";
-import { enlaceLinkedin } from "./colegas.js?v=202611201334";
+import { api } from "./api.js?v=202611221916";
+import { CHARLAS } from "./charlas.js?v=202611221916";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611221916";
+import { quitarArchivos } from "./presentacion.js?v=202611221916";
+import { htmlArchivos, conectarArchivos, abrirPonencia } from "./ponente.js?v=202611221916";
+import { $, $$, esc, I, aviso, modal, confirmar, avatar } from "./ui.js?v=202611221916";
+import { enlaceLinkedin } from "./colegas.js?v=202611221916";
 
 const charlaDe = (id) => CHARLAS.find((c) => c.id === id);
 function reducirFoto(file) {

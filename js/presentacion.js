@@ -7,10 +7,10 @@
 //  · Proyector: tarjeta «Expone ahora / Sigue» con turno, archivos y cronómetro 5 + 3 min.
 // Los archivos están en un espacio privado; se abren con enlaces temporales (api.presUrl).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611201334";
-import { ENTREGABLES } from "./entregables.js?v=202611201334";
-import { porId } from "./concursos.js?v=202611201334";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611201334";
+import { api, ES_DEMO } from "./api.js?v=202611221916";
+import { ENTREGABLES } from "./entregables.js?v=202611221916";
+import { porId } from "./concursos.js?v=202611221916";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611221916";
 
 const LIMA = "America/Lima";
 export const fechaLima = (t) => new Date(t).toLocaleString("es-PE", { timeZone: LIMA, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -100,6 +100,12 @@ export async function vistaPresentacion(app, codigo, salir) {
             <li>El <b>PowerPoint</b> también es obligatorio: queda como respaldo y lo revisan los jurados.</li>
             <li>Tienen <b>5 min de pitch + 3 min de preguntas</b>. Los jurados verán su presentación también en sus laptops.</li>
           </ul></details>
+        <section class="tarjeta tal-proyectar ${P.presentacion.pdf ? "tal-proyectar--listo" : ""}">
+          <div class="tal-proyectar__ico">${I.pizarra}</div>
+          <div><h2>${P.presentacion.pdf ? "Mira cómo se verá en el auditorio" : "Sube tu PDF para ver cómo se verá"}</h2>
+            <p>${P.presentacion.pdf ? `Se abre la misma pantalla del día del concurso: portada de tu turno, tu PDF a pantalla completa${P.presentacion.video ? " con tu video después de la diapositiva que indicaste" : ""} y el cronómetro de ${def?.cortos?.exp || 5} + ${def?.cortos?.preg || 3} min. Pasa las diapositivas con las flechas o tu puntero. Es solo una vista previa: nadie más la ve.` : "Cuando subas tu presentación en PDF, aquí podrás verla tal como la verán el público y los jurados."}</p></div>
+          <button class="btn btn--naranja tal-proyectar__btn" data-previa ${P.presentacion.pdf ? "" : "disabled"}>${I.vivo}Ver cómo se verá</button>
+        </section>
         <p class="ayuda" data-guardado></p>
       </main>
       ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
@@ -110,6 +116,15 @@ export async function vistaPresentacion(app, codigo, salir) {
       guardarT = setTimeout(async () => { try { await api.equipoGuardar(codigo, datos); $("[data-guardado]", app).textContent = "✓ Guardado"; } catch (e) { $("[data-guardado]", app).textContent = e.message; } }, 900);
     }));
     $$("[data-ver]", app).forEach((b) => (b.onclick = () => abrirArchivo(codigo, P.presentacion.equipo_id, b.dataset.ver)));
+    // Vista previa: la misma pantalla del auditorio, solo con este equipo
+    $("[data-previa]", app)?.addEventListener("click", async () => {
+      const { abrirSalaProyectos } = await import("./sala-proyectos.js?v=202611221916");
+      const pos = P.config.orden.indexOf(data.entrega.delegacion_id);
+      abrirSalaProyectos({ concurso: `Vista previa · ${c?.nombre || "Concurso"}`, minutos: def?.cortos || { exp: 5, preg: 3 }, inicial: 0,
+        equipos: [{ equipo_id: P.presentacion.equipo_id, delegacion: data.delegacion, proyecto: datos.proyecto, lider: datos.lider, videoDespues: datos.videoDespues || "", pres: P.presentacion }],
+        url: (eq, tipo) => api.presUrl(codigo, eq, tipo), abrir: (eq, tipo) => abrirArchivo(codigo, eq, tipo),
+        textos: { portada: () => (pos >= 0 ? `Turno <b>${String(pos + 1).padStart(2, "0")}</b> de ${String(P.config.orden.length).padStart(2, "0")}` : "Vista previa de tu turno"), orden: "Vista previa de tu presentación" } });
+    });
     $$("[data-archivo]", app).forEach((inp) => (inp.onchange = async () => {
       const f = inp.files?.[0]; if (!f) return;
       const tipo = inp.dataset.archivo, caja = $(`[data-slot="${tipo}"]`, app), barra = $("[data-barra]", caja);

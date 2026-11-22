@@ -7,10 +7,10 @@
 //  · El admin ve el estado y puede abrirlos para verificar, pero queda registrado («antes del concurso»).
 // La base de datos decide todo (jur_casos_*); esto es solo la pantalla.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611201334";
-import { porId } from "./concursos.js?v=202611201334";
-import { $, $$, esc, I, aviso, confirmar } from "./ui.js?v=202611201334";
-import { sesion } from "./app.js?v=202611201334";
+import { api, ES_DEMO } from "./api.js?v=202611221916";
+import { porId } from "./concursos.js?v=202611221916";
+import { $, $$, esc, I, aviso, confirmar } from "./ui.js?v=202611221916";
+import { sesion } from "./app.js?v=202611221916";
 
 export const CONCURSOS_CASO = ["iathon", "amateur-1", "amateur-2"];
 export const PARTES = {
