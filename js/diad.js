@@ -7,14 +7,14 @@
 //  · Guía personal: cada persona entra con su código (botón «Voluntarios» de la portada o
 //    su panel) y ve qué le toca, a qué hora llegar, dónde, con quién y qué hacer.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611231925";
-import { CONCURSOS, porId } from "./concursos.js?v=202611231925";
-import { TALLERES } from "./talleres.js?v=202611231925";
-import { CHARLAS } from "./charlas.js?v=202611231925";
-import { ENTREGABLES } from "./entregables.js?v=202611231925";
-import { importarExcel } from "./certificados.js?v=202611231925";
-import { AREAS, nivel } from "./permisos.js?v=202611231925";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611231925";
+import { api, ES_DEMO } from "./api.js?v=202611231943";
+import { CONCURSOS, porId } from "./concursos.js?v=202611231943";
+import { TALLERES } from "./talleres.js?v=202611231943";
+import { CHARLAS } from "./charlas.js?v=202611231943";
+import { ENTREGABLES } from "./entregables.js?v=202611231943";
+import { importarExcel } from "./certificados.js?v=202611231943";
+import { AREAS, nivel } from "./permisos.js?v=202611231943";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar } from "./ui.js?v=202611231943";
 
 export const DIAS = {
   d1: { txt: "Día 1 · Martes 24 de noviembre", num: "Día 1", largo: "Martes 24 de noviembre", corto: "Mar 24/11", fecha: "2026-11-24" },

@@ -2280,3 +2280,13 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cd-cierre__vista .cd-fila__barra{ height:calc(var(--fs) * .7); }
 .cd-tabla--densa .cd-fila__del small{ display:none; }
 .cd-cierre__nota{ margin:1.4vh 0 0; }
+/* Telón entre pantallas del cronograma (el público no ve el panel) */
+.pyc-telon{ position:fixed; inset:0; z-index:97; display:grid; place-items:center; align-content:center; gap:3vh; background:radial-gradient(circle at 50% 40%, #3A1AA8, #170D56 60%, #0B0630); transition:opacity .45s; cursor:none; }
+.pyc-telon img{ height:9vh; animation:latido 1.6s ease-in-out infinite; }
+.pyc-telon .giro{ width:4vh; height:4vh; border-width:3px; opacity:.5; }
+.pyc-telon--fuera{ opacity:0; pointer-events:none; }
+/* Pantalla de espera (cuando un momento no se pudo abrir o está en otra pestaña) */
+.pyc-espera{ grid-row:1 / -1; display:grid; place-items:center; align-content:center; gap:2.4vh; text-align:center; position:relative; z-index:1; }
+.pyc-espera img{ height:14vh; animation:latido 2.4s ease-in-out infinite; }
+.pyc-espera small{ font-size:2vh; letter-spacing:.14em; text-transform:uppercase; color:#8FE6F6; font-weight:700; }
+.pyc-espera b{ font-family:var(--neon); font-weight:400; font-size:5vh; }

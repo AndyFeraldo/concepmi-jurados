@@ -103,4 +103,5 @@ export const pantallaActiva = {
   cerrada(fn) { if (cerrarActiva === fn) { cerrarActiva = null; window.dispatchEvent(new Event("pantalla-cerrada")); } },
   cerrar() { const f = cerrarActiva; cerrarActiva = null; try { f?.(); } catch { /* ya cerrada */ } },
   hay: () => !!cerrarActiva,
+  transicion: false, // true mientras «Siguiente» cambia de pantalla: no se sale de pantalla completa
 };

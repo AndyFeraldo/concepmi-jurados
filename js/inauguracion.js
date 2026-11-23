@@ -5,9 +5,9 @@
 // «¡Queda inaugurado!» con fanfarria y confeti).
 // El programa se guarda en este navegador (localStorage): ármalo en la laptop del proyector.
 // =========================================================
-import { api } from "./api.js?v=202611231925";
-import { CHARLAS } from "./charlas.js?v=202611231925";
-import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231925";
+import { api } from "./api.js?v=202611231943";
+import { CHARLAS } from "./charlas.js?v=202611231943";
+import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231943";
 
 const CLAVE = "concepmi-inauguracion-v1";
 const TIPOS = {
@@ -211,7 +211,8 @@ export function abrirCeremonia(P, ctx = {}) {
     $("[data-congelar]", el).classList.toggle("activo", si);
   }
   function cerrar() { pantallaActiva.cerrada(cerrar); clearInterval(t); clearTimeout(ocultarT); document.removeEventListener("keydown", teclas, true); el.remove(); document.body.style.overflow = ""; }
-  function irCharla() { if (!ctx.abrirCharla) return; cerrar(); ctx.abrirCharla(0); }
+  // Abre la charla ENCIMA y recién después cierra la ceremonia (así no se ve nada en medio)
+  function irCharla() { if (!ctx.abrirCharla) return; Promise.resolve(ctx.abrirCharla(0)).finally(() => { if (document.body.contains(el)) cerrar(); }); }
   function teclas(e) {
     if (document.querySelector(".modal")) return;
     const k = e.key;

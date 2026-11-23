@@ -5,12 +5,12 @@
 //    de 2 min (exposición o preguntas) que SOLO empieza cuando se pulsa Iniciar.
 // Los botones aparecen al mover el mouse (solo los ve quien maneja la laptop).
 // =========================================================
-import { ENTREGABLES } from "./entregables.js?v=202611231925";
-import { formaDe } from "./formas.js?v=202611231925";
-import { htmlExpoPres, conectarExpoPres, ordenarPorSorteo, horaTurno } from "./presentacion.js?v=202611231925";
-import { porId } from "./concursos.js?v=202611231925";
-import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611231925";
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso, pantallaActiva } from "./ui.js?v=202611231925";
+import { ENTREGABLES } from "./entregables.js?v=202611231943";
+import { formaDe } from "./formas.js?v=202611231943";
+import { htmlExpoPres, conectarExpoPres, ordenarPorSorteo, horaTurno } from "./presentacion.js?v=202611231943";
+import { porId } from "./concursos.js?v=202611231943";
+import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611231943";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso, pantallaActiva } from "./ui.js?v=202611231943";
 
 const hora = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -269,7 +269,7 @@ export function abrirEscenario({ concurso, cargar, accion, nombre, alCerrar, pre
   const cerrar = () => {
     pantallaActiva.cerrada(cerrar); vivo = false; clearInterval(t1); clearInterval(t2); clearTimeout(ocultar);
     document.removeEventListener("keydown", tecla);
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    if (document.fullscreenElement && !pantallaActiva.transicion) document.exitFullscreen?.().catch(() => {});
     el.remove(); alCerrar?.();
   };
   $("[data-cerrar]", el).onclick = cerrar; pantallaActiva.abrir(cerrar);

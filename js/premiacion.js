@@ -6,7 +6,7 @@
 //  4. Campeona: fanfarria, lluvia de confeti y Wolfitos bailando · podio final
 // Avanza con Espacio / → / clic en «Siguiente», o en modo Automático.
 // =========================================================
-import { $, esc, I, IMG, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231925";
+import { $, esc, I, IMG, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231943";
 
 const METAL = {
   3: { clase: "bronce", txt: "3.er LUGAR", medalla: "Medalla de bronce", colores: ["#CD7F32", "#E8A96B", "#8C4A1E", "#FFD2A6"] },
@@ -197,7 +197,7 @@ export function abrirPremiacion(filasCopa) {
   const cerrar = () => {
     pantallaActiva.cerrada(cerrar); pasos[i].limpiar?.(); clearTimeout(temporizador); clearInterval(lluvia); clearTimeout(ocultar);
     document.removeEventListener("keydown", tecla);
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    if (document.fullscreenElement && !pantallaActiva.transicion) document.exitFullscreen?.().catch(() => {});
     el.remove();
   };
   $("[data-cerrar]", el).onclick = cerrar; pantallaActiva.abrir(cerrar);

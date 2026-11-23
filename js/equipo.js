@@ -3,14 +3,14 @@
 // Se guarda solo (y una copia en este navegador por si falla internet);
 // al final lo envía. Después de la hora límite ya no se puede editar.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611231925";
-import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611231925";
-import { FORMAS } from "./formas.js?v=202611231925";
-import { vistaPresentacion } from "./presentacion.js?v=202611231925";
-import { porId } from "./concursos.js?v=202611231925";
-import { htmlCasoEquipo, enlazarCaso } from "./casos.js?v=202611231925";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611231925";
-import { salir } from "./app.js?v=202611231925";
+import { api, ES_DEMO } from "./api.js?v=202611231943";
+import { ENTREGABLES, TIPOS, ESTRATEGIAS, NIVELES, filaVacia, conIds, nivel, faltantes, filaUsada } from "./entregables.js?v=202611231943";
+import { FORMAS } from "./formas.js?v=202611231943";
+import { vistaPresentacion } from "./presentacion.js?v=202611231943";
+import { porId } from "./concursos.js?v=202611231943";
+import { htmlCasoEquipo, enlazarCaso } from "./casos.js?v=202611231943";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611231943";
+import { salir } from "./app.js?v=202611231943";
 
 const GRACIA_MS = 60000; // 1 minuto de gracia, igual que el servidor
 

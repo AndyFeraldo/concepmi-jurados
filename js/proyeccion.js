@@ -8,23 +8,23 @@
 // confirmar podio), el tiempo de los concursos, el show (sortear, abrir el muro) y el programa
 // de la inauguración.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611231925";
-import { CHARLAS } from "./charlas.js?v=202611231925";
-import { ENTREGABLES } from "./entregables.js?v=202611231925";
-import { porId } from "./concursos.js?v=202611231925";
-import { copaGeneral } from "./calculo.js?v=202611231925";
-import { crearCharlas } from "./admin-charlas.js?v=202611231925";
-import { proyectarCharlas } from "./admin-ponentes.js?v=202611231925";
-import { TALLERES } from "./talleres.js?v=202611231925";
-import { proyectarTalleres } from "./talleres-pres.js?v=202611231925";
-import { abrirMuro, abrirRuleta, proyectarCasos, abrirTransmision, abrirSorteo } from "./show.js?v=202611231925";
-import { abrirBarras, abrirGanadoresProyectos, abrirCierreDia1 } from "./cierre-dia1.js?v=202611231925";
-import { abrirCeremonia, cargarPrograma, crearInauguracion, leerPrograma } from "./inauguracion.js?v=202611231925";
-import { abrirEscenario } from "./escenario.js?v=202611231925";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231925";
-import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611231925";
-import { $, $$, esc, I, IMG, aviso, modal, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231925";
-import { salir } from "./app.js?v=202611231925";
+import { api, ES_DEMO } from "./api.js?v=202611231943";
+import { CHARLAS } from "./charlas.js?v=202611231943";
+import { ENTREGABLES } from "./entregables.js?v=202611231943";
+import { porId } from "./concursos.js?v=202611231943";
+import { copaGeneral } from "./calculo.js?v=202611231943";
+import { crearCharlas } from "./admin-charlas.js?v=202611231943";
+import { proyectarCharlas } from "./admin-ponentes.js?v=202611231943";
+import { TALLERES } from "./talleres.js?v=202611231943";
+import { proyectarTalleres } from "./talleres-pres.js?v=202611231943";
+import { abrirMuro, abrirRuleta, proyectarCasos, abrirTransmision, abrirSorteo, pantalla } from "./show.js?v=202611231943";
+import { abrirBarras, abrirGanadoresProyectos, abrirCierreDia1 } from "./cierre-dia1.js?v=202611231943";
+import { abrirCeremonia, cargarPrograma, crearInauguracion, leerPrograma } from "./inauguracion.js?v=202611231943";
+import { abrirEscenario } from "./escenario.js?v=202611231943";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231943";
+import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611231943";
+import { $, $$, esc, I, IMG, aviso, modal, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231943";
+import { salir } from "./app.js?v=202611231943";
 
 const URL_CONOCIMIENTOS = "https://andyferaldo.github.io/concepmi-vi/concurso-conocimientos/";
 const DIAS = { d1: { corto: "Día 1", largo: "Martes 24 de noviembre", fecha: "2026-11-24" }, d2: { corto: "Día 2", largo: "Jueves 26 de noviembre", fecha: "2026-11-26" } };
@@ -48,7 +48,7 @@ export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {
   const abrirInauguracion = async () => { const P = await cargarPrograma(codigo); abrirCeremonia(P, { abrirCharla: () => irPaso(pasoId("c1")) }); };
   const ponencia = async (k) => proyectarCharlas(codigo, await ponentes(), k);
   const trivia = async (id) => { await recargar(); charlasUI.proyector(id); };
-  const premiacion = async () => { await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611231925"); abrirPremiacion(copaGeneral(data)); };
+  const premiacion = async () => { await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611231943"); abrirPremiacion(copaGeneral(data)); };
   const ganadoresProyectos = async () => { await recargar(); let nombres = {};
     try { const E = await api.adminEntregas(codigo, "proyectos"); E.equipos.forEach((x) => { if (x.entrega.datos?.proyecto) nombres[x.entrega.delegacion_id] = x.entrega.datos.proyecto; }); } catch { /* sin nombres de proyecto */ }
     abrirGanadoresProyectos(data, nombres); };
@@ -129,12 +129,26 @@ export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {
   document.addEventListener("mousemove", mostrarBarra);
   const limpiar = () => { window.removeEventListener("pantalla-abierta", alAbrir); window.removeEventListener("pantalla-cerrada", alCerrar); document.removeEventListener("mousemove", mostrarBarra); barra.remove(); };
 
+  const pantallaEspera = (titulo = "") => pantalla("pyc-espera", `<div class="pyc-espera"><img src="${IMG.logo}" alt="CONCEPMI"><small>VI CONCEPMI 2026 · Congreso de Estudiantes de Gestión de Proyectos</small>${titulo ? `<b>${esc(titulo)}</b>` : ""}</div>`);
+  // Cambio de pantalla sin que el público vea el panel: un «telón» con el logo tapa todo mientras
+  // se cierra la pantalla actual y carga la siguiente, y no se sale de pantalla completa.
   async function irPaso(i) {
     const p = PASOS[i]; if (!p) return;
+    const telon = document.createElement("div");
+    telon.className = "pyc-telon";
+    telon.innerHTML = `<img src="${IMG.logo}" alt=""><span class="giro"></span>`;
+    document.body.append(telon);
+    pantallaActiva.transicion = true;
     pantallaActiva.cerrar(); barra.hidden = true;
     actual = i; diaSel = p.dia;
     try { await p.abrir(); } catch (e) { aviso(e.message, "error"); }
-    if (p.externo || !pantallaActiva.hay()) pintar(); // otra pestaña o no se abrió: se queda en el cronograma
+    pantallaActiva.transicion = false;
+    // Si la pantalla no se pudo abrir (p. ej. falta subir un archivo) o es otra pestaña (Conocimientos), el público
+    // ve una pantalla de espera con el logo, nunca el panel; la barra sigue arriba para pasar con «Siguiente».
+    if (!pantallaActiva.hay()) pantallaEspera(p.externo ? "Concurso Nacional de Conocimientos" : "");
+    const abierta = pantallaActiva.hay();
+    // Quita el telón cuando la nueva pantalla ya está dibujada (con un fundido corto)
+    setTimeout(() => { telon.classList.add("pyc-telon--fuera"); setTimeout(() => telon.remove(), 450); }, abierta ? 350 : 0);
   }
 
   // ---------------- Editar el programa de la inauguración ----------------

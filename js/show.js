@@ -9,9 +9,9 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611231925";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231925";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231925";
+import { api } from "./api.js?v=202611231943";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231943";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231943";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -93,7 +93,7 @@ export function pantalla(clase, html, { alCerrar, teclas } = {}) {
   const mover = () => { el.classList.add("sh-pant--ctrl"); clearTimeout(ocultar); ocultar = setTimeout(() => el.classList.remove("sh-pant--ctrl"), 2600); };
   const tecla = (e) => { if (e.target.closest?.("input, textarea, select")) return; if (e.key === "Escape") return cerrar(); teclas?.(e); };
   function cerrar() { pantallaActiva.cerrada(cerrar); document.removeEventListener("keydown", tecla); el.removeEventListener("mousemove", mover); clearTimeout(ocultar);
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); el.remove(); document.body.classList.remove("sala-abierta"); alCerrar?.(); }
+    if (document.fullscreenElement && !pantallaActiva.transicion) document.exitFullscreen().catch(() => {}); el.remove(); document.body.classList.remove("sala-abierta"); alCerrar?.(); }
   el.addEventListener("mousemove", mover); document.addEventListener("keydown", tecla); mover(); pantallaActiva.abrir(cerrar);
   $("[data-full]", el).onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())?.catch?.(() => {});
   $("[data-cerrar-p]", el).onclick = cerrar;

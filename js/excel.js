@@ -1,9 +1,9 @@
 // Exporta todo a un Excel con una hoja por concurso
-import { CONCURSOS } from "./concursos.js?v=202611231925";
-import { resultados, copaGeneral, textoGymkana } from "./calculo.js?v=202611231925";
-import { mmss } from "./ui.js?v=202611231925";
-import { TALLERES, PUNTOS_TALLER, tallerPorId } from "./talleres.js?v=202611231925";
-import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js?v=202611231925";
+import { CONCURSOS } from "./concursos.js?v=202611231943";
+import { resultados, copaGeneral, textoGymkana } from "./calculo.js?v=202611231943";
+import { mmss } from "./ui.js?v=202611231943";
+import { TALLERES, PUNTOS_TALLER, tallerPorId } from "./talleres.js?v=202611231943";
+import { CHARLAS, PUNTOS_CHARLA } from "./charlas.js?v=202611231943";
 
 const sancion = (aj) => (aj?.descalificado ? "Descalificado" : aj?.walkover ? "Walkover" : aj?.retraso ? "Entrega tardía (−10 % escrita)" : "");
 const r1 = (x) => (x == null ? "" : Math.round(x * 100) / 100);
