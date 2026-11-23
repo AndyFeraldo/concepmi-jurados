@@ -3,8 +3,8 @@
 // Escribe su DNI (de la lista de inscritos), ve su nombre y delegación, responde la pregunta y
 // su comentario sale en la pantalla del auditorio. Máx. 140 caracteres, uno cada 20 s.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611221916";
-import { $, esc, IMG, lanzarConfeti } from "./ui.js?v=202611221916";
+import { api, ES_DEMO } from "./api.js?v=202611231401";
+import { $, esc, IMG, lanzarConfeti } from "./ui.js?v=202611231401";
 
 const CLAVE = "concepmi-show-muro";
 const leer = () => { try { return JSON.parse(localStorage.getItem(CLAVE)); } catch { return null; } };

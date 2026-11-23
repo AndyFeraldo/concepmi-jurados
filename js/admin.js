@@ -1,29 +1,29 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611221916";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611221916";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611221916";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611221916";
-import { exportarExcel } from "./excel.js?v=202611221916";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611221916";
-import { crearLogistica } from "./admin-logistica.js?v=202611221916";
-import { crearEntregas } from "./admin-entregas.js?v=202611221916";
-import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611221916";
-import { crearInauguracion } from "./inauguracion.js?v=202611221916";
-import { crearMiAcceso } from "./mi-acceso.js?v=202611221916";
-import { crearCasos } from "./casos.js?v=202611221916";
-import { crearShow } from "./show.js?v=202611221916";
-import { crearDiaD, crearGuia } from "./diad.js?v=202611221916";
-import { crearCertificados } from "./certificados.js?v=202611221916";
-import { crearCharlas } from "./admin-charlas.js?v=202611221916";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611221916";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611221916";
-import { puede, soloVer } from "./permisos.js?v=202611221916";
-import { ENTREGABLES } from "./entregables.js?v=202611221916";
-import { enlaceLinkedin } from "./colegas.js?v=202611221916";
-import { proyectarTalleres, archivosTaller, chipsTaller } from "./talleres-pres.js?v=202611221916";
-import { salir } from "./app.js?v=202611221916";
+import { api, ES_DEMO } from "./api.js?v=202611231401";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611231401";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611231401";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611231401";
+import { exportarExcel } from "./excel.js?v=202611231401";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611231401";
+import { crearLogistica } from "./admin-logistica.js?v=202611231401";
+import { crearEntregas } from "./admin-entregas.js?v=202611231401";
+import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611231401";
+import { crearInauguracion } from "./inauguracion.js?v=202611231401";
+import { crearMiAcceso } from "./mi-acceso.js?v=202611231401";
+import { crearCasos } from "./casos.js?v=202611231401";
+import { crearShow } from "./show.js?v=202611231401";
+import { crearDiaD, crearGuia } from "./diad.js?v=202611231401";
+import { crearCertificados } from "./certificados.js?v=202611231401";
+import { crearCharlas } from "./admin-charlas.js?v=202611231401";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611231401";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611231401";
+import { puede, soloVer } from "./permisos.js?v=202611231401";
+import { ENTREGABLES } from "./entregables.js?v=202611231401";
+import { enlaceLinkedin } from "./colegas.js?v=202611231401";
+import { proyectarTalleres, archivosTaller, chipsTaller } from "./talleres-pres.js?v=202611231401";
+import { salir } from "./app.js?v=202611231401";
 
 const PESTANAS = [
   { id: "inicio", txt: "Mi acceso", icono: "escudo", soloAcceso: true },
@@ -719,9 +719,9 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       </div></div>
       ${data.delegaciones.length ? `<p class="ayuda" style="margin-top:12px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
-    $("[data-borrar-copa]", v)?.addEventListener("click", async () => { const { abrirBorrarResultados } = await import("./copa-borrar.js?v=202611221916"); abrirBorrarResultados({ codigo, data, recargar }); });
+    $("[data-borrar-copa]", v)?.addEventListener("click", async () => { const { abrirBorrarResultados } = await import("./copa-borrar.js?v=202611231401"); abrirBorrarResultados({ codigo, data, recargar }); });
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611221916"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611231401"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
@@ -1085,9 +1085,19 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
     }));
     $$("[data-bo]", v).forEach((b) => (b.onclick = async () => {
       const d = del(b.dataset.bo);
-      const n = data.calificaciones.filter((x) => x.delegacion_id === d.id).length;
-      if (!(await confirmar("¿Eliminar delegación?", `Se borrará <b>${esc(d.nombre)}</b>${n ? ` y sus <b>${n} calificaciones</b>` : ""}. Esto no se puede deshacer.`, { boton: "Eliminar", peligro: true }))) return;
-      try { await api.adminDelegacion(codigo, d.id, "", "", true); aviso("Delegación eliminada"); recargar(true); } catch (ex) { aviso(ex.message, "error"); }
+      const n = data.calificaciones.filter((x) => x.delegacion_id === d.id).length, na = (data.ajustes || []).filter((x) => x.delegacion_id === d.id).length;
+      const extra = [n && `<b>${n} calificaciones</b>`, na && `<b>${na} resultados o sanciones registrados</b>`].filter(Boolean).join(" y ");
+      if (!(await confirmar("¿Eliminar delegación?", `Se borrará <b>${esc(d.nombre)}</b>${extra ? ` junto con sus ${extra}` : ""}. Sus inscritos se quedan, pero sin delegación. Esto no se puede deshacer.`, { boton: "Eliminar", peligro: true }))) return;
+      try { await api.adminDelegacion(codigo, d.id, "", "", true); aviso("Delegación eliminada"); recargar(true); }
+      catch (ex) {
+        // La base no deja borrar una delegación que aún tiene equipos (Entregas): mensaje claro en vez del error técnico
+        if (/jur_equipos|foreign key|llave foránea/i.test(ex.message)) {
+          const m2 = modal(`<h2>Primero quita sus equipos</h2><p><b>${esc(d.nombre)}</b> todavía tiene <b>equipos creados en Entregas</b> (Amateur I, Amateur II, IATHON o Proyectos), con sus códigos y archivos. Por seguridad la base de datos no la deja borrar mientras existan.</p>
+            <p>Ve a <b>Entregas</b>, entra a cada concurso y elimina el equipo de esta delegación (botón del lápiz → Eliminar). Luego vuelve aquí y elimínala.</p>
+            <div class="modal__acciones"><button class="btn btn--naranja" data-cerrar-m>Entendido</button></div>`);
+          $("[data-cerrar-m]", m2.el).onclick = m2.cerrar;
+        } else aviso(ex.message, "error");
+      }
     }));
   }
 

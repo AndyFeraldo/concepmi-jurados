@@ -3,18 +3,18 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611221916";
-import { ENTREGABLES } from "./entregables.js?v=202611221916";
-import { porId } from "./concursos.js?v=202611221916";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611221916";
-import { abrirEscenario } from "./escenario.js?v=202611221916";
-import { quitarArchivos } from "./presentacion.js?v=202611221916";
-import { htmlMiAcceso } from "./mi-acceso.js?v=202611221916";
-import { alertaCasos } from "./casos.js?v=202611221916";
-import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611221916";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611221916";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611221916";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611221916";
+import { api } from "./api.js?v=202611231401";
+import { ENTREGABLES } from "./entregables.js?v=202611231401";
+import { porId } from "./concursos.js?v=202611231401";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611231401";
+import { abrirEscenario } from "./escenario.js?v=202611231401";
+import { quitarArchivos } from "./presentacion.js?v=202611231401";
+import { htmlMiAcceso } from "./mi-acceso.js?v=202611231401";
+import { alertaCasos } from "./casos.js?v=202611231401";
+import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611231401";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231401";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611231401";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611231401";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 
@@ -192,7 +192,7 @@ export function crearEntregas(ctx) {
       <div class="tabla-envoltura" data-entregas><table class="tabla"><thead><tr><th class="num">Turno</th><th>Delegación</th><th>Código</th><th>Archivos</th><th>Estado</th><th></th></tr></thead><tbody>
         ${eqs.map((x) => { const e = x.entrega, pr = presDe(x.id), [t, cl] = estadoPres(pr), tu = turno(e.delegacion_id);
           return `<tr><td class="num">${tu >= 0 ? `<b class="pres-turno">${tu + 1}</b><br><small class="tenue">${horaTurno(tu)}</small>` : '<span class="tenue">—</span>'}</td>
-            <td><b>${esc(nomDel(e.delegacion_id))}</b>${e.datos?.proyecto ? `<br><small>${I.copa} ${esc(e.datos.proyecto)}</small>` : ""}${e.datos?.lider ? `<br><small class="tenue">Líder: ${esc(e.datos.lider)}</small>` : ""}</td>
+            <td><b>${esc(nomDel(e.delegacion_id))}</b>${e.datos?.proyecto ? `<br><small class="en-proy">${I.copa} ${esc(e.datos.proyecto)}</small>` : ""}${e.datos?.lider ? `<br><small class="tenue">Líder: ${esc(e.datos.lider)}</small>` : ""}</td>
             <td><code class="en-codigo">${esc(x.codigo)}</code> <button class="btn btn--mini btn--icono" data-copiar="${esc(x.codigo)}" title="Copiar código" aria-label="Copiar código">${I.copiar}</button></td>
             <td>${celdaArchivos(pr, cfg.puede)}</td>
             <td><span class="chip ${cl}">${t}</span></td>

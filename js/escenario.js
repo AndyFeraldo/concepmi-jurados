@@ -5,12 +5,12 @@
 //    de 2 min (exposición o preguntas) que SOLO empieza cuando se pulsa Iniciar.
 // Los botones aparecen al mover el mouse (solo los ve quien maneja la laptop).
 // =========================================================
-import { ENTREGABLES } from "./entregables.js?v=202611221916";
-import { formaDe } from "./formas.js?v=202611221916";
-import { htmlExpoPres, conectarExpoPres, ordenarPorSorteo, horaTurno } from "./presentacion.js?v=202611221916";
-import { porId } from "./concursos.js?v=202611221916";
-import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611221916";
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611221916";
+import { ENTREGABLES } from "./entregables.js?v=202611231401";
+import { formaDe } from "./formas.js?v=202611231401";
+import { htmlExpoPres, conectarExpoPres, ordenarPorSorteo, horaTurno } from "./presentacion.js?v=202611231401";
+import { porId } from "./concursos.js?v=202611231401";
+import { contenidoEntrega, chipsEntrega, esActa, conectarEntrega } from "./entrega-visor.js?v=202611231401";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611231401";
 
 const hora = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;

@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611221916";
-import { CONCURSOS, porId } from "./concursos.js?v=202611221916";
-import { TALLERES } from "./talleres.js?v=202611221916";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611221916";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611231401";
+import { CONCURSOS, porId } from "./concursos.js?v=202611231401";
+import { TALLERES } from "./talleres.js?v=202611231401";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611231401";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -245,7 +245,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611221916");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611231401");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -415,6 +415,7 @@ const demo = {
         ganador_delegacion: x.ganador_delegacion || null, preguntas: d.preguntas[c.id].length, jugadores: d.jugadores.filter((j) => j.charla_id === c.id).length }; }),
       asistentes: { total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length } }; },
   async adminDelegacion(codigo, id, nombre, siglas, borrar = false) { await espera(); exigirPermiso(codigo, "delegaciones", "editar"); const d = db();
+    if (borrar && (d.equipos || []).some((e) => e.delegacion_id === id)) throw new Error("update or delete on table \"jur_delegaciones\" violates foreign key constraint \"jur_equipos_delegacion_id_fkey\" on table \"jur_equipos\"");
     if (borrar) { d.delegaciones = d.delegaciones.filter((x) => x.id !== id); d.calificaciones = d.calificaciones.filter((x) => x.delegacion_id !== id); }
     else if (!String(nombre).trim()) throw new Error("Escribe el nombre de la delegación");
     else if (id) Object.assign(d.delegaciones.find((x) => x.id === id), { nombre: nombre.trim(), siglas: siglas.trim().toUpperCase() });
