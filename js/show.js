@@ -9,9 +9,9 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611231724";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231724";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231724";
+import { api } from "./api.js?v=202611231743";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231743";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231743";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -75,15 +75,15 @@ export function analizarLink(u) {
 }
 // Sonidos sintetizados (sin archivos)
 let ctxAudio = null;
-function tono(f = 880, dur = 0.05, tipo = "square", vol = 0.05) {
+export function tono(f = 880, dur = 0.05, tipo = "square", vol = 0.05) {
   try { ctxAudio ||= new (window.AudioContext || window.webkitAudioContext)(); const o = ctxAudio.createOscillator(), g = ctxAudio.createGain();
     o.type = tipo; o.frequency.value = f; g.gain.value = vol; o.connect(g); g.connect(ctxAudio.destination); const t = ctxAudio.currentTime;
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.start(t); o.stop(t + dur); } catch { /* sin audio */ }
 }
-const fanfarria = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tono(f, 0.35, "triangle", 0.09), i * 140));
+export const fanfarria = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tono(f, 0.35, "triangle", 0.09), i * 140));
 
 // Pantalla completa genérica: devuelve { el, cerrar }
-function pantalla(clase, html, { alCerrar, teclas } = {}) {
+export function pantalla(clase, html, { alCerrar, teclas } = {}) {
   const el = document.createElement("div");
   el.className = `sh-pant ${clase}`;
   el.innerHTML = `${fondoAnimado(26)}${html}

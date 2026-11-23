@@ -2204,3 +2204,65 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .pyc-cond__fin{ color:#8FF2C0; font-size:.82rem; font-weight:700; }
 .pyc-cond .btn{ cursor:pointer; }
 .pyc-modal-inau .modal{ max-width:min(96vw, 1100px); }
+
+/* ===== Cierre del Día 1: Barras, ganadores de Proyectos y «Así va la Copa» ===== */
+.cd-cab{ display:flex; align-items:center; gap:18px; padding:2.4vh 3vw; position:relative; z-index:2; }
+.cd-cab img{ height:5.5vh; } .cd-cab div{ display:grid; } .cd-cab small{ font-size:1.5vh; letter-spacing:.14em; text-transform:uppercase; color:#8FE6F6; font-weight:700; }
+.cd-cab b{ font-family:var(--neon); font-weight:400; font-size:3.6vh; line-height:1.1; }
+/* Barras */
+.cd-barras{ background:radial-gradient(circle at 50% 120%, #FF6A1F 0%, #6E2BE6 38%, #170D56 70%, #0B0630 100%); }
+.cd-barras__fondo{ position:absolute; inset:0; z-index:0; display:flex; align-items:flex-end; justify-content:space-around; padding:0 2vw; opacity:.35; pointer-events:none; }
+@keyframes cdEq{ 0%, 100%{ height:12%; } 50%{ height:var(--h, 70%); } }
+.cd-barras__fondo i{ width:4vw; border-radius:1vw 1vw 0 0; background:linear-gradient(180deg, #FFC23D, #FF6A1F 60%, #FD443F); animation:cdEq 1.1s ease-in-out infinite; animation-delay:calc(var(--k) * -.13s); }
+.cd-barras__centro{ position:relative; z-index:2; display:grid; place-items:center; align-content:center; gap:2vh; text-align:center; padding:0 4vw; }
+.cd-barras__kicker{ font-size:3.4vh; letter-spacing:.4em; text-transform:uppercase; color:#FFD48A; font-weight:700; }
+@keyframes cdLatido{ 0%, 100%{ transform:scale(1); text-shadow:0 0 30px rgba(255,138,61,.6); } 50%{ transform:scale(1.05); text-shadow:0 0 70px rgba(255,194,61,.9); } }
+.cd-barras__titulo{ margin:0; font-family:var(--neon); font-weight:400; font-size:24vh; line-height:.9; letter-spacing:.04em;
+  background:linear-gradient(90deg, #FFC23D, #FF6A1F 40%, #FF6AD5 75%, #A98BFF); -webkit-background-clip:text; background-clip:text; color:transparent; animation:cdLatido 1.1s ease-in-out infinite; }
+.cd-barras__ahora{ margin:0; font-size:3.2vh; color:#fff; min-height:4.2vh; } .cd-barras__ahora b{ color:#FFC23D; }
+.cd-barras__dels{ display:flex; flex-wrap:wrap; gap:1.4vh; justify-content:center; max-width:90vw; margin-top:1vh; }
+@keyframes cdDel{ from{ opacity:0; transform:translateY(20px) scale(.9); } to{ opacity:1; transform:none; } }
+.cd-del{ display:grid; gap:.2vh; padding:1.2vh 2.2vh; border-radius:2vh; background:rgba(14,8,56,.65); border:2px solid rgba(255,255,255,.18); cursor:pointer; animation:cdDel .6s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * .07s); transition:transform .25s, border-color .25s, background .25s; }
+.cd-del b{ font-family:var(--neon); font-weight:400; font-size:3.4vh; } .cd-del small{ font-size:1.4vh; color:var(--niebla); max-width:22vw; }
+.cd-del--ahora{ transform:scale(1.18); border-color:#FFC23D; background:linear-gradient(135deg, rgba(255,106,31,.7), rgba(110,43,230,.7)); box-shadow:0 0 40px rgba(255,194,61,.6); }
+/* Ganadores de Proyectos */
+.cd-proy, .cd-cierre{ background:radial-gradient(circle at 20% 10%, #3A1AA8, #170D56 55%, #0B0630); }
+.cd-proy__vista, .cd-cierre__vista{ position:relative; z-index:2; display:grid; place-items:center; padding:0 4vw; min-height:0; }
+.cd-portada{ text-align:center; display:grid; gap:2vh; } .cd-portada small{ font-size:3vh; color:#8FE6F6; letter-spacing:.2em; text-transform:uppercase; }
+.cd-portada h1{ margin:0; font-family:var(--neon); font-weight:400; font-size:11vh; line-height:1; background:linear-gradient(90deg, #fff, #CBB8FF 50%, #8FE6F6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.cd-portada p{ margin:0; font-size:5vh; color:#FFC23D; animation:latido 1.2s infinite; }
+.cd-revela{ display:grid; justify-items:center; gap:3vh; } .cd-revela > small{ font-size:4vh; font-weight:700; color:#FFD48A; }
+.cd-suspenso{ font-size:18vh; animation:latido .35s infinite; }
+@keyframes cdLugar{ from{ opacity:0; transform:translateY(30px) scale(.9); filter:blur(10px); } to{ opacity:1; transform:none; filter:none; } }
+.cd-lugar{ display:grid; justify-items:center; gap:1vh; text-align:center; padding:3vh 3vw; border-radius:3vh; background:rgba(255,255,255,.07); border:3px solid rgba(255,255,255,.2); min-width:26vw; animation:cdLugar .8s cubic-bezier(.2,.8,.2,1) both; }
+.cd-lugar__medalla{ width:10vh; height:10vh; border-radius:50%; display:grid; place-items:center; font-family:var(--neon); font-size:5vh; color:#1a0b3a; }
+.cd-lugar--1 .cd-lugar__medalla{ background:linear-gradient(135deg, #FFE27A, #FFC23D 50%, #D99A00); box-shadow:0 0 40px rgba(255,194,61,.8); } .cd-lugar--1{ border-color:#FFC23D; }
+.cd-lugar--2 .cd-lugar__medalla{ background:linear-gradient(135deg, #F4F6FA, #C9CFDA 50%, #9AA3B2); } .cd-lugar--2{ border-color:#C9CFDA; }
+.cd-lugar--3 .cd-lugar__medalla{ background:linear-gradient(135deg, #F2B27E, #CD7F32 50%, #9A5A1E); } .cd-lugar--3{ border-color:#CD7F32; }
+.cd-lugar b{ font-family:var(--neon); font-weight:400; font-size:6vh; line-height:1; } .cd-lugar small{ font-size:2vh; color:var(--niebla); } .cd-lugar em{ font-size:2.6vh; color:#8FE6F6; }
+.cd-lugar__pts{ font-size:2.6vh; font-weight:700; color:#FFC23D; }
+.cd-lugar--grande{ transform-origin:center; padding:5vh 5vw; } .cd-lugar--grande b{ font-size:10vh; } .cd-lugar--grande .cd-lugar__medalla{ width:14vh; height:14vh; font-size:7vh; }
+.cd-podio{ display:flex; gap:2vw; align-items:flex-end; justify-content:center; }
+.cd-podio .cd-lugar--1{ padding-bottom:7vh; transform:translateY(-3vh); }
+.cd-proy__nota{ margin:3vh 0 0; font-size:2.4vh; color:var(--niebla); text-align:center; grid-row:2; }
+/* Así va la Copa */
+.cd-tabla{ display:grid; gap:1.1vh; width:min(92vw, 1250px); }
+@keyframes cdFila{ from{ opacity:0; transform:translateX(-40px); } to{ opacity:1; transform:none; } }
+@keyframes cdBarra{ from{ width:0; } to{ width:var(--w); } }
+.cd-fila{ display:grid; grid-template-columns:6vh minmax(0, 1.2fr) 2fr 12vh; gap:2vh; align-items:center; padding:1vh 2vh; border-radius:1.6vh; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+  animation:cdFila .6s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * .12s); }
+.cd-fila__pos{ width:5vh; height:5vh; border-radius:50%; display:grid; place-items:center; font-family:var(--neon); font-size:2.6vh; background:rgba(255,255,255,.1); }
+.cd-fila--1 .cd-fila__pos{ background:linear-gradient(135deg, #FFE27A, #FFC23D); color:#1a0b3a; } .cd-fila--2 .cd-fila__pos{ background:linear-gradient(135deg, #F4F6FA, #9AA3B2); color:#1a0b3a; } .cd-fila--3 .cd-fila__pos{ background:linear-gradient(135deg, #F2B27E, #CD7F32); color:#1a0b3a; }
+.cd-fila--1{ border-color:rgba(255,194,61,.6); background:linear-gradient(90deg, rgba(255,194,61,.18), rgba(255,255,255,.04)); }
+.cd-fila__del{ display:grid; min-width:0; } .cd-fila__del b{ font-size:2.8vh; } .cd-fila__del small{ font-size:1.4vh; color:var(--tenue); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cd-fila__barra{ height:2vh; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+.cd-fila__barra i{ display:block; height:100%; width:var(--w); border-radius:99px; background:linear-gradient(90deg, #6E2BE6, #FF8A3D 70%, #FFC23D); animation:cdBarra 1.4s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * .12s + .3s); }
+.cd-fila__pts{ text-align:right; font-family:var(--neon); font-size:3.4vh; color:#FFC23D; } .cd-fila__pts small{ font-family:var(--fuente, inherit); font-size:1.5vh; color:var(--niebla); }
+.cd-cierre__nota{ margin:2vh 0 0; text-align:center; font-size:2vh; color:var(--niebla); }
+.cd-cierre__vista{ align-content:center; }
+.cd-adios{ display:grid; justify-items:center; gap:2vh; text-align:center; animation:cdLugar .9s cubic-bezier(.2,.8,.2,1) both; }
+.cd-adios img{ height:32vh; animation:jurFlota 3s ease-in-out infinite; filter:drop-shadow(0 20px 40px rgba(169,139,255,.6)); }
+.cd-adios small{ font-size:2.6vh; color:#8FE6F6; letter-spacing:.1em; text-transform:uppercase; font-weight:700; }
+.cd-adios h1{ margin:0; font-family:var(--neon); font-weight:400; font-size:8vh; line-height:1.05; } .cd-adios h1 span{ background:linear-gradient(90deg, #FFC23D, #FF6A1F 50%, #FF6AD5); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.cd-adios p{ margin:0; font-size:2.4vh; color:var(--niebla); max-width:70vw; }
+@media (prefers-reduced-motion: reduce){ .cd-barras__fondo i, .cd-barras__titulo, .cd-del, .cd-fila, .cd-fila__barra i, .cd-lugar, .cd-adios, .cd-adios img{ animation:none !important; } }
