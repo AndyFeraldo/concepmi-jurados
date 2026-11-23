@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611231401";
-import { CONCURSOS, porId } from "./concursos.js?v=202611231401";
-import { TALLERES } from "./talleres.js?v=202611231401";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611231401";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611231724";
+import { CONCURSOS, porId } from "./concursos.js?v=202611231724";
+import { TALLERES } from "./talleres.js?v=202611231724";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611231724";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -245,7 +245,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611231401");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611231724");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -791,7 +791,7 @@ const demo = {
     const o = id ? (exigirPermiso(codigo, "charlas", "editar"), (db().ponentes || []).find((x) => x.id === id)) : ponenteDe(codigo); if (!o) throw new Error("Ese ponente ya no existe"); o.linkedin = v; guardar(); return { linkedin: v }; },
   async ponenteGuardar(codigo, titulo, videoDespues) { await espera(80); const o = ponenteDe(codigo); o.titulo = String(titulo || "").trim().slice(0, 160); o.video_despues = String(videoDespues || "").replace(/\D/g, "").slice(0, 3); guardar(); return { ok: true }; },
   async programaLeer(codigo, clave) { await espera(); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "ver"); const x = (db().programas || {})[clave]; return x ? { datos: x.datos, actualizado: x.actualizado } : null; },
-  async adminPrograma(codigo, clave, datos) { await espera(60); exigirPermiso(codigo, "charlas", "editar"); const d = db(); d.programas ||= {}; d.programas[clave] = { datos, actualizado: new Date().toISOString() }; guardar(); return { ok: true }; },
+  async adminPrograma(codigo, clave, datos) { await espera(60); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "editar"); const d = db(); d.programas ||= {}; d.programas[clave] = { datos, actualizado: new Date().toISOString() }; guardar(); return { ok: true }; },
   async adminPonentes(codigo) { await espera(); if (!nivelDe(accesoDe(codigo), "proyeccion")) exigirPermiso(codigo, "charlas", "ver"); const ed = norm(codigo) === db().admin || nivelDe(accesoDe(codigo), "charlas") === "editar";
     return (db().ponentes || []).map((o) => ({ ...o, codigo: ed ? o.codigo : null })); },
   async adminPonente(codigo, { id = null, nombre = "", charlas = [], descripcion = "", foto = null, borrar = false, nuevoCodigo = false, codigoFijo = null, titulo = null }) {

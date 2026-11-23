@@ -3,10 +3,10 @@
 // y sube su presentación en PDF (la que se proyecta), su PPT de respaldo y un video opcional.
 // Mismo sistema de archivos privados del Concurso de Proyectos (función Edge jur-presentaciones).
 // =========================================================
-import { api } from "./api.js?v=202611231401";
+import { api } from "./api.js?v=202611231724";
 
-import { $, $$, esc, I, aviso, lanzarConfeti } from "./ui.js?v=202611231401";
-import { mb, fechaLima } from "./presentacion.js?v=202611231401";
+import { $, $$, esc, I, aviso, lanzarConfeti } from "./ui.js?v=202611231724";
+import { mb, fechaLima } from "./presentacion.js?v=202611231724";
 
 
 const INFO = {

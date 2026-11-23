@@ -5,9 +5,9 @@
 // «¡Queda inaugurado!» con fanfarria y confeti).
 // El programa se guarda en este navegador (localStorage): ármalo en la laptop del proyector.
 // =========================================================
-import { api } from "./api.js?v=202611231401";
-import { CHARLAS } from "./charlas.js?v=202611231401";
-import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado } from "./ui.js?v=202611231401";
+import { api } from "./api.js?v=202611231724";
+import { CHARLAS } from "./charlas.js?v=202611231724";
+import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231724";
 
 const CLAVE = "concepmi-inauguracion-v1";
 const TIPOS = {
@@ -153,7 +153,7 @@ export function abrirCeremonia(P, ctx = {}) {
       <button class="btn btn--mini" data-full>Pantalla completa</button>
       <button class="btn btn--mini btn--peligro" data-salir>Salir</button>
     </nav>`;
-  document.body.append(el); document.body.style.overflow = "hidden";
+  document.body.append(el); document.body.style.overflow = "hidden"; pantallaActiva.abrir(cerrar);
   const vista = $("[data-vista]", el);
 
   const ahoraMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60; };
@@ -210,7 +210,7 @@ export function abrirCeremonia(P, ctx = {}) {
     if (si && celebrando) { celebrando = false; $("[data-celebra]", el).hidden = true; }
     $("[data-congelar]", el).classList.toggle("activo", si);
   }
-  function cerrar() { clearInterval(t); clearTimeout(ocultarT); document.removeEventListener("keydown", teclas, true); el.remove(); document.body.style.overflow = ""; }
+  function cerrar() { pantallaActiva.cerrada(cerrar); clearInterval(t); clearTimeout(ocultarT); document.removeEventListener("keydown", teclas, true); el.remove(); document.body.style.overflow = ""; }
   function irCharla() { if (!ctx.abrirCharla) return; cerrar(); ctx.abrirCharla(0); }
   function teclas(e) {
     if (document.querySelector(".modal")) return;

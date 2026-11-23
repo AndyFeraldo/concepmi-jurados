@@ -2,9 +2,9 @@
 // Admin · Charlas principales: trivia, pantalla del auditorio,
 // inscritos (Excel de inscripción) y preguntas (Excel)
 // =========================================================
-import { api } from "./api.js?v=202611231401";
-import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202611231401";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611231401";
+import { api } from "./api.js?v=202611231724";
+import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202611231724";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, pantallaActiva } from "./ui.js?v=202611231724";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];
@@ -65,13 +65,13 @@ export function crearCharlas(ctx) {
     const el = document.createElement("div");
     el.className = "proy";
     document.body.append(el);
-    ctx.pausar(true);
+    ctx.pausar(true); pantallaActiva.abrir(cerrar);
     let q = null, desfase = 0, ultima = "", vivo = true, ocupado = false;
     let etapa = 0; // ceremonia: 0 nada · 1 tercer lugar · 2 segundo · 3 suspenso · 4 ganador · 5 podio completo
     const ahora = () => Date.now() + desfase;
     const segHasta = (t) => Math.max(0, (Date.parse(t) - ahora()) / 1000);
     const enJuego = () => ["cuenta", "jugando", "pausa"].includes(q?.fase);
-    function cerrar() { vivo = false; clearInterval(tic); document.removeEventListener("keydown", tecla); el.remove(); ctx.pausar(false); ctx.recargar(true); }
+    function cerrar() { pantallaActiva.cerrada(cerrar); vivo = false; clearInterval(tic); document.removeEventListener("keydown", tecla); el.remove(); ctx.pausar(false); ctx.recargar(true); }
 
     async function salir() {
       if (!enJuego()) return cerrar();

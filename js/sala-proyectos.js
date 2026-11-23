@@ -3,7 +3,7 @@
 // puntero/clicker: → / PageDown / Espacio = siguiente, ← / PageUp = anterior, B o . = pantalla negra.
 // Si el equipo subió un video, se intercala como una «diapositiva» después de la que indicó y se reproduce solo.
 // El cronómetro (5 min de pitch + 3 de preguntas) queda listo y solo empieza al pulsar Iniciar (o la tecla T).
-import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso } from "./ui.js?v=202611231401";
+import { $, $$, esc, I, IMG, fondoAnimado, confirmar, aviso, pantallaActiva } from "./ui.js?v=202611231724";
 
 const PDFJS = new URL("../vendor/pdfjs/pdf.min.mjs", import.meta.url).href;
 const WORKER = new URL("../vendor/pdfjs/pdf.worker.min.mjs", import.meta.url).href;
@@ -275,7 +275,7 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
   reloj = setInterval(() => corriendo && pintarReloj(), 250);
 
   function cerrar() {
-    cerrado = true; clearInterval(reloj); clearTimeout(ocultarT);
+    cerrado = true; pantallaActiva.cerrada(cerrar); clearInterval(reloj); clearTimeout(ocultarT);
     document.removeEventListener("keydown", teclas, true); window.removeEventListener("resize", alRedimensionar);
     const v = $("video", vista); if (v) { v.pause(); v.removeAttribute("src"); }
     for (const d of docs.values()) d.pdf?.destroy?.();
@@ -284,6 +284,7 @@ export function abrirSalaProyectos({ equipos, url, abrir, concurso = "Concurso N
   }
 
   if (!N) aviso("Aún no hay equipos en este concurso", "error");
+  pantallaActiva.abrir(cerrar);
   pintar();
   document.documentElement.requestFullscreen?.().catch(() => {});
   return { cerrar };

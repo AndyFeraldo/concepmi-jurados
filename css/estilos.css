@@ -2173,3 +2173,34 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .tal-proyectar{ padding:16px 18px; }
 /* Íconos dentro de textos pequeños en tablas: siempre del tamaño de la letra (evita el trofeo gigante en Entregas) */
 .tabla td small svg, .en-proy svg{ width:1em; height:1em; vertical-align:-2px; flex:none; }
+
+/* ===== Panel de Proyección: cronograma en orden + barra «Siguiente» ===== */
+.pyc-como{ display:grid; gap:6px; padding:14px 18px; margin-bottom:14px; border-color:rgba(31,203,234,.4); background:rgba(31,203,234,.08); }
+.pyc-como ol{ margin:0; padding-left:20px; display:grid; gap:4px; color:var(--niebla); font-size:.92rem; }
+.pyc-seguir{ display:grid; gap:2px; width:100%; margin:0 0 14px; padding:16px 20px; border-radius:18px; border:2px solid #FF8A3D; background:linear-gradient(120deg, rgba(255,106,31,.3), rgba(110,43,230,.25)); color:#fff; font:inherit; text-align:left; cursor:pointer; box-shadow:0 18px 40px -22px #FF6A1F; }
+.pyc-seguir small{ color:var(--niebla); } .pyc-seguir b{ font-size:1.25rem; }
+.pyc-dias{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.pyc-dia{ display:grid; gap:2px; padding:14px 16px; border-radius:16px; border:1px solid var(--borde); background:var(--panel); color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.pyc-dia small{ color:#FFB27F; font-weight:700; text-transform:uppercase; letter-spacing:.08em; font-size:.74rem; } .pyc-dia b{ font-size:1.05rem; }
+.pyc-dia.activo{ border-color:#FF8A3D; background:linear-gradient(120deg, rgba(255,106,31,.25), rgba(110,43,230,.25)); }
+.pyc-agenda{ display:grid; gap:8px; }
+.pyc-paso{ display:grid; grid-template-columns:110px 1fr auto; gap:14px; align-items:center; padding:14px 16px; border-radius:16px; border:1px solid var(--borde); background:var(--panel); }
+.pyc-paso__hora{ display:grid; } .pyc-paso__hora b{ font-family:var(--neon); font-weight:400; font-size:1.1rem; } .pyc-paso__hora small{ color:var(--tenue); font-size:.78rem; }
+.pyc-paso__txt{ display:grid; gap:2px; min-width:0; } .pyc-paso__txt > b{ font-size:1.05rem; } .pyc-paso__txt > small{ color:var(--niebla); font-size:.84rem; }
+.pyc-paso__txt .chip{ justify-self:start; }
+.pyc-paso__extra{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.pyc-paso__acc{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.pyc-paso__proy{ font-size:1rem; padding:.75em 1.3em; }
+.pyc-paso--sub{ margin-left:34px; border-style:dashed; }
+.pyc-paso--nota{ opacity:.62; background:rgba(255,255,255,.02); }
+.pyc-paso--ahora{ border-color:#3BE08F; box-shadow:0 0 0 2px rgba(59,224,143,.25); opacity:1; }
+.pyc-paso--actual{ border-color:#1FCBEA; box-shadow:0 0 0 2px rgba(31,203,234,.3); }
+.pyc-paso--hecho .pyc-paso__txt > b::before{ content:"✓ "; color:#8FF2C0; }
+@media (max-width:720px){ .pyc-paso{ grid-template-columns:1fr; } .pyc-paso--sub{ margin-left:12px; } .pyc-paso__acc{ justify-content:flex-start; } }
+.pyc-cond{ position:fixed; z-index:96; top:10px; left:50%; transform:translate(-50%, -140%); display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;
+  max-width:min(96vw, 980px); padding:8px 10px; border-radius:16px; background:rgba(14,8,56,.94); border:1px solid rgba(255,255,255,.18); box-shadow:0 18px 40px rgba(0,0,0,.5); transition:transform .25s; color:#fff; }
+.pyc-cond--ver{ transform:translate(-50%, 0); }
+.pyc-cond__txt{ display:grid; text-align:center; min-width:0; } .pyc-cond__txt small{ color:var(--tenue); font-size:.7rem; } .pyc-cond__txt b{ font-size:.86rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pyc-cond__fin{ color:#8FF2C0; font-size:.82rem; font-weight:700; }
+.pyc-cond .btn{ cursor:pointer; }
+.pyc-modal-inau .modal{ max-width:min(96vw, 1100px); }

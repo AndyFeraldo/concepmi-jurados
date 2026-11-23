@@ -6,7 +6,7 @@
 //  4. Campeona: fanfarria, lluvia de confeti y Wolfitos bailando · podio final
 // Avanza con Espacio / → / clic en «Siguiente», o en modo Automático.
 // =========================================================
-import { $, esc, I, IMG, fondoAnimado } from "./ui.js?v=202611231401";
+import { $, esc, I, IMG, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231724";
 
 const METAL = {
   3: { clase: "bronce", txt: "3.er LUGAR", medalla: "Medalla de bronce", colores: ["#CD7F32", "#E8A96B", "#8C4A1E", "#FFD2A6"] },
@@ -195,12 +195,12 @@ export function abrirPremiacion(filasCopa) {
   $("[data-reini]", el).onclick = () => { pasos[i].limpiar?.(); i = 0; revelados = new Set(); $("[data-bailarines]", el).innerHTML = ""; pintar(); };
   $("[data-full]", el).onclick = () => document.documentElement.requestFullscreen?.().catch(() => {});
   const cerrar = () => {
-    pasos[i].limpiar?.(); clearTimeout(temporizador); clearInterval(lluvia); clearTimeout(ocultar);
+    pantallaActiva.cerrada(cerrar); pasos[i].limpiar?.(); clearTimeout(temporizador); clearInterval(lluvia); clearTimeout(ocultar);
     document.removeEventListener("keydown", tecla);
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     el.remove();
   };
-  $("[data-cerrar]", el).onclick = cerrar;
+  $("[data-cerrar]", el).onclick = cerrar; pantallaActiva.abrir(cerrar);
   const tecla = (e) => {
     if (document.activeElement?.tagName === "BUTTON") document.activeElement.blur();
     if (e.key === " " || e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); siguiente(); }

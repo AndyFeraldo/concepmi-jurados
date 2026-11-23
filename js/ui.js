@@ -94,3 +94,13 @@ export function lanzarConfeti() {
 }
 
 export const IMG = (typeof window !== "undefined" && window.__CONCEPMI_IMG__) || { logo: "img/concepmi-vi-logo.png", wolfito: "img/wolfito-concepmi.png", club: "img/pmi-lima-student-club.png" };
+
+// Pantalla de proyección abierta (sala, ceremonia, trivia, premiación, show…). La usa el Panel de
+// Proyección para el botón «Siguiente ▶» del cronograma: cierra la pantalla actual y abre la que sigue.
+let cerrarActiva = null;
+export const pantallaActiva = {
+  abrir(fn) { cerrarActiva = fn; window.dispatchEvent(new Event("pantalla-abierta")); },
+  cerrada(fn) { if (cerrarActiva === fn) { cerrarActiva = null; window.dispatchEvent(new Event("pantalla-cerrada")); } },
+  cerrar() { const f = cerrarActiva; cerrarActiva = null; try { f?.(); } catch { /* ya cerrada */ } },
+  hay: () => !!cerrarActiva,
+};
