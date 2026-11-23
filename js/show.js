@@ -9,9 +9,9 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611231943";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231943";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231943";
+import { api } from "./api.js?v=202611232059";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611232059";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611232059";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [

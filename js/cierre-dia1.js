@@ -2,15 +2,16 @@
 // Pantallas del final del Día 1 (martes 24/11) en el auditorio, después del Show en vivo:
 //   1 · Concurso de Barras: pantalla de fondo (el operador pone la música) con las delegaciones de la
 //       pestaña Delegaciones; ← → marca la que se presenta ahora.
-//   2 · Ganadores del Concurso de Proyectos: revelación 3.º → 2.º → 1.º (Espacio), con redoble y confeti.
+//   2 · Ganadores de Proyectos, Amateur I, Amateur II e IATHON (en ese orden): revelación 3.º → 2.º → 1.º
+//       (Espacio), con redoble y confeti. Los tres últimos compiten de 5:00 a 6:30 y se anuncian aquí.
 //   3 · Cierre del Día 1: «Así va la Copa CONCEPMI» (puntaje acumulado de todas las delegaciones) y
 //       después «¡Nos vemos el jueves 26!».
 // Usa el mismo marco de pantalla completa del Show (`pantalla` de show.js), que registra la pantalla
 // para la barra «Siguiente» del Panel de Proyección.
 // =========================================================
-import { resultados, copaGeneral } from "./calculo.js?v=202611231943";
-import { pantalla, tono, fanfarria } from "./show.js?v=202611231943";
-import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611231943";
+import { resultados, copaGeneral } from "./calculo.js?v=202611232059";
+import { pantalla, tono, fanfarria } from "./show.js?v=202611232059";
+import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611232059";
 
 const cabeza = (kicker, titulo) => `<header class="cd-cab"><img src="${IMG.logo}" alt="CONCEPMI"><div><small>${kicker}</small><b>${titulo}</b></div></header>`;
 const redoble = (ms = 1600) => { const fin = Date.now() + ms; const r = () => { if (Date.now() > fin) return; tono(120 + Math.random() * 40, 0.05, "triangle", 0.07); setTimeout(r, 70); }; r(); };
@@ -41,14 +42,23 @@ export function abrirBarras(delegaciones) {
   p.el.addEventListener("click", (e) => { const x = e.target.closest(".cd-del"); if (x) marcar(Number(x.dataset.k) === i ? -1 : Number(x.dataset.k)); });
 }
 
-// =================== 2 · GANADORES DEL CONCURSO DE PROYECTOS ===================
-// data = adminDatos; proyectos = { delegacion_id: nombre del proyecto } (opcional)
-export function abrirGanadoresProyectos(data, proyectos = {}) {
-  const filas = resultados("proyectos", data).filter((f) => f.puesto && f.puesto <= 3 && !f.ajuste?.walkover && !f.ajuste?.descalificado).sort((a, b) => a.puesto - b.puesto);
-  if (!filas.length) return aviso("El Concurso de Proyectos aún no tiene calificaciones", "error");
+// =================== 2 · GANADORES DE UN CONCURSO CON RÚBRICA (Proyectos, Amateur I, Amateur II, IATHON) ===================
+// Los de las 5:00–6:30 (Amateur I, II e IATHON) se revelan aquí, cuando los jurados ya deliberaron.
+const TITULOS = {
+  proyectos: { corto: "Concurso Nacional de Proyectos", h1: "Concurso Nacional<br>de Proyectos" },
+  "amateur-1": { corto: "Concurso Amateur I · Acta de constitución", h1: "Concurso<br>Amateur I" },
+  "amateur-2": { corto: "Concurso Amateur II · Matriz de riesgos", h1: "Concurso<br>Amateur II" },
+  iathon: { corto: "IATHON · Mini hackathon de IA", h1: "IATHON" },
+};
+// data = adminDatos; proyectos = { delegacion_id: nombre del proyecto } (opcional, solo Proyectos)
+export const abrirGanadoresProyectos = (data, proyectos = {}) => abrirGanadores(data, "proyectos", proyectos);
+export function abrirGanadores(data, concurso, proyectos = {}) {
+  const T = TITULOS[concurso] || { corto: concurso, h1: concurso };
+  const filas = resultados(concurso, data).filter((f) => f.puesto && f.puesto <= 3 && !f.ajuste?.walkover && !f.ajuste?.descalificado).sort((a, b) => a.puesto - b.puesto);
+  if (!filas.length) return aviso(`${T.corto.split(" · ")[0]} aún no tiene calificaciones`, "error");
   const top = [3, 2, 1].map((n) => filas.find((f) => f.puesto === n)).filter(Boolean); // orden de revelación
   let paso = 0; // 0 portada · 1..n revela · n+1 podio
-  const p = pantalla("cd-proy", `${cabeza("Cierre del Día 1", "Concurso Nacional de Proyectos")}<main class="cd-proy__vista" data-vista></main>
+  const p = pantalla("cd-proy", `${cabeza("Cierre del Día 1 · Ganadores", T.corto)}<main class="cd-proy__vista" data-vista></main>
     <p class="sh-ayuda">Espacio / →: siguiente · ←: anterior · Esc: salir</p>`,
     { teclas: (e) => { if ([" ", "Enter", "ArrowRight", "PageDown"].includes(e.key)) { e.preventDefault(); ir(paso + 1); } if (["ArrowLeft", "PageUp"].includes(e.key)) ir(paso - 1); } });
   const nombre = (f) => f.delegacion.siglas || f.delegacion.nombre;
@@ -58,7 +68,7 @@ export function abrirGanadoresProyectos(data, proyectos = {}) {
   function ir(k) {
     paso = Math.max(0, Math.min(top.length + 1, k));
     const v = $("[data-vista]", p.el);
-    if (paso === 0) { v.innerHTML = `<div class="cd-portada"><small>Y los ganadores del</small><h1>Concurso Nacional<br>de Proyectos</h1><p>son…</p></div>`; return; }
+    if (paso === 0) { v.innerHTML = `<div class="cd-portada"><small>Y los ganadores del</small><h1>${T.h1}</h1><p>son…</p></div>`; return; }
     if (paso <= top.length) {
       const f = top[paso - 1];
       v.innerHTML = `<div class="cd-revela"><small>${f.puesto === 1 ? "🥇 Primer lugar" : f.puesto === 2 ? "🥈 Segundo lugar" : "🥉 Tercer lugar"}</small><div data-suspenso class="cd-suspenso">🥁</div></div>`;
