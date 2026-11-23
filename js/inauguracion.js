@@ -5,9 +5,9 @@
 // «¡Queda inaugurado!» con fanfarria y confeti).
 // El programa se guarda en este navegador (localStorage): ármalo en la laptop del proyector.
 // =========================================================
-import { api } from "./api.js?v=202611232059";
-import { CHARLAS } from "./charlas.js?v=202611232059";
-import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado, pantallaActiva } from "./ui.js?v=202611232059";
+import { api } from "./api.js?v=202611232146";
+import { CHARLAS } from "./charlas.js?v=202611232146";
+import { $, $$, esc, I, IMG, aviso, confirmar, fondoAnimado, pantallaActiva } from "./ui.js?v=202611232146";
 
 const CLAVE = "concepmi-inauguracion-v1";
 const TIPOS = {

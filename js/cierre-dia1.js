@@ -9,9 +9,9 @@
 // Usa el mismo marco de pantalla completa del Show (`pantalla` de show.js), que registra la pantalla
 // para la barra «Siguiente» del Panel de Proyección.
 // =========================================================
-import { resultados, copaGeneral } from "./calculo.js?v=202611232059";
-import { pantalla, tono, fanfarria } from "./show.js?v=202611232059";
-import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611232059";
+import { resultados, copaGeneral } from "./calculo.js?v=202611232146";
+import { pantalla, tono, fanfarria } from "./show.js?v=202611232146";
+import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611232146";
 
 const cabeza = (kicker, titulo) => `<header class="cd-cab"><img src="${IMG.logo}" alt="CONCEPMI"><div><small>${kicker}</small><b>${titulo}</b></div></header>`;
 const redoble = (ms = 1600) => { const fin = Date.now() + ms; const r = () => { if (Date.now() > fin) return; tono(120 + Math.random() * 40, 0.05, "triangle", 0.07); setTimeout(r, 70); }; r(); };

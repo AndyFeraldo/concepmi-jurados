@@ -2,16 +2,18 @@
 // SHOW EN VIVO · martes 24/11, 5:00 – 6:30 p. m. (auditorio, en paralelo con IATHON, Amateur I y II)
 // Pestaña del admin (y de accesos con permiso «show») desglosada en 4 puntos, y las pantallas
 // a pantalla completa para el proyector:
-//   1 · Networking: Muro en vivo (QR → el asistente comenta con su DNI y sale su nombre y delegación)
+//   1 · Networking (sin internet para el público): A) «¿Esto o aquello?» con aplausómetro (js/show-duelo.js;
+//       reemplaza al Muro en vivo, que sigue en el código pero ya no se muestra)
 //       y Ruleta de delegaciones con retos para el presentador.
 //   2 · Comentamos los casos: PDF de Amateur I, II e IATHON en la pantalla del auditorio (PDF.js + puntero).
 //   3 · Transmisión en vivo: enlace de TikTok / YouTube / Instagram en pantalla (o QR + ventana aparte).
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611232059";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611232059";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611232059";
+import { api } from "./api.js?v=202611232146";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611232146";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611232146";
+import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611232146";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -277,14 +279,14 @@ export function crearShow(ctx) {
       <div class="cabeza" style="margin-top:0"><div><h1>Show en vivo</h1><p><b>${SHOW.dia} · ${SHOW.hora}</b> · ${SHOW.lugar}. Para las delegaciones que no compiten en ese momento (en paralelo con <b>IATHON, Amateur I y Amateur II</b>). El presentador anima; tú o el operador de Proyección lanzan cada pantalla.</p></div></div>
       <div class="sh-agenda">${AGENDA.map((x) => `<a href="#sh-${x.id}" class="sh-agenda__item" style="flex:${x.min}"><span>${x.n}</span><b>${x.t}</b><small>${x.h}</small></a>`).join("")}</div>
       ${sec(AGENDA[0], `
-        <p class="ayuda">Dos dinámicas listas para proyectar (puedes usar ambas): el público participa desde su celular o el presentador elige una delegación al azar.</p>
+        <p class="ayuda">Dos dinámicas listas para proyectar, <b>sin internet para el público</b>: nadie usa su celular, todo pasa en la laptop del proyector.</p>
         <div class="sh-dos">
-          <article class="sh-op"><h3>A · Muro en vivo <span class="chip ${c.muro_abierto ? "chip--verde" : ""}">${c.muro_abierto ? "● Abierto" : "Cerrado"}</span></h3>
-            <p>En pantalla sale un <b>QR</b>. Cada asistente entra con su <b>DNI</b> (de la lista de inscritos), responde la pregunta y su comentario aparece en vivo con su <b>nombre y delegación</b>. Abajo, el ranking de <b>delegaciones más participativas</b>.</p>
-            <label class="campo"><span>Pregunta del muro</span><input data-muro-preg maxlength="200" value="${esc(c.muro_pregunta || MURO_PREG)}" ${op ? "" : "disabled"}></label>
-            <div class="sh-acc">${op ? `<button class="btn ${c.muro_abierto ? "" : "btn--naranja"}" data-muro-abrir>${c.muro_abierto ? `${I.candado}Cerrar el muro` : `${I.abierto}Abrir el muro`}</button>` : ""}
-              <button class="btn btn--naranja" data-muro-proy>${I.vivo}Proyectar muro</button><button class="btn btn--mini" data-muro-link>${I.copiar}Copiar enlace</button></div>
-            <details class="sh-moderar" data-moderar><summary>Moderar comentarios (${S.mensajes})</summary><div data-msgs><div class="cargando" style="min-height:60px"><div class="giro"></div></div></div>${ed ? `<button class="btn btn--mini btn--peligro" data-muro-vaciar>${I.basura}Vaciar muro (pruebas)</button>` : ""}</details>
+          <article class="sh-op"><h3>A · ¿Esto o aquello? · Aplausómetro 👏</h3>
+            <p>En pantalla salen <b>dos opciones</b> (por ejemplo «Metodología ágil 🏃 vs Cascada 🌊»). El público elige bando y <b>aplaude</b>: el <b>micrófono de la laptop</b> mide 5 segundos a cada bando y llena su barra. Gana el que suena más (confeti 🎉) y el presentador <b>pasa el micro</b> a alguien de cada bando para que defienda su elección.</p>
+            <ol class="sh-pasos"><li><b>A</b> (o ←): cuenta 3, 2, 1 y aplauden los de la izquierda.</li><li><b>B</b> (o →): aplauden los de la derecha.</li><li><b>Espacio</b>: ¡el ganador! Otra vez Espacio: siguiente duelo (N / P para saltar).</li></ol>
+            <label class="campo"><span>Duelos (uno por línea: <b>opción A | opción B</b>)</span><textarea data-duelos rows="6">${esc(leerDuelos().join("\n"))}</textarea></label>
+            <div class="sh-acc"><button class="btn btn--mini" data-duelos-guardar>${I.check}Guardar en esta laptop</button><button class="btn btn--mini" data-duelos-reset>Volver a los sugeridos</button><button class="btn btn--naranja" data-duelo>${I.vivo}Proyectar ¿Esto o aquello?</button></div>
+            <p class="ayuda" style="margin:8px 0 0">La primera vez el navegador pide <b>permiso para el micrófono</b>: pulsa «Permitir». Si no hay micrófono, el presentador decide por oído con A / B. Los duelos se guardan solo en esta laptop: edítalos en la del proyector.</p>
           </article>
           <article class="sh-op"><h3>B · Ruleta de delegaciones</h3>
             <p>La ruleta gira entre las delegaciones y elige una al azar; sale un <b>reto</b> para que alguien de esa delegación pase al frente o responda desde su sitio (con cronómetro de 30 s). Ideal para que el presentador anime.</p>
@@ -296,7 +298,7 @@ export function crearShow(ctx) {
           <li><b>Speed networking 3×3:</b> 3 rondas de 3 minutos; cada uno se voltea hacia alguien de otra delegación y se presentan con una pregunta (usa el cronómetro de la ruleta con la tecla T).</li>
           <li><b>Bingo humano:</b> busca a alguien que… «sea de otra ciudad», «haya liderado un proyecto», «use Scrum»… El primero en completar 3 gana un detalle.</li>
           <li><b>Batalla de porras:</b> cada delegación hace su porra; el público decide con aplausos quién gana.</li>
-          <li><b>Pregunta al jurado:</b> antes de comentar los casos, el muro recoge preguntas del público sobre los concursos.</li></ul></details>`)}
+          <li><b>Levántate si…:</b> «…ya lideraste un proyecto», «…usas Scrum», «…dormiste menos de 5 horas por el CONCEPMI». Se paran y el presentador entrevista a uno.</li></ul></details>`)}
       ${sec(AGENDA[1], `
         <p class="ayuda">Sube el caso de cada concurso en <b>PDF</b> y proyéctalo para comentarlo en vivo (se pasa con el puntero, como en las charlas). Tiene cronómetro de 8 min de comentario + 2 de preguntas por caso.</p>
         <div class="sh-casos">${CASOS.map((x) => { const f = S.archivos[x.id]; return `<article class="sh-caso ${f ? "sh-caso--ok" : ""}"><small>${esc(x.sub)}</small><h3>${esc(x.nombre)}</h3>
@@ -338,13 +340,11 @@ export function crearShow(ctx) {
 
   function enlazar(v, ed, op) {
     const err = (e) => aviso(e.message, "error");
-    // 1 · Muro
-    $("[data-muro-proy]", v).onclick = () => abrirMuro(cod());
-    $("[data-muro-link]", v).onclick = async () => { try { await navigator.clipboard.writeText(urlMuro()); aviso("Enlace copiado"); } catch { aviso(urlMuro()); } };
-    $("[data-muro-abrir]", v)?.addEventListener("click", async () => { try { await api.showConfig(cod(), { muro_abierto: !S.config.muro_abierto, muro_pregunta: $("[data-muro-preg]", v).value }); await recargar(v); aviso(S.config.muro_abierto ? "Muro abierto: ya pueden comentar" : "Muro cerrado"); } catch (e) { err(e); } });
-    $("[data-muro-preg]", v).onchange = async (e) => { try { await api.showConfig(cod(), { muro_pregunta: e.target.value }); S.config.muro_pregunta = e.target.value; aviso("Pregunta guardada"); } catch (ex) { err(ex); } };
-    $("[data-moderar]", v).ontoggle = async (e) => { if (!e.target.open) return; await pintarModeracion(v, op); };
-    $("[data-muro-vaciar]", v)?.addEventListener("click", async () => { if (!(await confirmar("¿Vaciar el muro?", "Se borran todos los comentarios (por ejemplo, los de las pruebas).", { boton: "Vaciar", peligro: true }))) return; try { await api.showLimpiar(cod(), "muro"); await recargar(v); aviso("Muro vacío"); } catch (e) { err(e); } });
+    // 1A · ¿Esto o aquello? (aplausómetro, sin internet)
+    const duelosTxt = () => $("[data-duelos]", v).value.split("\n").map((x) => x.trim()).filter((x) => x.includes("|"));
+    $("[data-duelos-guardar]", v).onclick = () => { const n = guardarDuelos($("[data-duelos]", v).value.split("\n")).length; aviso(n ? `${n} duelos guardados en esta laptop` : "Escribe cada duelo como «opción A | opción B»", n ? "ok" : "error"); };
+    $("[data-duelos-reset]", v).onclick = () => { guardarDuelos([]); $("[data-duelos]", v).value = DUELOS.join("\n"); aviso("Se volvió a los duelos sugeridos"); };
+    $("[data-duelo]", v).onclick = () => abrirDuelo(duelosTxt());
     $("[data-retos-guardar]", v)?.addEventListener("click", async () => { try { await api.showConfig(cod(), { retos: $("[data-retos]", v).value.split("\n") }); await recargar(v); aviso("Retos guardados"); } catch (e) { err(e); } });
     $("[data-ruleta]", v).onclick = () => abrirRuleta(ctx.data()?.delegaciones || [], $("[data-retos]", v).value.split("\n").map((x) => x.trim()).filter(Boolean));
     // 2 · Casos
@@ -413,7 +413,7 @@ export function crearShow(ctx) {
 export function htmlShowProyeccion() {
   const t = (attrs, ico, titulo, sub) => `<button class="pyc-tarjeta" ${attrs}><span class="pyc-tarjeta__ico">${ico}</span><span class="pyc-tarjeta__txt"><b>${titulo}</b><small>${sub}</small></span><span class="pyc-tarjeta__ir">${I.flecha}</span></button>`;
   return `<section class="pyc-grupo"><h2>${I.vivo} Show en vivo · martes 24/11 · ${SHOW.hora}</h2><div class="pyc-grid">
-    ${t('data-sh="muro"', "1A", "Muro en vivo (networking)", "QR: el público comenta con su DNI y sale con su delegación")}
+    ${t('data-sh="duelo"', "1A", "¿Esto o aquello? · Aplausómetro", "Dos bandos aplauden y el micrófono de la laptop mide cuál suena más")}
     ${t('data-sh="ruleta"', "1B", "Ruleta de delegaciones", "Elige una delegación al azar y le da un reto")}
     ${t('data-sh="casos"', "2", "Comentamos los casos", "PDF de Amateur I, II e IATHON con el puntero")}
     ${t('data-sh="trans"', "3", "Transmisión en vivo", "El live del voluntario en la pantalla")}
@@ -424,7 +424,7 @@ export function enlazarShowProyeccion(raiz, codigo, delegaciones) {
   $$("[data-sh]", raiz).forEach((b) => (b.onclick = async () => {
     try {
       const k = b.dataset.sh;
-      if (k === "muro") return abrirMuro(codigo);
+      if (k === "duelo") return abrirDuelo(leerDuelos());
       if (k === "sorteo") return abrirSorteo(codigo);
       const S = await api.showDatos(codigo);
       if (k === "ruleta") return abrirRuleta(delegaciones, S.config?.retos);
