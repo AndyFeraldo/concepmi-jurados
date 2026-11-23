@@ -1,17 +1,17 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611231743";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611231743";
-import { CONCURSOS } from "./concursos.js?v=202611231743";
-import { vistaJurado } from "./jurado.js?v=202611231743";
-import { vistaAdmin } from "./admin.js?v=202611231743";
-import { vistaTallerista } from "./tallerista.js?v=202611231743";
-import { vistaQuiz } from "./quiz.js?v=202611231743";
-import { vistaMuro } from "./show-muro.js?v=202611231743";
-import { vistaEquipo } from "./equipo.js?v=202611231743";
-import { vistaPonente } from "./ponente-panel.js?v=202611231743";
-import { vistaCoordinador } from "./coordinador.js?v=202611231743";
+import { api, ES_DEMO } from "./api.js?v=202611231746";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611231746";
+import { CONCURSOS } from "./concursos.js?v=202611231746";
+import { vistaJurado } from "./jurado.js?v=202611231746";
+import { vistaAdmin } from "./admin.js?v=202611231746";
+import { vistaTallerista } from "./tallerista.js?v=202611231746";
+import { vistaQuiz } from "./quiz.js?v=202611231746";
+import { vistaMuro } from "./show-muro.js?v=202611231746";
+import { vistaEquipo } from "./equipo.js?v=202611231746";
+import { vistaPonente } from "./ponente-panel.js?v=202611231746";
+import { vistaCoordinador } from "./coordinador.js?v=202611231746";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -154,7 +154,7 @@ function pedirCodigo(rol) {
     try {
       const r = await api.entrar(codigo);
       // El coordinador de sala entra por la misma puerta del admin
-      const valido = r && (r.rol === rol || (["admin", "proyeccion", "voluntario"].includes(rol) && r.rol === "coordinador"));
+      const valido = r && (r.rol === rol || (["admin", "proyeccion", "voluntario"].includes(rol) && r.rol === "coordinador") || (rol === "proyeccion" && r.rol === "admin"));
       if (!valido) {
         err.textContent = r ? `Ese código es de ${r.rol === "admin" ? "administrador" : r.rol}. Usa el botón ${ROLES[r.rol]?.boton || ""}.` : "Código incorrecto. Revisa e inténtalo otra vez.";
         inp.classList.remove("temblor"); void inp.offsetWidth; inp.classList.add("temblor"); inp.select();
@@ -178,7 +178,12 @@ function abrir() {
   if (s?.rol === "jurado") return vistaJurado(app, s.codigo);
   if (s?.rol === "tallerista") return vistaTallerista(app, s.codigo);
   if (s?.rol === "equipo") return vistaEquipo(app, s.codigo);
-  if (s?.rol === "admin") return vistaAdmin(app, s.codigo);
+  if (s?.rol === "admin") {
+    // El admin también tiene el Panel de Proyección (cronograma): botón «Proyección» en su panel o la puerta Proyección
+    const panel = () => vistaAdmin(app, s.codigo, null, { abrirProyeccion: proy });
+    const proy = async () => { const { vistaProyeccion } = await import("./proyeccion.js?v=202611231746"); vistaProyeccion(app, s.codigo, { nombre: "Administrador" }, { volver: panel }); };
+    return s.puerta === "proyeccion" ? proy() : panel();
+  }
   if (s?.rol === "coordinador") return vistaCoordinador(app, s.codigo, s.puerta);
   if (s?.rol === "ponente") return vistaPonente(app, s.codigo, salir);
   portada();
