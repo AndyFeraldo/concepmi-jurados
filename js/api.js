@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611231746";
-import { CONCURSOS, porId } from "./concursos.js?v=202611231746";
-import { TALLERES } from "./talleres.js?v=202611231746";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611231746";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611231925";
+import { CONCURSOS, porId } from "./concursos.js?v=202611231925";
+import { TALLERES } from "./talleres.js?v=202611231925";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611231925";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -245,7 +245,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611231746");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611231925");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {

@@ -8,9 +8,9 @@
 // Usa el mismo marco de pantalla completa del Show (`pantalla` de show.js), que registra la pantalla
 // para la barra «Siguiente» del Panel de Proyección.
 // =========================================================
-import { resultados, copaGeneral } from "./calculo.js?v=202611231746";
-import { pantalla, tono, fanfarria } from "./show.js?v=202611231746";
-import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611231746";
+import { resultados, copaGeneral } from "./calculo.js?v=202611231925";
+import { pantalla, tono, fanfarria } from "./show.js?v=202611231925";
+import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611231925";
 
 const cabeza = (kicker, titulo) => `<header class="cd-cab"><img src="${IMG.logo}" alt="CONCEPMI"><div><small>${kicker}</small><b>${titulo}</b></div></header>`;
 const redoble = (ms = 1600) => { const fin = Date.now() + ms; const r = () => { if (Date.now() > fin) return; tono(120 + Math.random() * 40, 0.05, "triangle", 0.07); setTimeout(r, 70); }; r(); };
@@ -87,7 +87,7 @@ export function abrirCierreDia1(data) {
     fase = k; const v = $("[data-vista]", p.el);
     if (fase === 0) {
       const n = filas.length;
-      v.innerHTML = `<div class="cd-tabla">${filas.map((f, k) => `<div class="cd-fila ${f.puesto <= 3 && f.total > 0 ? `cd-fila--${f.puesto}` : ""}" style="--i:${n - k};--w:${(f.total / max) * 100}%">
+      v.innerHTML = `<div class="cd-tabla ${n > 11 ? "cd-tabla--densa" : ""}" style="--n:${n};--fs:${Math.min(2.8, 30 / n).toFixed(2)}vh">${filas.map((f, k) => `<div class="cd-fila ${f.puesto <= 3 && f.total > 0 ? `cd-fila--${f.puesto}` : ""}" style="--i:${n - k};--w:${(f.total / max) * 100}%">
           <span class="cd-fila__pos">${f.total > 0 ? f.puesto : "–"}</span>
           <span class="cd-fila__del"><b>${esc(f.delegacion.siglas || f.delegacion.nombre)}</b>${f.delegacion.siglas ? `<small>${esc(f.delegacion.nombre)}</small>` : ""}</span>
           <span class="cd-fila__barra"><i></i></span><span class="cd-fila__pts">${f.total}<small> pts</small></span></div>`).join("")}</div>

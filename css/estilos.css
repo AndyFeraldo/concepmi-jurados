@@ -2269,3 +2269,14 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .copa-cierre{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:14px 18px; margin-bottom:14px; border-color:rgba(255,138,61,.45); }
 .copa-cierre > div:first-child{ display:grid; gap:2px; } .copa-cierre small{ color:var(--niebla); font-size:.84rem; } .copa-cierre b svg{ width:1em; height:1em; vertical-align:-2px; }
 .copa-cierre__acc{ display:flex; flex-wrap:wrap; gap:8px; }
+/* «Así va la Copa»: la tabla se adapta a la altura de la pantalla (no se desborda sobre el título) */
+.cd-cierre__vista{ grid-template-rows:minmax(0, 1fr) auto; place-items:stretch center; align-content:stretch; padding-bottom:1vh; overflow:hidden; }
+.cd-cierre__vista .cd-tabla{ height:100%; min-height:0; grid-template-rows:repeat(var(--n), minmax(0, 1fr)); gap:min(1.1vh, calc(30vh / var(--n))); }
+.cd-cierre__vista .cd-fila{ min-height:0; padding-block:0; gap:2vh; }
+.cd-cierre__vista .cd-fila__del b{ font-size:var(--fs); line-height:1.1; }
+.cd-cierre__vista .cd-fila__del small{ font-size:calc(var(--fs) * .5); line-height:1.2; }
+.cd-cierre__vista .cd-fila__pos{ width:calc(var(--fs) * 1.8); height:calc(var(--fs) * 1.8); font-size:calc(var(--fs) * .9); }
+.cd-cierre__vista .cd-fila__pts{ font-size:calc(var(--fs) * 1.2); }
+.cd-cierre__vista .cd-fila__barra{ height:calc(var(--fs) * .7); }
+.cd-tabla--densa .cd-fila__del small{ display:none; }
+.cd-cierre__nota{ margin:1.4vh 0 0; }

@@ -8,23 +8,23 @@
 // confirmar podio), el tiempo de los concursos, el show (sortear, abrir el muro) y el programa
 // de la inauguración.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611231746";
-import { CHARLAS } from "./charlas.js?v=202611231746";
-import { ENTREGABLES } from "./entregables.js?v=202611231746";
-import { porId } from "./concursos.js?v=202611231746";
-import { copaGeneral } from "./calculo.js?v=202611231746";
-import { crearCharlas } from "./admin-charlas.js?v=202611231746";
-import { proyectarCharlas } from "./admin-ponentes.js?v=202611231746";
-import { TALLERES } from "./talleres.js?v=202611231746";
-import { proyectarTalleres } from "./talleres-pres.js?v=202611231746";
-import { abrirMuro, abrirRuleta, proyectarCasos, abrirTransmision, abrirSorteo } from "./show.js?v=202611231746";
-import { abrirBarras, abrirGanadoresProyectos, abrirCierreDia1 } from "./cierre-dia1.js?v=202611231746";
-import { abrirCeremonia, cargarPrograma, crearInauguracion, leerPrograma } from "./inauguracion.js?v=202611231746";
-import { abrirEscenario } from "./escenario.js?v=202611231746";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231746";
-import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611231746";
-import { $, $$, esc, I, IMG, aviso, modal, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231746";
-import { salir } from "./app.js?v=202611231746";
+import { api, ES_DEMO } from "./api.js?v=202611231925";
+import { CHARLAS } from "./charlas.js?v=202611231925";
+import { ENTREGABLES } from "./entregables.js?v=202611231925";
+import { porId } from "./concursos.js?v=202611231925";
+import { copaGeneral } from "./calculo.js?v=202611231925";
+import { crearCharlas } from "./admin-charlas.js?v=202611231925";
+import { proyectarCharlas } from "./admin-ponentes.js?v=202611231925";
+import { TALLERES } from "./talleres.js?v=202611231925";
+import { proyectarTalleres } from "./talleres-pres.js?v=202611231925";
+import { abrirMuro, abrirRuleta, proyectarCasos, abrirTransmision, abrirSorteo } from "./show.js?v=202611231925";
+import { abrirBarras, abrirGanadoresProyectos, abrirCierreDia1 } from "./cierre-dia1.js?v=202611231925";
+import { abrirCeremonia, cargarPrograma, crearInauguracion, leerPrograma } from "./inauguracion.js?v=202611231925";
+import { abrirEscenario } from "./escenario.js?v=202611231925";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611231925";
+import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611231925";
+import { $, $$, esc, I, IMG, aviso, modal, fondoAnimado, pantallaActiva } from "./ui.js?v=202611231925";
+import { salir } from "./app.js?v=202611231925";
 
 const URL_CONOCIMIENTOS = "https://andyferaldo.github.io/concepmi-vi/concurso-conocimientos/";
 const DIAS = { d1: { corto: "Día 1", largo: "Martes 24 de noviembre", fecha: "2026-11-24" }, d2: { corto: "Día 2", largo: "Jueves 26 de noviembre", fecha: "2026-11-26" } };
@@ -48,7 +48,7 @@ export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {
   const abrirInauguracion = async () => { const P = await cargarPrograma(codigo); abrirCeremonia(P, { abrirCharla: () => irPaso(pasoId("c1")) }); };
   const ponencia = async (k) => proyectarCharlas(codigo, await ponentes(), k);
   const trivia = async (id) => { await recargar(); charlasUI.proyector(id); };
-  const premiacion = async () => { await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611231746"); abrirPremiacion(copaGeneral(data)); };
+  const premiacion = async () => { await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611231925"); abrirPremiacion(copaGeneral(data)); };
   const ganadoresProyectos = async () => { await recargar(); let nombres = {};
     try { const E = await api.adminEntregas(codigo, "proyectos"); E.equipos.forEach((x) => { if (x.entrega.datos?.proyecto) nombres[x.entrega.delegacion_id] = x.entrega.datos.proyecto; }); } catch { /* sin nombres de proyecto */ }
     abrirGanadoresProyectos(data, nombres); };
