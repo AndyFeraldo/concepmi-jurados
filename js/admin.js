@@ -1,29 +1,30 @@
 // =========================================================
 // Panel de ADMINISTRADOR
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611232146";
-import { SEGUNDOS_REFRESCO } from "./config.js?v=202611232146";
-import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611232146";
-import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611232146";
-import { exportarExcel } from "./excel.js?v=202611232146";
-import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611232146";
-import { crearLogistica } from "./admin-logistica.js?v=202611232146";
-import { crearEntregas } from "./admin-entregas.js?v=202611232146";
-import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611232146";
-import { crearInauguracion } from "./inauguracion.js?v=202611232146";
-import { crearMiAcceso } from "./mi-acceso.js?v=202611232146";
-import { crearCasos } from "./casos.js?v=202611232146";
-import { crearShow } from "./show.js?v=202611232146";
-import { crearDiaD, crearGuia } from "./diad.js?v=202611232146";
-import { crearCertificados } from "./certificados.js?v=202611232146";
-import { crearCharlas } from "./admin-charlas.js?v=202611232146";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611232146";
-import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611232146";
-import { puede, soloVer } from "./permisos.js?v=202611232146";
-import { ENTREGABLES } from "./entregables.js?v=202611232146";
-import { enlaceLinkedin } from "./colegas.js?v=202611232146";
-import { proyectarTalleres, archivosTaller, chipsTaller } from "./talleres-pres.js?v=202611232146";
-import { salir } from "./app.js?v=202611232146";
+import { api, ES_DEMO } from "./api.js?v=202611252102";
+import { SEGUNDOS_REFRESCO } from "./config.js?v=202611252102";
+import { CONCURSOS, porId, SANCIONES } from "./concursos.js?v=202611252102";
+import { resultados, copaGeneral, maxCopaTotal, textoGymkana } from "./calculo.js?v=202611252102";
+import { exportarExcel } from "./excel.js?v=202611252102";
+import { CHARLAS, PUNTOS_CHARLA, PUNTOS_PODIO } from "./charlas.js?v=202611252102";
+import { crearLogistica } from "./admin-logistica.js?v=202611252102";
+import { crearEntregas } from "./admin-entregas.js?v=202611252102";
+import { crearPonentes, proyectarCharlas } from "./admin-ponentes.js?v=202611252102";
+import { crearInauguracion } from "./inauguracion.js?v=202611252102";
+import { crearMiAcceso } from "./mi-acceso.js?v=202611252102";
+import { crearCasos } from "./casos.js?v=202611252102";
+import { crearShow } from "./show.js?v=202611252102";
+import { crearBarras } from "./barras.js?v=202611252102";
+import { crearDiaD, crearGuia } from "./diad.js?v=202611252102";
+import { crearCertificados } from "./certificados.js?v=202611252102";
+import { crearCharlas } from "./admin-charlas.js?v=202611252102";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, maxCopaTalleres, delegacionesGanadoras } from "./talleres.js?v=202611252102";
+import { $, $$, esc, fmt, avatar, hace, mmss, I, IMG, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611252102";
+import { puede, soloVer } from "./permisos.js?v=202611252102";
+import { ENTREGABLES } from "./entregables.js?v=202611252102";
+import { enlaceLinkedin } from "./colegas.js?v=202611252102";
+import { proyectarTalleres, archivosTaller, chipsTaller } from "./talleres-pres.js?v=202611252102";
+import { salir } from "./app.js?v=202611252102";
 
 const PESTANAS = [
   { id: "inicio", txt: "Mi acceso", icono: "escudo", soloAcceso: true },
@@ -41,10 +42,13 @@ const PESTANAS = [
   { id: "certificados", txt: "Certificados", icono: "libro" },
   { id: "inauguracion", txt: "Inauguración", icono: "escudo" },
   { id: "diad", txt: "Día D", icono: "reloj", soloAdmin: true },
+  { id: "barras", txt: "Concurso de Barras", icono: "vivo", soloAdmin: true },
   { id: "miguia", txt: "Mi Día D", icono: "reloj", soloAcceso: true },
   { id: "casos", txt: "Casos confidenciales", icono: "candado", soloAcceso: true, area: "casos" },
 ];
 const CON_JURADO = CONCURSOS.filter((c) => c.jurados > 0);
+// Pestañas que usan los datos generales: al entrar se leen de nuevo (ya no se actualizan solas cada 4 s)
+const VIVAS_AL_ENTRAR = ["vivo", "resultados", "copa", "jurados", "talleristas", "charlas", "show", "delegaciones", "barras"];
 
 // acceso = null → administrador. Con acceso (código limitado) solo salen sus pestañas y, donde solo
 // puede ver, se esconden los botones de cambios (la base de datos también lo exige).
@@ -69,6 +73,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
   const ponentesUI = crearPonentes({ codigo: () => codigo });
   const irA = (id) => { if (!visibles.some((p) => p.id === id)) return; pestana = id; $$("[data-p]", app).forEach((x) => x.setAttribute("aria-selected", String(x.dataset.p === id))); pintar(); };
   const diadUI = crearDiaD({ codigo: () => codigo, irA });
+  const barrasUI = crearBarras({ data: () => data });
   const guiaUI = crearGuia({ codigo: () => codigo });
   const casosUI = crearCasos({ codigo: () => codigo, cambiarCodigo: (c) => { codigo = c; } });
   const showUI = crearShow({ codigo: () => codigo, data: () => data, importarInscritos: puede(acceso, "charlas") ? (listo) => charlasUI.importarInscritos(listo) : null });
@@ -105,7 +110,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       <section id="vista"></section>
     </main>
     ${ES_DEMO ? `<span class="demo-banda">VISTA PREVIA · nada de aquí se guarda en la nube</span>` : ""}`;
-    $$("[data-p]", app).forEach((b) => (b.onclick = () => { pestana = b.dataset.p; $$("[data-p]", app).forEach((x) => x.setAttribute("aria-selected", String(x === b))); pintar(); }));
+    $$("[data-p]", app).forEach((b) => (b.onclick = () => { pestana = b.dataset.p; $$("[data-p]", app).forEach((x) => x.setAttribute("aria-selected", String(x === b))); pintar(); if (VIVAS_AL_ENTRAR.includes(pestana)) recargar(); }));
     $("[data-salir]", app).onclick = () => { clearInterval(temporizador); soloVer(null); salir(); };
     if ($("[data-excel]", app)) $("[data-excel]", app).onclick = () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } };
     if ($("[data-clave]", app)) $("[data-clave]", app).onclick = cambiarClave;
@@ -117,7 +122,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
     const v = $("#vista", app);
     if (!v) return;
     const ro = !editable(pestana); soloVer(ro ? pestana : null); $("[data-ro-aviso]", app).hidden = !ro;
-    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones, certificados: certificadosUI.vista, inauguracion: inauguracionUI.vista, ponentes: ponentesUI.vista, diad: diadUI.vista, miguia: guiaUI.vista, casos: casosUI.vista, show: showUI.vista, inicio: inicioUI?.vista })[pestana](v);
+    ({ vivo, resultados: vistaResultados, copa, jurados, talleristas, charlas: charlasUI.vista, logistica: logisticaUI.vista, entregas: entregasUI.vista, delegaciones, certificados: certificadosUI.vista, inauguracion: inauguracionUI.vista, ponentes: ponentesUI.vista, diad: diadUI.vista, barras: barrasUI.vista, miguia: guiaUI.vista, casos: casosUI.vista, show: showUI.vista, inicio: inicioUI?.vista })[pestana](v);
   }
 
   async function recargar(forzar = false) {
@@ -128,19 +133,20 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       data = nuevo; firma = f;
       const ocupado = document.querySelector(".velo") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#vista", app)?.contains(document.activeElement));
       // La logística no depende de estos datos: no se repinta sola para no perder lo que estás viendo
-      if ((forzar || !ocupado) && !["logistica", "entregas", "certificados", "inauguracion", "ponentes", "diad", "miguia", "casos", "inicio"].includes(pestana)) pintar();
+      if ((forzar || !ocupado) && !["logistica", "entregas", "certificados", "inauguracion", "ponentes", "diad", "barras", "miguia", "casos", "inicio"].includes(pestana)) pintar();
     } catch { /* se reintenta en el siguiente ciclo */ }
   }
   // Ahorro de datos: no se actualiza si la pestaña del navegador está oculta, y en Logística y
   // Entregas (que tienen su propia actualización) solo cada ~30 s. Al volver a la pestaña se pone al día.
-  let vueltas = 0;
+  // Ahorro de tráfico (plan gratuito de Supabase: 5 GB/mes): cada lectura trae todo, fotos incluidas
+  // (~300 KB). Solo En vivo, Resultados y Copa se actualizan solas, cada 15 s; las demás leen al
+  // entrar a la pestaña (y Entregas / Logística tienen su propia actualización).
+  const VIVAS = ["vivo", "resultados", "copa"];
   temporizador = setInterval(() => {
     if (!document.body.contains($("#vista", app))) return clearInterval(temporizador);
-    if (document.hidden) return;
-    vueltas++;
-    if (["logistica", "entregas"].includes(pestana) && vueltas % Math.round(30 / SEGUNDOS_REFRESCO)) return;
+    if (document.hidden || !VIVAS.includes(pestana)) return;
     recargar();
-  }, SEGUNDOS_REFRESCO * 1000);
+  }, Math.max(15, SEGUNDOS_REFRESCO) * 1000);
   const alVolver = () => { if (!document.body.contains($("#vista", app))) return document.removeEventListener("visibilitychange", alVolver); if (!document.hidden) recargar(); };
   document.addEventListener("visibilitychange", alVolver);
 
@@ -706,7 +712,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
           <button class="btn" data-excel2 title="El Excel trae los puntajes: no lo abras mientras compartes pantalla.">${I.descargar}Exportar todo a Excel</button>
           ${acceso ? "" : `<button class="btn btn--peligro" data-borrar-copa title="Para limpiar las pruebas: elige de qué concursos, talleres y charlas quitar los puntos">${I.basura}Eliminar resultados</button>`}</div>` : ""}</div>
       ${data.delegaciones.length ? `<section class="tarjeta copa-cierre"><div><b>${I.pizarra} Cierre del Día 1 · para el proyector</b><small>Se abren a pantalla completa. También están en el Panel de Proyección (cronograma), con el botón «Siguiente».</small></div>
-        <div class="copa-cierre__acc"><button class="btn" data-cd="barras">🎺 Concurso de Barras (fondo)</button><button class="btn" data-cd="proyectos">🏆 Ganadores de Proyectos</button><button class="btn" data-cd="amateur-1">🏆 Amateur I</button><button class="btn" data-cd="amateur-2">🏆 Amateur II</button><button class="btn" data-cd="iathon">🏆 IATHON</button><button class="btn btn--naranja" data-cd="cierre">📊 Así va la Copa · ¡Nos vemos el 26!</button></div></section>` : ""}
+        <div class="copa-cierre__acc"><button class="btn" data-cd="proyectos">🏆 Ganadores de Proyectos</button><button class="btn" data-cd="amateur-1">🏆 Amateur I</button><button class="btn" data-cd="amateur-2">🏆 Amateur II</button><button class="btn" data-cd="iathon">🏆 IATHON</button><button class="btn btn--naranja" data-cd="cierre">📊 Así va la Copa · ¡Nos vemos el 26!</button></div></section>` : ""}
       <div class="copa-velo ${copaVisible ? "" : "copa-velo--oculta"}">
       ${!copaVisible && data.delegaciones.length ? `<div class="copa-velo__aviso"><b>${I.candado} Tabla oculta para no revelar a los ganadores</b><span>Si compartes pantalla, nadie puede leer los puestos ni los puntos.</span><button class="btn btn--naranja" data-ver-copa>${I.abierto}Mostrar tabla</button></div>` : ""}
       <div class="copa-velo__contenido" ${copaVisible ? "" : 'aria-hidden="true" inert'}>
@@ -722,7 +728,7 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       ${data.delegaciones.length ? `<p class="ayuda" style="margin-top:12px">La <b>ceremonia de premiación</b> se abre en pantalla completa: cuenta regresiva, tabla del último al 4.º puesto y el TOP 3 con redoble y Wolfitos de bronce, plata y oro. Avanza con <b>Espacio</b> o en modo <b>Automático</b>. El Excel también trae los puntajes: no lo abras mientras compartes pantalla.</p>` : ""}`;
     $$("[data-ver-copa]", v).forEach((b) => (b.onclick = () => { copaVisible = !copaVisible; copa(v); }));
     $$("[data-cd]", v).forEach((b) => (b.onclick = async () => {
-      const m = await import("./cierre-dia1.js?v=202611232146");
+      const m = await import("./cierre-dia1.js?v=202611252102");
       if (b.dataset.cd === "barras") return m.abrirBarras(data.delegaciones);
       if (b.dataset.cd === "cierre") return m.abrirCierreDia1(data);
       if (b.dataset.cd !== "proyectos") return m.abrirGanadores(data, b.dataset.cd);
@@ -730,9 +736,9 @@ export async function vistaAdmin(app, codigo, acceso = null, { abrirProyeccion =
       try { (await api.adminEntregas(codigo, "proyectos")).equipos.forEach((x) => { if (x.entrega.datos?.proyecto) nombres[x.entrega.delegacion_id] = x.entrega.datos.proyecto; }); } catch { /* sin nombres de proyecto */ }
       m.abrirGanadoresProyectos(data, nombres);
     }));
-    $("[data-borrar-copa]", v)?.addEventListener("click", async () => { const { abrirBorrarResultados } = await import("./copa-borrar.js?v=202611232146"); abrirBorrarResultados({ codigo, data, recargar }); });
+    $("[data-borrar-copa]", v)?.addEventListener("click", async () => { const { abrirBorrarResultados } = await import("./copa-borrar.js?v=202611252102"); abrirBorrarResultados({ codigo, data, recargar }); });
     $("[data-excel2]", v)?.addEventListener("click", () => { try { exportarExcel(data); aviso("Excel generado"); } catch (e) { aviso(e.message, "error"); } });
-    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611232146"); abrirPremiacion(copaGeneral(data)); });
+    $("[data-premiacion]", v)?.addEventListener("click", async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611252102"); abrirPremiacion(copaGeneral(data)); });
   }
 
   // ---------------- Jurados ----------------
