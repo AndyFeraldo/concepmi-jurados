@@ -2387,3 +2387,57 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cc-card__top li{ display:flex; align-items:center; gap:8px; font-size:.9rem; } .cc-card__top em{ font-style:normal; font-weight:800; color:var(--ambar); width:26px; } .cc-card__top b{ flex:1; } .cc-card__top span{ color:var(--niebla); }
 .cc-vacio{ color:var(--tenue); font-style:italic; }
 .cc-juntos{ display:flex; gap:2vw; flex-wrap:wrap; justify-content:center; }
+
+/* ===== Ceremonia de cierre · HYPE: reflectores, suspenso, destello y rayos ===== */
+.cc-cierre{ background:radial-gradient(circle at 50% 115%, #6E2BE6 0%, #2A1290 35%, #120A45 65%, #07031F 100%); transition:background .8s; }
+.cc-cierre[data-fase~="suspenso"]{ background:radial-gradient(circle at 50% 50%, #1B0E5A 0%, #07031F 70%, #000 100%); }
+.cc-focos{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.cc-focos i{ position:absolute; bottom:-10vh; width:28vw; height:130vh; transform-origin:50% 100%; background:linear-gradient(0deg, rgba(255,255,255,.22), rgba(255,255,255,0) 85%); clip-path:polygon(42% 100%, 58% 100%, 100% 0, 0 0); filter:blur(6px); mix-blend-mode:screen; animation:ccFoco 7s ease-in-out infinite alternate; }
+.cc-focos i:nth-child(1){ left:5vw; --a:-28deg; --b:18deg; } .cc-focos i:nth-child(2){ left:36vw; --a:-14deg; --b:14deg; animation-duration:5.5s; background:linear-gradient(0deg, rgba(255,194,61,.25), rgba(255,194,61,0) 85%); }
+.cc-focos i:nth-child(3){ right:5vw; --a:22deg; --b:-20deg; animation-duration:6.3s; background:linear-gradient(0deg, rgba(31,203,234,.22), rgba(31,203,234,0) 85%); }
+@keyframes ccFoco{ from{ transform:rotate(var(--a)); } to{ transform:rotate(var(--b)); } }
+.cc-cierre[data-fase~="suspenso"] .cc-focos i{ animation-duration:1.1s !important; }
+.cc-rayos{ position:absolute; left:50%; top:52%; width:170vmax; height:170vmax; margin:-85vmax 0 0 -85vmax; z-index:0; pointer-events:none; opacity:0; transition:opacity .6s;
+  background:repeating-conic-gradient(from 0deg, rgba(255,194,61,.16) 0deg 7deg, rgba(255,194,61,0) 7deg 20deg); animation:ccGira 22s linear infinite;
+  -webkit-mask:radial-gradient(circle, #000 0%, rgba(0,0,0,.6) 30%, transparent 60%); mask:radial-gradient(circle, #000 0%, rgba(0,0,0,.6) 30%, transparent 60%); }
+.cc-cierre[data-fase~="revelado"] .cc-rayos, .cc-cierre[data-fase="copa"] .cc-rayos{ opacity:1; }
+.cc-cierre[data-fase~="revelado-2"] .cc-rayos{ filter:grayscale(1) brightness(1.4); } .cc-cierre[data-fase~="revelado-3"] .cc-rayos{ filter:hue-rotate(-18deg) saturate(.8); }
+@keyframes ccGira{ to{ transform:rotate(360deg); } }
+.cc-flash{ position:absolute; inset:0; z-index:60; background:#fff; opacity:0; pointer-events:none; }
+.cc-flash--on{ animation:ccFlash .9s ease-out; } @keyframes ccFlash{ 0%{ opacity:.95; } 100%{ opacity:0; } }
+.cc-tiembla .cd-proy__vista{ animation:ccTiembla .7s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes ccTiembla{ 10%,90%{ transform:translate(-4px,2px); } 20%,80%{ transform:translate(8px,-4px); } 30%,50%,70%{ transform:translate(-14px,6px); } 40%,60%{ transform:translate(14px,-6px); } }
+.cc-logo{ height:9vh; justify-self:center; filter:drop-shadow(0 0 30px rgba(169,139,255,.8)); animation:latido 2.4s infinite; }
+.cc-titulo{ animation:ccEntra 1s cubic-bezier(.2,1.4,.4,1) both; filter:drop-shadow(0 0 40px rgba(169,139,255,.55)); }
+@keyframes ccEntra{ from{ opacity:0; transform:scale(.6) translateY(4vh); letter-spacing:.3em; filter:blur(12px); } to{ opacity:1; transform:none; } }
+.cc-port .cc-icono{ animation:ccIcono 1s cubic-bezier(.2,1.6,.4,1) both, latido 1.6s 1s infinite; }
+@keyframes ccIcono{ from{ transform:scale(0) rotate(-200deg); } to{ transform:none; } }
+.cc-port small, .cc-port p{ animation:jurEntra .8s .5s both; } .cc-port p{ animation-delay:1.1s; }
+.cc-lista li{ animation-delay:calc(var(--i) * .12s + .6s); }
+/* Suspenso */
+.cc-susp{ display:grid; justify-items:center; gap:3vh; text-align:center; }
+.cc-susp > small{ font-size:3.6vh; font-weight:800; color:#FFD48A; letter-spacing:.08em; text-transform:uppercase; }
+.cc-tambor{ font-size:14vh; line-height:1; animation:ccTambor .16s ease-in-out infinite alternate; filter:drop-shadow(0 0 30px rgba(255,106,31,.7)); }
+@keyframes ccTambor{ from{ transform:rotate(-8deg) scale(1); } to{ transform:rotate(8deg) scale(1.08); } }
+.cc-slot{ min-width:50vw; padding:2.4vh 5vw; border-radius:3vh; background:rgba(0,0,0,.45); border:4px solid rgba(255,194,61,.7); box-shadow:0 0 60px rgba(255,194,61,.35), inset 0 0 40px rgba(110,43,230,.5); overflow:hidden; }
+.cc-slot b{ display:block; font-family:var(--neon); font-weight:400; font-size:11vh; line-height:1.05; color:#fff; filter:blur(1.2px); text-shadow:0 0 24px rgba(255,255,255,.5); }
+.cc-slot--fin{ filter:none !important; color:#FFC23D !important; animation:latido .4s infinite; }
+.cc-reloj{ width:min(60vw, 900px); height:1.3vh; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; }
+.cc-reloj i{ display:block; height:100%; width:0; background:linear-gradient(90deg, #1FCBEA, #FFC23D 60%, #FF6A1F); animation:ccLlena linear forwards; }
+@keyframes ccLlena{ to{ width:100%; } }
+.cc-quien{ font-size:3.4vh; color:var(--niebla); font-weight:600; animation:latido 1s infinite; }
+.cc-susp--1 .cc-slot{ border-color:#FFC23D; box-shadow:0 0 90px rgba(255,194,61,.55), inset 0 0 50px rgba(255,106,31,.4); }
+/* Revelación */
+.cc-rev .cd-lugar{ animation:ccRevela 1.1s cubic-bezier(.2,1.5,.35,1) both; box-shadow:0 0 80px rgba(255,194,61,.35); }
+.cc-rev .cd-lugar--1{ box-shadow:0 0 120px rgba(255,194,61,.75), 0 0 0 6px rgba(255,194,61,.35); }
+@keyframes ccRevela{ 0%{ opacity:0; transform:perspective(900px) rotateY(90deg) scale(.4); } 60%{ opacity:1; transform:perspective(900px) rotateY(-12deg) scale(1.08); } 100%{ transform:none; } }
+.cc-rev .cd-lugar__medalla{ animation:ccMedalla 1.4s .5s cubic-bezier(.2,1.6,.4,1) both; } @keyframes ccMedalla{ from{ transform:scale(0) rotate(-360deg); } to{ transform:none; } }
+.cc-rev > small{ animation:jurEntra .6s both; }
+.cc-campeon{ margin:0; font-family:var(--neon); font-size:4.6vh; background:linear-gradient(90deg, #FFE27A, #FFC23D 40%, #FF6A1F 70%, #FFE27A); background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent; animation:ccBrillo 2s linear infinite, jurEntra .8s .9s both; text-align:center; }
+@keyframes ccBrillo{ to{ background-position:200% center; } }
+.cc-podio .cd-lugar{ animation:ccSube .9s cubic-bezier(.2,1.3,.4,1) both; } .cc-podio .cd-lugar--1{ animation-delay:.35s; } .cc-podio .cd-lugar--3{ animation-delay:.2s; }
+@keyframes ccSube{ from{ opacity:0; transform:translateY(30vh); } to{ opacity:1; } }
+.cc-resto span{ animation:jurEntra .5s both; animation-delay:calc(.9s + var(--i) * .08s); }
+.cc-copa .cc-icono{ font-size:16vh; animation:ccIcono 1.2s cubic-bezier(.2,1.6,.4,1) both, latido 1.4s 1.2s infinite; }
+@media (prefers-reduced-motion: reduce){ .cc-focos i, .cc-rayos, .cc-tambor, .cc-titulo, .cc-rev .cd-lugar, .cc-tiembla .cd-proy__vista{ animation:none !important; } }
+.gala--tiembla .gala__escena{ animation:ccTiembla .7s cubic-bezier(.36,.07,.19,.97) both; }

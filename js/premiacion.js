@@ -6,7 +6,8 @@
 //  4. Campeona: fanfarria, lluvia de confeti y Wolfitos bailando · podio final
 // Avanza con Espacio / → / clic en «Siguiente», o en modo Automático.
 // =========================================================
-import { $, esc, I, IMG, fondoAnimado, pantallaActiva } from "./ui.js?v=202611252237";
+import { $, esc, I, IMG, fondoAnimado, pantallaActiva } from "./ui.js?v=202611252306";
+import { hype } from "./hype.js?v=202611252306";
 
 const METAL = {
   3: { clase: "bronce", txt: "3.er LUGAR", medalla: "Medalla de bronce", colores: ["#CD7F32", "#E8A96B", "#8C4A1E", "#FFD2A6"] },
@@ -80,12 +81,13 @@ export function abrirPremiacion(filasCopa) {
     <div class="gala__bailarines" data-bailarines aria-hidden="true"></div>
     <nav class="gala__ctrl" data-ctrl>
       <span class="gala__paso" data-paso></span>
+      <button class="btn btn--mini" data-ant>◀ <span>Anterior</span></button>
       <button class="btn btn--mini btn--naranja" data-sig>${I.flecha}<span>Siguiente</span></button>
       <button class="btn btn--mini" data-auto>Automático: no</button>
       <button class="btn btn--mini" data-reini>↺ Empezar de nuevo</button>
       <button class="btn btn--mini" data-full>Pantalla completa</button>
       <button class="btn btn--mini" data-cerrar>${I.cerrar}<span>Salir</span></button>
-      <small>Espacio o → = siguiente · F = pantalla completa · Esc = salir</small>
+      <small>Espacio o → = siguiente · ← = anterior · M = música · F = pantalla completa · Esc = salir</small>
     </nav>`;
   document.body.append(el);
   document.documentElement.requestFullscreen?.().catch(() => {});
@@ -122,6 +124,7 @@ export function abrirPremiacion(filasCopa) {
     const p = pasos[i];
     clearInterval(lluvia); lluvia = null;
     el.dataset.fase = p.t; el.dataset.metal = p.n ? METAL[p.n].clase : "";
+    if (p.t !== "podio") { el.classList.remove("gala--tiembla"); hype.musica({ portada: "gala", cuenta: "suspenso", fila: "fiesta", "intro-top": "gala", final: "fiesta" }[p.t], { portada: 0.4, fila: 0.35, "intro-top": 0.5, final: 0.6 }[p.t]); }
     $("[data-paso]", el).textContent = `Paso ${i + 1} de ${pasos.length}`;
     $("[data-bailarines]", el).classList.toggle("gala__bailarines--on", p.t === "final" || (p.t === "podio" && p.n === 1));
     if (p.t === "portada") {
@@ -146,7 +149,7 @@ export function abrirPremiacion(filasCopa) {
         <div class="gala__trio">${wolfMetal(3, "wolf-metal--mini")}${wolfMetal(2, "wolf-metal--mini")}${wolfMetal(1, "wolf-metal--mini")}</div></div>`;
       sonido.platillo();
     } else if (p.t === "podio") {
-      const M = METAL[p.n], gana = top(p.n), redoble = p.n === 1 ? 4.2 : 3;
+      const M = METAL[p.n], gana = top(p.n), redoble = p.n === 1 ? 8 : p.n === 2 ? 6 : 5; // suspenso largo para que el presentador haga juego
       escena.innerHTML = `<div class="gala__lugar gala__lugar--${M.clase}">
         <div class="gala__suspenso" data-suspenso><small>${M.txt}</small><b>🥁</b><span>Redoble de tambores…</span></div>
         <div class="gala__revela" data-revela hidden>
@@ -157,11 +160,12 @@ export function abrirPremiacion(filasCopa) {
             <div class="gala__puntos"><b data-cuenta="${gana[0].total}">0</b><span>puntos</span></div>
             ${p.n === 1 ? `<p class="gala__campeona">¡DELEGACIÓN CAMPEONA DEL VI CONCEPMI 2026!</p>` : ""}</div>
         </div></div>`;
-      sonido.redoble(redoble);
+      hype.musica("suspenso"); hype.redoble(redoble); p.suspenso = true;
       const t = setTimeout(() => {
         if (pasos[i] !== p) return;
         $("[data-suspenso]", escena).hidden = true; $("[data-revela]", escena).hidden = false;
-        sonido.platillo(); sonido.fanfarria(p.n === 1);
+        p.suspenso = false; sonido.platillo(); hype.impacto(); hype.fanfarria(p.n); el.classList.remove("gala--tiembla"); void el.offsetWidth; if (p.n === 1) el.classList.add("gala--tiembla");
+        setTimeout(() => pasos[i] === p && hype.musica(p.n === 1 ? "fiesta" : "gala", p.n === 1 ? 0.6 : 0.4), 1800);
         confeti(M.colores, p.n === 1);
         contar($("[data-cuenta]", escena), gana[0].total, 1600);
         if (p.n === 1) { bailar(6); lluvia = setInterval(() => confeti(M.colores), 2600); }
@@ -181,7 +185,14 @@ export function abrirPremiacion(filasCopa) {
   }
 
   // ---------- Navegación ----------
-  function siguiente() { if (i >= pasos.length - 1) return; pasos[i].limpiar?.(); i++; pintar(); }
+  function siguiente() { if (i >= pasos.length - 1 || pasos[i].suspenso) return; pasos[i].limpiar?.(); pasos[i].suspenso = false; i++; pintar(); }
+  // Retroceder: vuelve al paso anterior (se salta la cuenta regresiva) y deja revelado solo lo de antes
+  function anterior() {
+    if (i <= 0) return; pasos[i].limpiar?.(); pasos[i].suspenso = false; i--;
+    if (pasos[i].t === "cuenta") i--;
+    revelados = new Set(pasos.slice(0, i + 1).filter((x) => x.t === "fila").map((x) => x.f.delegacion.id));
+    pintar();
+  }
   function programarAuto() {
     clearTimeout(temporizador);
     if (!auto) return;
@@ -190,12 +201,12 @@ export function abrirPremiacion(filasCopa) {
   }
   const mostrar = () => { el.classList.add("gala--ctrl"); clearTimeout(ocultar); ocultar = setTimeout(() => el.classList.remove("gala--ctrl"), 3000); };
   el.addEventListener("mousemove", mostrar);
-  $("[data-sig]", el).onclick = siguiente;
+  $("[data-sig]", el).onclick = siguiente; $("[data-ant]", el).onclick = anterior;
   $("[data-auto]", el).onclick = (ev) => { auto = !auto; ev.currentTarget.textContent = `Automático: ${auto ? "sí" : "no"}`; ev.currentTarget.classList.toggle("btn--naranja", auto); programarAuto(); };
   $("[data-reini]", el).onclick = () => { pasos[i].limpiar?.(); i = 0; revelados = new Set(); $("[data-bailarines]", el).innerHTML = ""; pintar(); };
   $("[data-full]", el).onclick = () => document.documentElement.requestFullscreen?.().catch(() => {});
   const cerrar = () => {
-    pantallaActiva.cerrada(cerrar); pasos[i].limpiar?.(); clearTimeout(temporizador); clearInterval(lluvia); clearTimeout(ocultar);
+    pantallaActiva.cerrada(cerrar); pasos[i].limpiar?.(); clearTimeout(temporizador); clearInterval(lluvia); clearTimeout(ocultar); hype.parar();
     document.removeEventListener("keydown", tecla);
     if (document.fullscreenElement && !pantallaActiva.transicion) document.exitFullscreen?.().catch(() => {});
     el.remove();
@@ -203,7 +214,9 @@ export function abrirPremiacion(filasCopa) {
   $("[data-cerrar]", el).onclick = cerrar; pantallaActiva.abrir(cerrar);
   const tecla = (e) => {
     if (document.activeElement?.tagName === "BUTTON") document.activeElement.blur();
-    if (e.key === " " || e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); siguiente(); }
+    if (e.key === " " || e.key === "ArrowRight" || e.key === "Enter" || e.key === "PageDown") { e.preventDefault(); siguiente(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); anterior(); }
+    else if (e.key === "m" || e.key === "M") hype.silencio();
     else if (e.key === "f" || e.key === "F") document.documentElement.requestFullscreen?.().catch(() => {});
     else if (e.key === "Escape" && !document.fullscreenElement) cerrar();
   };

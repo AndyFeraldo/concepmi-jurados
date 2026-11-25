@@ -3,10 +3,10 @@
 // todo lo que el administrador le habilitó (qué puede EDITAR, qué puede solo VER) y lo lleva ahí.
 //   destinos: { areaId | "entregas" | "proyeccion" | "casos" | "guia": función que abre esa parte }
 // =========================================================
-import { AREAS, nivel } from "./permisos.js?v=202611252237";
-import { ENTREGABLES } from "./entregables.js?v=202611252237";
-import { porId } from "./concursos.js?v=202611252237";
-import { $$, esc, I } from "./ui.js?v=202611252237";
+import { AREAS, nivel } from "./permisos.js?v=202611252306";
+import { ENTREGABLES } from "./entregables.js?v=202611252306";
+import { porId } from "./concursos.js?v=202611252306";
+import { $$, esc, I } from "./ui.js?v=202611252306";
 
 const ICONO = { vivo: "vivo", resultados: "tabla", copa: "copa", jurados: "personas", talleristas: "pizarra", charlas: "vivo", delegaciones: "bandera", logistica: "caja", proyeccion: "pizarra", casos: "candado", diad: "reloj", show: "copa" };
 // Lo que encuentra en cada pestaña, dicho en simple
