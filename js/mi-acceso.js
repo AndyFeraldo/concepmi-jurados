@@ -3,17 +3,17 @@
 // todo lo que el administrador le habilitó (qué puede EDITAR, qué puede solo VER) y lo lleva ahí.
 //   destinos: { areaId | "entregas" | "proyeccion" | "casos" | "guia": función que abre esa parte }
 // =========================================================
-import { AREAS, nivel } from "./permisos.js?v=202611252120";
-import { ENTREGABLES } from "./entregables.js?v=202611252120";
-import { porId } from "./concursos.js?v=202611252120";
-import { $$, esc, I } from "./ui.js?v=202611252120";
+import { AREAS, nivel } from "./permisos.js?v=202611252237";
+import { ENTREGABLES } from "./entregables.js?v=202611252237";
+import { porId } from "./concursos.js?v=202611252237";
+import { $$, esc, I } from "./ui.js?v=202611252237";
 
 const ICONO = { vivo: "vivo", resultados: "tabla", copa: "copa", jurados: "personas", talleristas: "pizarra", charlas: "vivo", delegaciones: "bandera", logistica: "caja", proyeccion: "pizarra", casos: "candado", diad: "reloj", show: "copa" };
 // Lo que encuentra en cada pestaña, dicho en simple
 const QUE_HAY = {
   vivo: "El avance de cada concurso en tiempo real y las últimas calificaciones.",
   resultados: "Las tablas de resultados de cada concurso, con el detalle por jurado.",
-  copa: "La tabla general de la Copa CONCEPMI, la ceremonia de premiación, el Excel y las pantallas del cierre del Día 1 (Barras, ganadores de Proyectos, Amateur I, Amateur II e IATHON, y «Así va la Copa»).",
+  copa: "La tabla general de la Copa CONCEPMI, la ceremonia de premiación, el Excel y la pestaña Ceremonia de cierre (ganadores de los 8 concursos para el proyector).",
   jurados: "Quiénes son los jurados: foto, perfil, LinkedIn y a qué concursos van. También los que faltan por concurso.",
   talleristas: "Los 4 talleres: sus talleristas, si ya subieron su presentación (PDF) y el botón Proyectar; también los equipos ganadores.",
   charlas: "Las 3 charlas magistrales, sus ponentes (pestaña Ponentes), las trivias, preguntas y podios.",

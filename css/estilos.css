@@ -2355,3 +2355,35 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cb-subiendo{ position:relative; margin-top:6px; height:18px; border-radius:99px; background:rgba(255,255,255,.1); overflow:hidden; min-width:140px; }
 .cb-subiendo i{ position:absolute; inset:0 auto 0 0; width:0; background:linear-gradient(90deg, var(--violeta), var(--naranja)); transition:width .2s; }
 .cb-subiendo span{ position:relative; display:block; text-align:center; font-size:.72rem; font-weight:700; line-height:18px; }
+
+/* ===== Ceremonia de cierre: ganadores de los 8 concursos (js/ceremonia-cierre.js) ===== */
+.cc-cierre .cd-proy__vista{ align-content:center; }
+.cc-icono{ font-size:12vh; line-height:1; filter:drop-shadow(0 0 30px rgba(255,194,61,.5)); animation:latido 1.6s infinite; }
+.cc-inicio h1{ font-size:9vh; }
+.cc-lista{ list-style:none; margin:2vh 0 0; padding:0; display:flex; flex-wrap:wrap; justify-content:center; gap:1.2vh 1.6vh; max-width:80vw; }
+.cc-lista li{ padding:1vh 2vh; border-radius:99px; background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.18); font-size:2.4vh; font-weight:600; animation:cdDel .6s both; }
+.cc-lista li:nth-child(n+4){ border-color:rgba(31,203,234,.5); }
+.cc-podio{ display:grid; justify-items:center; gap:3vh; width:100%; }
+.cc-podio__tit{ font-family:var(--neon); font-size:4.4vh; color:#FFD48A; }
+.cc-resto{ display:flex; flex-wrap:wrap; justify-content:center; gap:1.2vh; max-width:90vw; }
+.cc-resto span{ display:flex; align-items:baseline; gap:1vh; padding:1vh 2vh; border-radius:1.6vh; background:rgba(14,8,56,.7); border:1px solid rgba(255,255,255,.18); }
+.cc-resto em{ font-style:normal; font-family:var(--neon); color:var(--niebla); font-size:2.2vh; } .cc-resto b{ font-family:var(--neon); font-weight:400; font-size:2.6vh; } .cc-resto small{ color:#FFC23D; font-size:2vh; font-weight:700; }
+.cc-nota{ margin:0; font-size:2.6vh; color:var(--niebla); }
+.cc-copa h1{ font-size:14vh; background:linear-gradient(90deg, #FFE27A, #FFC23D 45%, #FF6A1F); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.cc-copa .btn{ justify-self:center; font-size:2.4vh; padding:1.6vh 3.4vh; margin-top:1vh; }
+.cc-mapa{ position:absolute; right:3vw; top:3vh; z-index:3; display:flex; gap:.8vh; }
+.cc-mapa span{ width:5vh; height:5vh; border-radius:50%; display:grid; place-items:center; font-size:2.6vh; background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.15); opacity:.55; }
+.cc-mapa .cc-mapa--hecho{ opacity:.9; border-color:#3BE08F; } .cc-mapa .cc-mapa--ahora{ opacity:1; border-color:#FFC23D; box-shadow:0 0 20px rgba(255,194,61,.6); transform:scale(1.15); }
+/* Pestaña del admin */
+.cc-acc{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; }
+.cc-grande{ font-size:1.02rem; padding:12px 20px; }
+.cc-aviso{ margin:0 0 12px; padding:10px 14px; border-radius:12px; background:rgba(255,194,61,.12); border:1px solid rgba(255,194,61,.5); font-size:.9rem; }
+.cc-ok{ margin:0 0 12px; padding:10px 14px; border-radius:12px; background:rgba(59,224,143,.12); border:1px solid rgba(59,224,143,.5); font-size:.9rem; }
+.cc-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; margin-bottom:12px; }
+.cc-card{ margin:0; padding:14px 16px; display:grid; gap:10px; border-left:4px solid var(--naranja); } .cc-card--acad{ border-left-color:var(--celeste); }
+.cc-card__cab{ display:flex; align-items:center; gap:10px; } .cc-card__cab > div{ flex:1; min-width:0; display:grid; } .cc-card__cab small{ color:var(--niebla); font-size:.8rem; }
+.cc-card__n{ width:30px; height:30px; border-radius:50%; flex:none; display:grid; place-items:center; font-family:var(--neon); background:rgba(255,255,255,.1); }
+.cc-card__top{ list-style:none; margin:0; padding:0; display:grid; gap:4px; transition:filter .3s; } .cc-oculto{ filter:blur(7px); user-select:none; }
+.cc-card__top li{ display:flex; align-items:center; gap:8px; font-size:.9rem; } .cc-card__top em{ font-style:normal; font-weight:800; color:var(--ambar); width:26px; } .cc-card__top b{ flex:1; } .cc-card__top span{ color:var(--niebla); }
+.cc-vacio{ color:var(--tenue); font-style:italic; }
+.cc-juntos{ display:flex; gap:2vw; flex-wrap:wrap; justify-content:center; }
