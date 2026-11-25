@@ -1,74 +1,48 @@
 // =========================================================
 // CONCURSO DE BARRAS (jueves 26/11, 2:30 – 3:30 p. m., auditorio). Pestaña propia del admin:
-//   · Todas las delegaciones (pestaña Delegaciones) con su pista: el admin sube un MP3 por delegación.
-//   · Sorteo rápido del orden de salida (pantalla completa) → «Confirmar orden».
+//   · Todas las delegaciones (pestaña Delegaciones) con su pista: se sube un MP3 por delegación a la
+//     PLATAFORMA (espacio privado jur-presentaciones/barras/<delegación>/, migración jur_37_barras_pistas,
+//     función Edge con barras: true), así se usa desde cualquier laptop y se puede cambiar en pleno evento.
+//   · Sorteo rápido del orden de salida (pantalla completa) → «Confirmar orden» (se guarda en la base:
+//     todas las laptops ven el mismo orden).
 //   · Proyectar: el fondo animado de BARRAS con las delegaciones en el orden del sorteo; → / ← pasa de
 //     delegación y abajo sale el reproductor de su pista: ▶ Play · ⏸ Pausa · ⏹ Stop, con el tiempo de la
 //     pista (cuenta regresiva) y una barra que avanza. Al terminar la última, «¡Gracias a todas las
 //     delegaciones!».
-// Las pistas y el orden se guardan SOLO en este navegador (IndexedDB / localStorage): no gastan el
-// tráfico de Supabase (plan gratuito) y suenan aunque el auditorio no tenga internet. Por eso hay que
-// subirlas en la MISMA laptop que va a proyectar.
+// Permisos (los del Show en vivo): subir / quitar / sortear = admin o Show «editar»; escuchar y proyectar =
+// además Show «ver» y Proyección. Cada pista se descarga solo cuando le toca (poco tráfico).
 // =========================================================
-import { pantalla, tono, fanfarria } from "./show.js?v=202611252102";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611252102";
+import { api } from "./api.js?v=202611252120";
+import { pantalla, tono, fanfarria } from "./show.js?v=202611252120";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611252120";
 
-const CLAVE_ORDEN = "concepmi-barras-orden-v1";
-const DB = "concepmi-barras", TIENDA = "pistas";
-
-// ---------- Almacenamiento local de las pistas (IndexedDB) ----------
-function abrirDB() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(TIENDA);
-    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error || new Error("No se pudo abrir el almacenamiento del navegador"));
-  });
-}
-async function tx(modo, fn) {
-  const db = await abrirDB();
-  return new Promise((res, rej) => {
-    const t = db.transaction(TIENDA, modo); fn(t.objectStore(TIENDA));
-    const mal = () => { db.close(); rej(t.error || new Error("el navegador no dejó guardar (¿poco espacio?)")); };
-    t.oncomplete = () => { db.close(); res(); }; t.onerror = mal; t.onabort = mal;
-  });
-}
-export async function leerPistas() {
-  try {
-    const db = await abrirDB();
-    return await new Promise((res) => {
-      const out = {}, t = db.transaction(TIENDA, "readonly"), c = t.objectStore(TIENDA).openCursor();
-      c.onsuccess = () => { const k = c.result; if (k) { out[k.key] = k.value; k.continue(); } };
-      t.oncomplete = () => { db.close(); res(out); }; t.onerror = () => { db.close(); res({}); };
-    });
-  } catch { return {}; }
-}
-const guardarPista = (id, valor) => tx("readwrite", (s) => s.put(valor, id));
-const quitarPista = (id) => tx("readwrite", (s) => s.delete(id));
 const duracionDe = (blob) => new Promise((res) => {
   const a = new Audio(), u = URL.createObjectURL(blob);
   a.preload = "metadata"; a.onloadedmetadata = () => { const d = a.duration; URL.revokeObjectURL(u); res(Number.isFinite(d) ? d : 0); };
   a.onerror = () => { URL.revokeObjectURL(u); res(0); }; a.src = u;
 });
 export const mmss = (s) => { s = Math.max(0, Math.round(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
-
-// ---------- Orden de salida ----------
-export function leerOrden() { try { return JSON.parse(localStorage.getItem(CLAVE_ORDEN) || "null"); } catch { return null; } }
-function guardarOrden(ids) { try { localStorage.setItem(CLAVE_ORDEN, JSON.stringify({ ids, fecha: new Date().toISOString() })); } catch { /* sin almacenamiento */ } }
-function borrarOrden() { try { localStorage.removeItem(CLAVE_ORDEN); } catch { /* nada */ } }
 const nombre = (d) => d.siglas || d.nombre;
+
+// Lo de la base → { pistas: {delegacion_id: {...}}, orden, nivel }
+async function cargar(codigo) {
+  const r = await api.barrasDatos(codigo);
+  const pistas = {}; (r.pistas || []).forEach((p) => (pistas[p.delegacion_id] = p));
+  return { pistas, orden: r.orden || null, nivel: r.nivel || "ver" };
+}
 // Delegaciones en el orden confirmado (las nuevas que no estaban en el sorteo van al final)
-export function ordenar(delegaciones) {
+export function ordenar(delegaciones, orden) {
   const dels = (delegaciones || []).filter((d) => d.nombre).sort((a, b) => nombre(a).localeCompare(nombre(b)));
-  const o = leerOrden(); if (!o?.ids?.length) return { dels, sorteado: false };
-  const pos = new Map(o.ids.map((id, k) => [id, k]));
-  return { dels: dels.slice().sort((a, b) => (pos.get(a.id) ?? 999) - (pos.get(b.id) ?? 999)), sorteado: true, fecha: o.fecha };
+  if (!orden?.ids?.length) return { dels, sorteado: false };
+  const pos = new Map(orden.ids.map((id, k) => [id, k]));
+  return { dels: dels.slice().sort((a, b) => (pos.get(a.id) ?? 999) - (pos.get(b.id) ?? 999)), sorteado: true, fecha: orden.fecha };
 }
 const barajar = (xs) => { const a = xs.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const fondoBarras = () => `<div class="cd-barras__fondo" aria-hidden="true">${Array.from({ length: 14 }, (_, k) => `<i style="--k:${k};--h:${35 + ((k * 37) % 55)}%"></i>`).join("")}</div>`;
 const cab = (kicker, titulo) => `<header class="cd-cab"><img src="${IMG.logo}" alt="CONCEPMI"><div><small>${kicker}</small><b>${titulo}</b></div></header>`;
 
 // =================== SORTEO RÁPIDO DEL ORDEN ===================
-export function abrirSorteoBarras(delegaciones, { alConfirmar } = {}) {
+export function abrirSorteoBarras(codigo, delegaciones, { alConfirmar } = {}) {
   const dels = (delegaciones || []).filter((d) => d.nombre);
   if (dels.length < 2) return aviso("Necesitas al menos 2 delegaciones", "error");
   let orden = [], girando = false;
@@ -102,18 +76,23 @@ export function abrirSorteoBarras(delegaciones, { alConfirmar } = {}) {
     };
     revelar();
   }
-  function confirmarOrden() { guardarOrden(orden.map((d) => d.id)); aviso("Orden confirmado"); alConfirmar?.(); p.cerrar(); }
+  async function confirmarOrden() {
+    const b = $("[data-ok]", p.el); b.disabled = true;
+    try { await api.barrasOrden(codigo, orden.map((d) => d.id)); aviso("Orden confirmado y guardado"); alConfirmar?.(); p.cerrar(); }
+    catch (e) { b.disabled = false; aviso(e.message, "error"); }
+  }
   $("[data-otra]", p.el).onclick = sortear; $("[data-ok]", p.el).onclick = confirmarOrden;
   sortear();
   return p;
 }
 
 // =================== PROYECCIÓN CON MÚSICA ===================
-export async function abrirConcursoBarras(delegaciones) {
-  const { dels } = ordenar(delegaciones);
+export async function abrirConcursoBarras(codigo, delegaciones) {
+  let info;
+  try { info = await cargar(codigo); } catch (e) { return aviso(e.message, "error"); }
+  const { dels } = ordenar(delegaciones, info.orden), pistas = info.pistas;
   if (!dels.length) return aviso("Aún no hay delegaciones registradas", "error");
-  const pistas = await leerPistas();
-  let i = -1, audio = null, url = null, raf = null;
+  let i = -1, audio = null, raf = null, pedido = 0;
   const p = pantalla("cd-barras cb-show", `${fondoBarras()}${cab("VI CONCEPMI 2026 · Jueves 26 de noviembre", "¡Que suene tu delegación!")}
     <main class="cd-barras__centro">
       <small class="cd-barras__kicker">Concurso de</small>
@@ -135,15 +114,15 @@ export async function abrirConcursoBarras(delegaciones) {
       else if (e.key === "s" || e.key === "S") parar();
     } });
   const el = (s) => $(s, p.el);
-  function soltar() { cancelAnimationFrame(raf); if (audio) { audio.pause(); audio.src = ""; } if (url) URL.revokeObjectURL(url); audio = null; url = null; p.el.classList.remove("cb-show--sonando"); }
+  function soltar() { cancelAnimationFrame(raf); if (audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); } audio = null; p.el.classList.remove("cb-show--sonando"); }
   function pintarTiempo() {
-    const dur = audio?.duration || pistas[dels[i]?.id]?.duracion || 0, t = audio?.currentTime || 0;
+    const dur = (audio && Number.isFinite(audio.duration) && audio.duration) || Number(pistas[dels[i]?.id]?.duracion) || 0, t = audio?.currentTime || 0;
     el("[data-resta]").textContent = mmss(dur - t);
     el("[data-avance]").style.width = `${dur ? Math.min(100, (t / dur) * 100) : 0}%`;
     if (audio && !audio.paused) raf = requestAnimationFrame(pintarTiempo);
   }
-  function marcar(k) {
-    soltar();
+  async function marcar(k) {
+    soltar(); const yo = ++pedido;
     if (k >= dels.length) { // fin del concurso
       i = dels.length; p.el.querySelectorAll(".cd-del").forEach((x) => x.classList.remove("cd-del--ahora"));
       el("[data-player]").hidden = true; el("[data-ahora]").innerHTML = "🎉 <b>¡Gracias a todas las delegaciones!</b> Los jurados ya califican.";
@@ -158,12 +137,20 @@ export async function abrirConcursoBarras(delegaciones) {
     el("[data-player]").hidden = false;
     el("[data-turno]").textContent = `Turno ${i + 1} de ${dels.length}`;
     el("[data-del]").textContent = nombre(d);
-    el("[data-pista]").textContent = pista ? `🎵 ${pista.nombre}` : "Sin pista cargada · ¡a capela!";
-    ["[data-play]", "[data-pausa]", "[data-stop]"].forEach((s) => (el(s).disabled = !pista));
-    if (pista) { url = URL.createObjectURL(pista.blob); audio = new Audio(url); audio.preload = "auto";
-      audio.onended = () => { p.el.classList.remove("cb-show--sonando"); pintarTiempo(); el("[data-resta]").textContent = "¡Tiempo!"; tono(440, 0.5, "sawtooth", 0.06); };
-      audio.onloadedmetadata = pintarTiempo; }
+    el("[data-pista]").textContent = pista ? `🎵 ${pista.nombre} · cargando…` : "Sin pista cargada · ¡a capela!";
+    ["[data-play]", "[data-pausa]", "[data-stop]"].forEach((s) => (el(s).disabled = true));
     pintarTiempo(); tono(880, 0.12, "sine", 0.06);
+    if (!pista) return;
+    try {
+      const url = await api.barrasUrl(codigo, d.id);
+      if (yo !== pedido) return; // ya pasaron a otra delegación
+      audio = new Audio(url); audio.preload = "auto";
+      audio.onended = () => { p.el.classList.remove("cb-show--sonando"); pintarTiempo(); el("[data-resta]").textContent = "¡Tiempo!"; tono(440, 0.5, "sawtooth", 0.06); };
+      audio.onloadedmetadata = pintarTiempo;
+      audio.oncanplay = () => { if (yo === pedido) el("[data-pista]").textContent = `🎵 ${pista.nombre}`; };
+      audio.onerror = () => { if (yo === pedido) el("[data-pista]").textContent = "⚠ No se pudo cargar la pista (revisa el internet)"; };
+      ["[data-play]", "[data-pausa]", "[data-stop]"].forEach((s) => (el(s).disabled = false));
+    } catch (e) { if (yo === pedido) el("[data-pista]").textContent = `⚠ ${e.message}`; }
   }
   function alternar() {
     if (!audio) return;
@@ -180,49 +167,62 @@ export async function abrirConcursoBarras(delegaciones) {
 
 // =================== PESTAÑA DEL ADMIN ===================
 export function crearBarras(ctx) {
+  let prueba = null;
   async function vista(v) {
     const data = ctx.data();
     if (!data) { v.innerHTML = `<div class="cargando"><div class="giro"></div>Cargando…</div>`; setTimeout(() => document.body.contains(v) && vista(v), 600); return; }
-    const { dels, sorteado, fecha } = ordenar(data.delegaciones);
-    const pistas = await leerPistas();
+    if (!v.querySelector(".cb-tabla")) v.innerHTML = `<div class="cargando"><div class="giro"></div>Cargando las pistas…</div>`;
+    let info;
+    try { info = await cargar(ctx.codigo()); } catch (e) { v.innerHTML = `<div class="vacio"><b>No se pudo cargar</b>${esc(e.message)}</div>`; return; }
+    const ed = info.nivel === "editar";
+    const { dels, sorteado, fecha } = ordenar(data.delegaciones, info.orden), pistas = info.pistas;
     const conPista = dels.filter((d) => pistas[d.id]).length;
-    const total = dels.reduce((s, d) => s + (pistas[d.id]?.duracion || 0), 0);
+    const total = dels.reduce((s, d) => s + (Number(pistas[d.id]?.duracion) || 0), 0);
     v.innerHTML = `
       <div class="cabeza" style="margin-top:0"><div><h1>🎺 Concurso de Barras</h1><p><b>Jueves 26 de noviembre · 2:30 – 3:30 p. m.</b> · Auditorio principal. Sube la pista de cada delegación, sortea el orden y proyecta: cada delegación sale con su música y su tiempo.</p></div></div>
       <div class="cb-pasos">
         <article class="tarjeta cb-paso"><span class="cb-paso__n">1</span><div><b>Sube las pistas</b><small>${conPista} de ${dels.length} delegaciones con MP3 · ${mmss(total)} en total</small></div></article>
-        <article class="tarjeta cb-paso"><span class="cb-paso__n">2</span><div><b>Sortea el orden</b><small>${sorteado ? `✓ Orden confirmado el ${new Date(fecha).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "Aún sin sortear (orden alfabético)"}</small></div><button class="btn ${sorteado ? "btn--mini" : "btn--naranja"}" data-sortear>🎲 ${sorteado ? "Volver a sortear" : "Sortear orden"}</button></article>
+        <article class="tarjeta cb-paso"><span class="cb-paso__n">2</span><div><b>Sortea el orden</b><small>${sorteado ? `✓ Orden confirmado el ${new Date(fecha).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "Aún sin sortear (orden alfabético)"}</small></div>${ed ? `<button class="btn ${sorteado ? "btn--mini" : "btn--naranja"}" data-sortear>🎲 ${sorteado ? "Volver a sortear" : "Sortear orden"}</button>` : ""}</article>
         <article class="tarjeta cb-paso"><span class="cb-paso__n">3</span><div><b>Proyecta</b><small>→ siguiente delegación · Espacio play / pausa · S stop</small></div><button class="btn btn--naranja" data-cb-proy>${I.vivo}Proyectar concurso</button></article>
       </div>
-      <p class="aviso-info cb-local">💾 <b>Las pistas se guardan solo en esta laptop</b> (no se suben a internet, así no gastan datos y suenan aunque el auditorio no tenga señal). <b>Súbelas en la misma laptop que va a proyectar.</b></p>
+      <p class="cb-local">☁️ <b>Las pistas se guardan en la plataforma:</b> puedes subirlas o cambiarlas desde cualquier laptop (incluso en pleno evento) y proyectarlas desde la laptop del escenario o desde el Panel de Proyección. En la proyección, cada pista se descarga recién cuando le toca a esa delegación.</p>
       <section class="tarjeta"><div class="tabla-wrap"><table class="tabla cb-tabla"><thead><tr><th>Turno</th><th>Delegación</th><th>Pista (MP3)</th><th>Duración</th><th></th></tr></thead><tbody>
         ${dels.map((d, k) => { const p = pistas[d.id]; return `<tr>
           <td><span class="cb-turno">${sorteado ? k + 1 : "–"}</span></td>
           <td><b>${esc(nombre(d))}</b>${d.siglas ? `<br><small>${esc(d.nombre)}</small>` : ""}</td>
-          <td>${p ? `<span class="chip chip--verde">🎵 ${esc(p.nombre)}</span>` : `<span class="chip chip--ambar">Sin pista</span>`}</td>
+          <td>${p ? `<span class="chip chip--verde">🎵 ${esc(p.nombre)}</span>` : `<span class="chip chip--ambar">Sin pista</span>`}<div class="cb-subiendo" data-barra="${d.id}" hidden><i></i><span>0 %</span></div></td>
           <td><b>${p ? mmss(p.duracion) : "—"}</b></td>
-          <td class="cb-acc"><label class="btn btn--mini">${I.subir || "⬆"}${p ? "Cambiar" : "Subir MP3"}<input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg" data-subir="${d.id}" hidden></label>
-            ${p ? `<button class="btn btn--mini" data-oir="${d.id}">▶ Escuchar</button><button class="btn btn--mini btn--peligro" data-quitar="${d.id}">${I.basura}</button>` : ""}</td></tr>`; }).join("")}
+          <td class="cb-acc">${ed ? `<label class="btn btn--mini">⬆ ${p ? "Cambiar" : "Subir MP3"}<input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg" data-subir="${d.id}" hidden></label>` : ""}
+            ${p ? `<button class="btn btn--mini" data-oir="${d.id}">▶ Escuchar</button>${ed ? `<button class="btn btn--mini btn--peligro" data-quitar="${d.id}" title="Quitar la pista">${I.basura}</button>` : ""}` : ""}</td></tr>`; }).join("")}
       </tbody></table></div>
       ${dels.length ? "" : `<p class="ayuda">Aún no hay delegaciones: créalas en la pestaña Delegaciones.</p>`}
-      ${sorteado ? `<p class="ayuda" style="margin-top:10px"><button class="btn btn--mini" data-reset-orden>Quitar el sorteo (volver al orden alfabético)</button></p>` : ""}</section>`;
-    let prueba = null;
-    $("[data-sortear]", v).onclick = () => abrirSorteoBarras(dels, { alConfirmar: () => vista(v) });
-    $("[data-cb-proy]", v).onclick = () => { prueba?.pause(); abrirConcursoBarras(data.delegaciones); };
-    $("[data-reset-orden]", v)?.addEventListener("click", async () => { if (!(await confirmar("¿Quitar el sorteo?", "Se vuelve al orden alfabético. Puedes sortear de nuevo cuando quieras.", { boton: "Quitar" }))) return; borrarOrden(); vista(v); });
+      ${sorteado && ed ? `<p class="ayuda" style="margin-top:10px"><button class="btn btn--mini" data-reset-orden>Quitar el sorteo (volver al orden alfabético)</button></p>` : ""}</section>`;
+    $("[data-sortear]", v)?.addEventListener("click", () => abrirSorteoBarras(ctx.codigo(), dels, { alConfirmar: () => vista(v) }));
+    $("[data-cb-proy]", v).onclick = () => { prueba?.pause(); abrirConcursoBarras(ctx.codigo(), data.delegaciones); };
+    $("[data-reset-orden]", v)?.addEventListener("click", async () => {
+      if (!(await confirmar("¿Quitar el sorteo?", "Se vuelve al orden alfabético. Puedes sortear de nuevo cuando quieras.", { boton: "Quitar" }))) return;
+      try { await api.barrasOrden(ctx.codigo(), null); vista(v); } catch (e) { aviso(e.message, "error"); } });
     $$("[data-subir]", v).forEach((inp) => (inp.onchange = async () => {
       const f = inp.files?.[0]; if (!f) return;
       if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|wav|ogg|aac)$/i.test(f.name)) return aviso("Debe ser un archivo de audio (MP3)", "error");
       if (f.size > 40 * 1024 * 1024) return aviso("La pista pesa más de 40 MB", "error");
-      try { const dur = await duracionDe(f); await guardarPista(inp.dataset.subir, { blob: f, nombre: f.name, duracion: dur, subido: new Date().toISOString() });
-        aviso(`Pista guardada · ${mmss(dur)}`); vista(v); } catch (e) { aviso(`No se pudo guardar: ${e.message}`, "error"); }
+      const id = inp.dataset.subir, b = $(`[data-barra="${id}"]`, v); b.hidden = false;
+      try {
+        const dur = await duracionDe(f);
+        await api.barrasSubir(ctx.codigo(), id, f, dur, (x) => { $("i", b).style.width = `${Math.round(x * 100)}%`; $("span", b).textContent = `${Math.round(x * 100)} %`; });
+        aviso(`Pista subida · ${mmss(dur)}`); vista(v);
+      } catch (e) { b.hidden = true; aviso(`No se pudo subir: ${e.message}`, "error"); }
     }));
-    $$("[data-oir]", v).forEach((b) => (b.onclick = () => {
-      if (prueba && !prueba.paused) { prueba.pause(); b.textContent = "▶ Escuchar"; return; }
-      const pz = pistas[b.dataset.oir]; if (!pz) return; prueba?.pause(); prueba = new Audio(URL.createObjectURL(pz.blob)); prueba.play(); b.textContent = "⏸ Parar";
-      prueba.onended = () => (b.textContent = "▶ Escuchar");
+    $$("[data-oir]", v).forEach((b) => (b.onclick = async () => {
+      if (prueba && !prueba.paused && prueba.__id === b.dataset.oir) { prueba.pause(); b.textContent = "▶ Escuchar"; return; }
+      prueba?.pause(); $$("[data-oir]", v).forEach((x) => (x.textContent = "▶ Escuchar"));
+      try { b.textContent = "Cargando…"; prueba = new Audio(await api.barrasUrl(ctx.codigo(), b.dataset.oir)); prueba.__id = b.dataset.oir;
+        await prueba.play(); b.textContent = "⏸ Parar"; prueba.onended = () => (b.textContent = "▶ Escuchar"); }
+      catch (e) { b.textContent = "▶ Escuchar"; aviso(e.message, "error"); }
     }));
-    $$("[data-quitar]", v).forEach((b) => (b.onclick = async () => { if (!(await confirmar("¿Quitar esta pista?", "Se borra solo de esta laptop.", { boton: "Quitar", peligro: true }))) return; await quitarPista(b.dataset.quitar); vista(v); }));
+    $$("[data-quitar]", v).forEach((b) => (b.onclick = async () => {
+      if (!(await confirmar("¿Quitar esta pista?", "Se borra de la plataforma. Puedes volver a subirla cuando quieras.", { boton: "Quitar", peligro: true }))) return;
+      try { await api.barrasQuitar(ctx.codigo(), b.dataset.quitar); vista(v); } catch (e) { aviso(e.message, "error"); } }));
   }
   return { vista };
 }

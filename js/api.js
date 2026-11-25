@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611252102";
-import { CONCURSOS, porId } from "./concursos.js?v=202611252102";
-import { TALLERES } from "./talleres.js?v=202611252102";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611252102";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611252120";
+import { CONCURSOS, porId } from "./concursos.js?v=202611252120";
+import { TALLERES } from "./talleres.js?v=202611252120";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611252120";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -109,6 +109,16 @@ const real = {
   },
   showCasoUrl: async (codigo, concurso) => (await edge({ accion: "leer", show_caso: true, codigo, concurso })).url,
   showCasoQuitar: (codigo, concurso) => edge({ accion: "quitar", show_caso: true, codigo, concurso }),
+  // Concurso de Barras: pista MP3 por delegación y orden del sorteo (migración jur_37_barras_pistas)
+  barrasDatos: (codigo) => rpc("jur_barras_datos", { p_codigo: codigo }),
+  barrasOrden: (codigo, ids) => rpc("jur_admin_barras_orden", { p_codigo: codigo, p_ids: ids }),
+  async barrasSubir(codigo, delegacion, archivo, duracion, alAvanzar) {
+    const { path, token } = await edge({ accion: "subir", barras: true, codigo, delegacion, nombre: archivo.name, tamano: archivo.size });
+    await subirConProgreso(path, token, archivo, alAvanzar);
+    await edge({ accion: "confirmar", barras: true, codigo, delegacion, path, nombre: archivo.name, tamano: archivo.size, duracion: Math.round(duracion || 0) });
+  },
+  barrasUrl: async (codigo, delegacion) => (await edge({ accion: "leer", barras: true, codigo, delegacion })).url,
+  barrasQuitar: (codigo, delegacion) => edge({ accion: "quitar", barras: true, codigo, delegacion }),
   datosJurado: (codigo) => rpc("jur_datos_jurado", { p_codigo: codigo }),
   calificar: (codigo, concurso, subprueba, delegacion, datos, comentario = "") =>
     rpc("jur_calificar", { p_codigo: codigo, p_concurso: concurso, p_subprueba: subprueba, p_delegacion: delegacion, p_datos: datos, p_comentario: comentario }),
@@ -245,7 +255,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611252102");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611252120");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -891,6 +901,17 @@ const demo = {
     ARCHIVOS_DEMO.set(`show:${concurso}`, archivo); showDb().archivos[concurso] = { nombre: archivo.name, tamano: archivo.size, subido: new Date().toISOString() }; guardar(); },
   async showCasoUrl(codigo, concurso) { await espera(); showExigir(codigo, "ver"); const f = ARCHIVOS_DEMO.get(`show:${concurso}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
+  async barrasDatos(codigo) { await espera(80); const nivel = showExigir(codigo, "ver"); const b = (showDb().barras ||= { pistas: {}, orden: null });
+    return { nivel: showNivel(codigo) || nivel, pistas: Object.entries(b.pistas).map(([id, p]) => ({ delegacion_id: id, ...p })), orden: b.orden }; },
+  async barrasOrden(codigo, ids) { await espera(80); showExigir(codigo, "editar"); const b = (showDb().barras ||= { pistas: {}, orden: null });
+    b.orden = ids?.length ? { ids, fecha: new Date().toISOString() } : null; guardar(); return { ok: true }; },
+  async barrasSubir(codigo, delegacion, archivo, duracion, alAvanzar) { await espera(); showExigir(codigo, "editar");
+    if (!/\.(mp3|m4a|aac|wav|ogg)$/i.test(archivo.name)) throw new Error("Sube la pista en MP3 (también vale M4A, WAV u OGG)"); if (archivo.size > 41943040) throw new Error("La pista debe pesar como máximo 40 MB");
+    for (let k = 1; k <= 10; k++) { await espera(30); alAvanzar?.(k / 10); }
+    ARCHIVOS_DEMO.set(`barras:${delegacion}`, archivo); (showDb().barras ||= { pistas: {}, orden: null }).pistas[delegacion] = { nombre: archivo.name, tamano: archivo.size, duracion: Math.round(duracion || 0), subido: new Date().toISOString() }; guardar(); },
+  async barrasUrl(codigo, delegacion) { await espera(); showExigir(codigo, "ver"); const f = ARCHIVOS_DEMO.get(`barras:${delegacion}`);
+    if (!f) throw new Error("En la vista previa la pista solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },
+  async barrasQuitar(codigo, delegacion) { await espera(); showExigir(codigo, "editar"); delete (showDb().barras ||= { pistas: {}, orden: null }).pistas[delegacion]; ARCHIVOS_DEMO.delete(`barras:${delegacion}`); guardar(); return { ok: true }; },
   async showCasoQuitar(codigo, concurso) { await espera(); showExigir(codigo, "editar"); delete showDb().archivos[concurso]; ARCHIVOS_DEMO.delete(`show:${concurso}`); guardar(); return { ok: true }; },
   async presUrl(codigo, equipo, tipo) { await espera(); const f = ARCHIVOS_DEMO.get(`${equipo}:${tipo}`);
     if (!f) throw new Error("En la vista previa el archivo solo existe en la pestaña donde se subió"); return URL.createObjectURL(f); },

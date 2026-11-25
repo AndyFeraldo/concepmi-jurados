@@ -2352,3 +2352,6 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .cb-player__barra i{ display:block; height:100%; width:0; border-radius:99px; background:linear-gradient(90deg, #3BE08F, #FFC23D 60%, #FF6A1F); }
 .cb-player__btns{ display:grid; gap:1vh; } .cb-player__btns .btn{ font-size:2vh; padding:1.2vh 2.4vh; justify-content:center; }
 .cb-player__btns .btn:disabled{ opacity:.35; }
+.cb-subiendo{ position:relative; margin-top:6px; height:18px; border-radius:99px; background:rgba(255,255,255,.1); overflow:hidden; min-width:140px; }
+.cb-subiendo i{ position:absolute; inset:0 auto 0 0; width:0; background:linear-gradient(90deg, var(--violeta), var(--naranja)); transition:width .2s; }
+.cb-subiendo span{ position:relative; display:block; text-align:center; font-size:.72rem; font-weight:700; line-height:18px; }

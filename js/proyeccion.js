@@ -8,25 +8,25 @@
 // confirmar podio), el tiempo de los concursos, el show (sortear, abrir el muro) y el programa
 // de la inauguración.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611252102";
-import { CHARLAS } from "./charlas.js?v=202611252102";
-import { ENTREGABLES } from "./entregables.js?v=202611252102";
-import { porId } from "./concursos.js?v=202611252102";
-import { copaGeneral } from "./calculo.js?v=202611252102";
-import { crearCharlas } from "./admin-charlas.js?v=202611252102";
-import { proyectarCharlas } from "./admin-ponentes.js?v=202611252102";
-import { TALLERES } from "./talleres.js?v=202611252102";
-import { proyectarTalleres } from "./talleres-pres.js?v=202611252102";
-import { abrirRuleta, proyectarCasos, abrirTransmision, abrirSorteo, pantalla } from "./show.js?v=202611252102";
-import { abrirDuelo, leerDuelos } from "./show-duelo.js?v=202611252102";
-import { abrirGanadoresProyectos, abrirGanadores, abrirCierreDia1 } from "./cierre-dia1.js?v=202611252102";
-import { abrirConcursoBarras } from "./barras.js?v=202611252102";
-import { abrirCeremonia, cargarPrograma, crearInauguracion, leerPrograma } from "./inauguracion.js?v=202611252102";
-import { abrirEscenario } from "./escenario.js?v=202611252102";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611252102";
-import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611252102";
-import { $, $$, esc, I, IMG, aviso, modal, fondoAnimado, pantallaActiva } from "./ui.js?v=202611252102";
-import { salir } from "./app.js?v=202611252102";
+import { api, ES_DEMO } from "./api.js?v=202611252120";
+import { CHARLAS } from "./charlas.js?v=202611252120";
+import { ENTREGABLES } from "./entregables.js?v=202611252120";
+import { porId } from "./concursos.js?v=202611252120";
+import { copaGeneral } from "./calculo.js?v=202611252120";
+import { crearCharlas } from "./admin-charlas.js?v=202611252120";
+import { proyectarCharlas } from "./admin-ponentes.js?v=202611252120";
+import { TALLERES } from "./talleres.js?v=202611252120";
+import { proyectarTalleres } from "./talleres-pres.js?v=202611252120";
+import { abrirRuleta, proyectarCasos, abrirTransmision, abrirSorteo, pantalla } from "./show.js?v=202611252120";
+import { abrirDuelo, leerDuelos } from "./show-duelo.js?v=202611252120";
+import { abrirGanadoresProyectos, abrirGanadores, abrirCierreDia1 } from "./cierre-dia1.js?v=202611252120";
+import { abrirConcursoBarras } from "./barras.js?v=202611252120";
+import { abrirCeremonia, cargarPrograma, crearInauguracion, leerPrograma } from "./inauguracion.js?v=202611252120";
+import { abrirEscenario } from "./escenario.js?v=202611252120";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611252120";
+import { ordenarPorSorteo, abrirArchivo } from "./presentacion.js?v=202611252120";
+import { $, $$, esc, I, IMG, aviso, modal, fondoAnimado, pantallaActiva } from "./ui.js?v=202611252120";
+import { salir } from "./app.js?v=202611252120";
 
 const URL_CONOCIMIENTOS = "https://andyferaldo.github.io/concepmi-vi/concurso-conocimientos/";
 const DIAS = { d1: { corto: "Día 1", largo: "Martes 24 de noviembre", fecha: "2026-11-24" }, d2: { corto: "Día 2", largo: "Jueves 26 de noviembre", fecha: "2026-11-26" } };
@@ -50,7 +50,7 @@ export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {
   const abrirInauguracion = async () => { const P = await cargarPrograma(codigo); abrirCeremonia(P, { abrirCharla: () => irPaso(pasoId("c1")) }); };
   const ponencia = async (k) => proyectarCharlas(codigo, await ponentes(), k);
   const trivia = async (id) => { await recargar(); charlasUI.proyector(id); };
-  const premiacion = async () => { await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611252102"); abrirPremiacion(copaGeneral(data)); };
+  const premiacion = async () => { await recargar(); const { abrirPremiacion } = await import("./premiacion.js?v=202611252120"); abrirPremiacion(copaGeneral(data)); };
   const ganadoresProyectos = async () => { await recargar(); let nombres = {};
     try { const E = await api.adminEntregas(codigo, "proyectos"); E.equipos.forEach((x) => { if (x.entrega.datos?.proyecto) nombres[x.entrega.delegacion_id] = x.entrega.datos.proyecto; }); } catch { /* sin nombres de proyecto */ }
     abrirGanadoresProyectos(data, nombres); };
@@ -93,15 +93,14 @@ export async function vistaProyeccion(app, codigo, acceso, { volver = null } = {
     { id: "ganam2", dia: "d1", t: "Cierre del Día 1 · Ganadores de Amateur II", s: "Espacio: 3.º → 2.º → 1.º y el podio.", abrir: async () => { await recargar(); abrirGanadores(data, "amateur-2"); }, sub: true },
     { id: "ganiat", dia: "d1", t: "Cierre del Día 1 · Ganadores de IATHON", s: "Espacio: 3.º → 2.º → 1.º y el podio.", abrir: async () => { await recargar(); abrirGanadores(data, "iathon"); }, sub: true },
     { id: "cierre1", dia: "d1", t: "Cierre del Día 1 · Así va la Copa CONCEPMI", s: "Puntaje acumulado de todas las delegaciones. Espacio: «¡Nos vemos el jueves 26!».", abrir: async () => { await recargar(); abrirCierreDia1(data); }, sub: true },
-    { dia: "d2", ini: "8:30", fin: "9:30", t: "Registro y coffee break", s: "Sin proyección.", nota: true },
-    { dia: "d2", ini: "9:30", fin: "1:00", t: "Gran Gymkana (cancha)", s: "Fuera del auditorio.", nota: true },
-    { id: "barras", dia: "d2", ini: "2:30", fin: "3:30", t: "Concurso de Barras", s: "En el orden del sorteo, con la pista de cada delegación: → siguiente · Espacio play / pausa · S stop. Las pistas se suben en Admin → Concurso de Barras, en ESTA laptop.", abrir: async () => { await recargar(); await abrirConcursoBarras(data.delegaciones); } },
-    { id: "c2", dia: "d2", ini: "", fin: "", t: `Charla magistral II · ${ch(1).ponente}`, s: "Su presentación en PDF.", abrir: () => ponencia(1) },
-    { id: "c2t", dia: "d2", t: "Trivia de la Charla II", s: "QR, el público juega y sale el podio.", abrir: () => trivia(ch(1).id), sub: true },
+    { dia: "d2", ini: "8:30", fin: "9:30", t: "Registros y coffee break matutino", s: "Explanada principal / Hall · sin proyección.", nota: true },
+    { dia: "d2", ini: "9:30", fin: "1:00", t: "Gran Gymkhana + Resultados del Talent Show Virtual", s: "Cancha de calentamiento UNMSM · fuera del auditorio.", nota: true },
+    { dia: "d2", ini: "1:00", fin: "2:30", t: "Tiempo libre: almuerzo y red de sponsors", s: "Áreas verdes / comedor / explanada · sin proyección.", nota: true },
+    { id: "barras", dia: "d2", ini: "2:30", fin: "3:30", t: "Concurso de Barras · ¡La mejor energía gana!", s: "En el orden del sorteo, con la pista de cada delegación: → siguiente · Espacio play / pausa · S stop.", abrir: async () => { await recargar(); await abrirConcursoBarras(codigo, data.delegaciones); } },
     { id: "conoc", dia: "d2", ini: "3:45", fin: "5:45", t: "Concurso Nacional de Conocimientos", s: "Se maneja en su propio sistema: se abre en otra pestaña.", abrir: () => { window.open(URL_CONOCIMIENTOS, "_blank", "noopener"); }, externo: true },
-    { id: "c3", dia: "d2", ini: "6:00", fin: "7:00", t: `Charla magistral III · ${ch(2).ponente}`, s: "Su presentación en PDF.", abrir: () => ponencia(2) },
+    { id: "c3", dia: "d2", ini: "6:00", fin: "7:00", t: `Charla principal III: Pilar IA y herramientas tecnológicas · ${ch(2).ponente}`, s: "Su presentación en PDF.", abrir: () => ponencia(2) },
     { id: "c3t", dia: "d2", t: "Trivia de la Charla III", s: "QR, el público juega y sale el podio.", abrir: () => trivia(ch(2).id), sub: true },
-    { id: "prem", dia: "d2", ini: "7:00", fin: "8:30", t: "Ceremonia de cierre y premiación", s: "Copa CONCEPMI: del último puesto al TOP 3 con los Wolfitos.", abrir: premiacion },
+    { id: "prem", dia: "d2", ini: "7:00", fin: "20:30", t: "Ceremonia de cierre, premiación oficial y fotos de honor", s: "Copa CONCEPMI: del último puesto al TOP 3 con los Wolfitos.", abrir: premiacion },
   ];
   const PASOS = AGENDA.filter((x) => x.abrir);
   const pasoId = (id) => PASOS.findIndex((p) => p.id === id);

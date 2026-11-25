@@ -3,18 +3,18 @@
 // Códigos de equipo, cronómetro oficial, estado en vivo, proyector,
 // impresión y sanción por entrega tardía.
 // =========================================================
-import { api } from "./api.js?v=202611252102";
-import { ENTREGABLES } from "./entregables.js?v=202611252102";
-import { porId } from "./concursos.js?v=202611252102";
-import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611252102";
-import { abrirEscenario } from "./escenario.js?v=202611252102";
-import { quitarArchivos } from "./presentacion.js?v=202611252102";
-import { htmlMiAcceso } from "./mi-acceso.js?v=202611252102";
-import { alertaCasos } from "./casos.js?v=202611252102";
-import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611252102";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611252102";
-import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611252102";
-import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611252102";
+import { api } from "./api.js?v=202611252120";
+import { ENTREGABLES } from "./entregables.js?v=202611252120";
+import { porId } from "./concursos.js?v=202611252120";
+import { abrirVisor, imprimir, estadoEntrega, chipsEntrega, tieneDatos } from "./entrega-visor.js?v=202611252120";
+import { abrirEscenario } from "./escenario.js?v=202611252120";
+import { quitarArchivos } from "./presentacion.js?v=202611252120";
+import { htmlMiAcceso } from "./mi-acceso.js?v=202611252120";
+import { alertaCasos } from "./casos.js?v=202611252120";
+import { AREAS, PLANTILLAS, nivel, soloGuia } from "./permisos.js?v=202611252120";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611252120";
+import { panelPlazo, conectarPlazo, celdaArchivos, estadoPres, ordenarPorSorteo, abrirSorteo, descargarImagen, descargarZip, abrirArchivo, horaTurno, fechaLima } from "./presentacion.js?v=202611252120";
+import { $, $$, esc, I, aviso, modal, confirmar, lanzarConfeti } from "./ui.js?v=202611252120";
 
 const hora = (ts) => (ts ? new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 

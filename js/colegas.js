@@ -3,11 +3,11 @@
 // talleristas (foto, nombre, descripción y LinkedIn), primero los de su propio concurso
 // o taller y luego el resto, agrupados por concurso / evento cultural / taller.
 // =========================================================
-import { api } from "./api.js?v=202611252102";
-import { CONCURSOS } from "./concursos.js?v=202611252102";
-import { TALLERES } from "./talleres.js?v=202611252102";
-import { CHARLAS } from "./charlas.js?v=202611252102";
-import { $$, esc, I, avatar } from "./ui.js?v=202611252102";
+import { api } from "./api.js?v=202611252120";
+import { CONCURSOS } from "./concursos.js?v=202611252120";
+import { TALLERES } from "./talleres.js?v=202611252120";
+import { CHARLAS } from "./charlas.js?v=202611252120";
+import { $$, esc, I, avatar } from "./ui.js?v=202611252120";
 
 // Normaliza «linkedin.com/in/maria» → «https://linkedin.com/in/maria»
 export const enlaceLinkedin = (u) => { const t = String(u || "").trim(); if (!t) return ""; return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, "")}`; };
