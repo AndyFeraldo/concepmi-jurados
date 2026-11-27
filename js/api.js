@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611271603";
-import { CONCURSOS, porId } from "./concursos.js?v=202611271603";
-import { TALLERES } from "./talleres.js?v=202611271603";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611271603";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611271617";
+import { CONCURSOS, porId } from "./concursos.js?v=202611271617";
+import { TALLERES } from "./talleres.js?v=202611271617";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611271617";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -96,6 +96,7 @@ const real = {
   showPremio: (codigo, { id = null, tipo = "beca", titulo = "", detalle = "", sponsor = null, cantidad = 1, borrar = false }) =>
     rpc("jur_admin_show_premio", { p_codigo: codigo, p_id: id, p_tipo: tipo, p_titulo: titulo, p_detalle: detalle, p_sponsor: sponsor, p_cantidad: cantidad, p_borrar: borrar }),
   showSortear: (codigo, premio) => rpc("jur_show_sortear", { p_codigo: codigo, p_premio: premio }),
+  showAsignarOrg: (codigo, premio, personas, modo = "sorteo") => rpc("jur_show_asignar_org", { p_codigo: codigo, p_premio: premio, p_personas: personas, p_modo: modo }),
   showAnular: (codigo, ganador, motivo = "") => rpc("jur_show_anular", { p_codigo: codigo, p_ganador: ganador, p_motivo: motivo }),
   showLimpiar: (codigo, que) => rpc("jur_admin_show_limpiar", { p_codigo: codigo, p_que: que }),
   showMuroInfo: () => rpc("jur_show_muro_info", {}),
@@ -255,7 +256,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611271603");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611271617");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -856,7 +857,7 @@ const demo = {
   async showDatos(codigo) { await espera(); const n = showNivel(codigo); if (!n) throw new Error("Tu acceso no incluye el Show en vivo"); const s = showDb(), d = db();
     const del = (id) => d.delegaciones.find((x) => x.id === id);
     return structuredClone({ nivel: n, config: s.config, sponsors: s.sponsors, premios: s.premios.map((p) => ({ ...p, sorteados: s.ganadores.filter((g) => g.premio_id === p.id && !g.anulado).length })),
-      ganadores: s.ganadores.map((g) => { const a = n === "editar" ? (d.asistentes || []).find((x) => x.dni === g.dni) : null; return { ...g, delegacion: del(g.delegacion_id)?.siglas || g.delegacion_texto || "—", delegacion_nombre: del(g.delegacion_id)?.nombre || g.delegacion_texto, dni: n === "editar" ? g.dni : null, telefono: a ? a.telefono || "" : null, correo: a ? a.correo || "" : null }; }),
+      ganadores: s.ganadores.map((g) => { const a = n === "editar" ? (d.asistentes || []).find((x) => x.dni === g.dni) : null; return { ...g, delegacion: del(g.delegacion_id)?.siglas || g.delegacion_texto || "—", delegacion_nombre: del(g.delegacion_id)?.nombre || g.delegacion_texto, dni: n === "editar" ? g.dni : null, tipo: g.tipo || "inscrito", modo: g.modo || "sorteo", area: g.area || "", telefono: n === "editar" ? (a?.telefono || g.telefono || "") : null, correo: a ? a.correo || "" : null }; }),
       archivos: Object.fromEntries(Object.entries(s.archivos).map(([k, v]) => [k, { nombre: v.nombre, tamano: v.tamano, subido: v.subido }])),
       participantes: d.asistentes.filter((a) => a.codigo).length, mensajes: s.mensajes.filter((m) => !m.oculto).length }); },
   async showParticipantes(codigo) { await espera(); showExigir(codigo, "ver"); return db().asistentes.filter((a) => a.codigo).map((a) => a.codigo).sort(() => Math.random() - 0.5); },
@@ -880,6 +881,13 @@ const demo = {
     const a = libres[Math.floor(Math.random() * libres.length)], del = d.delegaciones.find((x) => x.id === a.delegacion_id);
     const g = { id: uid(), premio_id: p.id, dni: a.dni, codigo: a.codigo, nombre: a.nombre, delegacion_id: a.delegacion_id, delegacion_texto: a.delegacion_texto || "", anulado: false, motivo: "", creado: new Date().toISOString() };
     s.ganadores.push(g); guardar(); return { id: g.id, premio_id: p.id, codigo: g.codigo, nombre: g.nombre, delegacion: del?.siglas || g.delegacion_texto || "—", delegacion_nombre: del?.nombre || g.delegacion_texto }; },
+  async showAsignarOrg(codigo, premio, personas, modo = "sorteo") { await espera(300); showExigir(codigo, "editar"); const s = showDb(); const p = s.premios.find((x) => x.id === premio); if (!p) throw new Error("Ese premio ya no existe");
+    if (!personas?.length) throw new Error("Elige al menos una persona");
+    const libres = p.cantidad - s.ganadores.filter((g) => g.premio_id === p.id && !g.anulado).length; if (personas.length > libres) throw new Error(`Solo quedan ${Math.max(libres, 0)} cupos en este premio`);
+    for (const x of personas) { const clave = "org:" + String(x.clave || x.nombre).trim().toLowerCase();
+      if (s.ganadores.some((g) => g.premio_id === p.id && g.dni === clave && !g.anulado)) throw new Error(`${x.nombre} ya tiene este mismo premio`);
+      s.ganadores.push({ id: uid(), premio_id: p.id, dni: clave, codigo: "", nombre: String(x.nombre).trim(), delegacion_id: null, delegacion_texto: "Equipo organizador", tipo: "organizador", modo: modo === "elegido" ? "elegido" : "sorteo", area: x.area || "", telefono: x.telefono || "", anulado: false, motivo: "", creado: new Date().toISOString() }); }
+    guardar(); return { guardados: personas.length }; },
   async showAnular(codigo, ganador, motivo = "") { await espera(); showExigir(codigo, "operar"); const g = showDb().ganadores.find((x) => x.id === ganador); if (!g) throw new Error("Ese ganador ya no existe");
     g.anulado = true; g.motivo = motivo || "No estaba presente"; guardar(); },
   async showLimpiar(codigo, que) { await espera(); showExigir(codigo, "editar"); const s = showDb(); if (que === "sorteos") s.ganadores = []; else if (que === "muro") s.mensajes = []; guardar(); },
