@@ -5,14 +5,14 @@
 //   2 · Ganadores: registra al equipo ganador (nombre, apellido y delegación) → +40 pts por delegación.
 // A la derecha, sus colegas (jurados y talleristas) con LinkedIn. Decoración igual que el panel del jurado.
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611252306";
-import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611252306";
-import { $, $$, esc, avatar, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611252306";
-import { salir } from "./app.js?v=202611252306";
-import { pintarColegas } from "./colegas.js?v=202611252306";
-import { htmlArchivos, conectarArchivos } from "./ponente.js?v=202611252306";
-import { ganadoresTaller } from "./taller-ganadores.js?v=202611252306";
-import { INFO_TALLER, MIN_TALLER, proyectarTalleres, abrirTallerArchivo } from "./talleres-pres.js?v=202611252306";
+import { api, ES_DEMO } from "./api.js?v=202611271529";
+import { TALLERES, tallerPorId, PUNTOS_TALLER, HORA_TALLERES, delegacionesGanadoras } from "./talleres.js?v=202611271529";
+import { $, $$, esc, avatar, I, IMG, aviso, fondoAnimado } from "./ui.js?v=202611271529";
+import { salir } from "./app.js?v=202611271529";
+import { pintarColegas } from "./colegas.js?v=202611271529";
+import { htmlArchivos, conectarArchivos } from "./ponente.js?v=202611271529";
+import { ganadoresTaller } from "./taller-ganadores.js?v=202611271529";
+import { INFO_TALLER, MIN_TALLER, proyectarTalleres, abrirTallerArchivo } from "./talleres-pres.js?v=202611271529";
 
 
 

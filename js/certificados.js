@@ -9,12 +9,12 @@
 // ZIP con un PDF por persona o un solo PDF para imprimir. Las listas y los textos se guardan
 // en este navegador (localStorage); la base de datos no se toca.
 // =========================================================
-import { api } from "./api.js?v=202611252306";
-import { resultados } from "./calculo.js?v=202611252306";
-import { porId, CONCURSOS } from "./concursos.js?v=202611252306";
-import { CHARLAS } from "./charlas.js?v=202611252306";
-import { tallerPorId } from "./talleres.js?v=202611252306";
-import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611252306";
+import { api } from "./api.js?v=202611271529";
+import { resultados } from "./calculo.js?v=202611271529";
+import { porId, CONCURSOS } from "./concursos.js?v=202611271529";
+import { CHARLAS } from "./charlas.js?v=202611271529";
+import { tallerPorId } from "./talleres.js?v=202611271529";
+import { $, $$, esc, I, aviso, modal, confirmar } from "./ui.js?v=202611271529";
 
 const BASE = "img/certificado-base.jpg";
 const ANCHO = 3000, ALTO = 2121, K = ANCHO / 2000; // el diseño original mide 2000 × 1414
@@ -25,11 +25,16 @@ export const AREAS_ORG = [
   { id: "RRPP", txt: "Relaciones Públicas" }, { id: "Marketing", txt: "Marketing" }, { id: "Logistica", corto: "Logística", txt: "Logística" }, { id: "TI", txt: "Tecnologías de la Información" },
 ];
 const areaTxt = (id) => AREAS_ORG.find((a) => a.id === id)?.txt || id || "";
+// Cargo en el equipo organizador (cambia el texto del certificado: plantilla de voluntario o de líder)
+export const CARGOS_ORG = [{ id: "voluntario", txt: "Voluntario" }, { id: "lider", txt: "Líder" }];
+const cargoTxt = (id) => (id === "lider" ? "líder" : "voluntario");
 const SECCIONES = {
   invitados: { txt: "Invitados", sub: "Jurados, talleristas y ponentes", cinta: "de participación", carpeta: "Invitados",
     plantilla: `Por su valiosa participación {rol} ${EVENTO}${CIERRE}`, vars: "{rol} = «como jurado en …», «como tallerista del taller …» o «como ponente de la charla magistral …» · **texto** = negrita" },
-  organizadores: { txt: "Equipo organizador", sub: "Voluntarios del VI CONCEPMI", cinta: "equipo organizador", carpeta: "Equipo organizador",
-    plantilla: `Por su valioso compromiso y trabajo como parte del **equipo organizador**, en el área de **{area}**, ${EVENTO}${CIERRE}`, vars: "{area} = el área del voluntario (por ejemplo «Marketing») · **texto** = negrita" },
+  organizadores: { txt: "Equipo organizador", sub: "Voluntarios y líderes del VI CONCEPMI", cinta: "equipo organizador", carpeta: "Equipo organizador",
+    plantilla: `Por su valioso compromiso y trabajo como **{cargo}** del **equipo organizador**, en el área de **{area}**, ${EVENTO}${CIERRE}`,
+    plantillaLider: `Por su destacado liderazgo y compromiso como **{cargo}** del área de **{area}** del **equipo organizador**, ${EVENTO}${CIERRE}`,
+    vars: "{cargo} = «voluntario» o «líder» · {area} = el área (por ejemplo «Marketing») · **texto** = negrita" },
   participantes: { txt: "Participantes", sub: "Inscritos al congreso", cinta: "de participación", carpeta: "Participantes",
     plantilla: `Por su participación como **asistente**, en representación de la delegación **{delegacion}**, ${EVENTO}${CIERRE}`, vars: "{delegacion} = su universidad o delegación (si a alguien le falta, esa frase se quita sola) · **texto** = negrita" },
   ganadores: { txt: "Ganadores", sub: "Top 3 de cada concurso", cinta: "de reconocimiento", carpeta: "Ganadores",
@@ -40,6 +45,7 @@ const PLANT_PART_V1 = `Por su participación como asistente ${EVENTO}${CIERRE}`;
 // Textos por defecto anteriores (sin negritas): si el admin no los cambió, se usan los nuevos
 const PLANT_VIEJAS = [PLANT_PART_V1, `Por su participación como asistente, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`,
   `Por su valioso compromiso y trabajo como parte del equipo organizador, en el área de {area}, ${EVENTO}${CIERRE}`,
+  `Por su valioso compromiso y trabajo como parte del **equipo organizador**, en el área de **{area}**, ${EVENTO}${CIERRE}`,
   `Por haber obtenido el {puesto} en {concurso}, en representación de la delegación {delegacion}, ${EVENTO}${CIERRE}`];
 const PUESTOS = { 1: "primer lugar", 2: "segundo lugar", 3: "tercer lugar" };
 const MEDALLA = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -62,7 +68,7 @@ export const textoRol = (p) => {
 // Rellena la plantilla de la sección con los datos de la persona
 // Si falta el dato (sin área o sin universidad), se quita también la frase que lo acompaña («, en el área de …»)
 const sinDato = (t, v) => t.replace(new RegExp(`,?\\s*(?:en representación de la delegación|en representación del|en representación de|de la delegación|en el área de|de la|del|de|por|en)?\\s*(?:\\*\\*)?\\{${v}\\}(?:\\*\\*)?`, "g"), "");
-const llenar = (plantilla, p) => [["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""], ["puesto", PUESTOS[p.puesto] || ""], ["concurso", p.concursoTxt || ""], ["equipo", p.puesto ? (p.lider ? "como **líder del equipo**" : "como integrante del equipo") : ""]]
+const llenar = (plantilla, p) => [["cargo", p.seccionOrg ? cargoTxt(p.cargo) : ""], ["area", areaTxt(p.area)], ["delegacion", p.delegacion || ""], ["puesto", PUESTOS[p.puesto] || ""], ["concurso", p.concursoTxt || ""], ["equipo", p.puesto ? (p.lider ? "como **líder del equipo**" : "como integrante del equipo") : ""]]
   .reduce((t, [v, x]) => (x ? t.replace(new RegExp(`\\{${v}\\}`, "g"), x) : sinDato(t, v)), plantilla)
   .replace(/\{rol\}/g, textoRol(p))
   .replace(/\s+,/g, ",").replace(/\s{2,}/g, " ").replace(/\(\s*\)/g, "").trim();
@@ -238,7 +244,7 @@ export function crearCertificados(ctx) {
   // Migra los «otros» de la versión anterior (concepmi-certificados-v1)
   if (!g.migrado) { try { const v1 = JSON.parse(localStorage.getItem("concepmi-certificados-v1")); if (v1?.otros?.length) g.otros.push(...v1.otros); } catch { /* nada */ } g.migrado = true; }
   const guardar = () => escribir(g);
-  const cfg = (s) => ({ cinta: SECCIONES[s].cinta, plantilla: SECCIONES[s].plantilla, ...(g.config[s] || {}) });
+  const cfg = (s) => ({ cinta: SECCIONES[s].cinta, plantilla: SECCIONES[s].plantilla, plantillaLider: SECCIONES[s].plantillaLider, ...(g.config[s] || {}) });
 
   function invitados() {
     const d = ctx.data(), l = [];
@@ -253,11 +259,11 @@ export function crearCertificados(ctx) {
   function personas(s = seccion) {
     const c = cfg(s);
     const base = s === "invitados" ? invitados()
-      : s === "organizadores" ? g.organizadores.map((o) => ({ ...o, id: `o:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }))
+      : s === "organizadores" ? g.organizadores.map((o) => ({ ...o, cargo: o.cargo || "voluntario", seccionOrg: true, id: `o:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }))
       : s === "ganadores" ? CONCURSOS.flatMap((c) => (g.ganadores[c.id] || []).flatMap((e) => e.nombres.map((n) => ({ id: `w:${n.id}`, tipo: c.tipo, nombre: n.n, lider: !!n.lider,
           puesto: e.puesto, concurso: c.id, concursoNombre: c.nombre, concursoTxt: conArticulo(c.nombre), delegacion: delDe(e.delegacion)?.nombre || "", wid: e.id, nid: n.id }))))
       : g.participantes.map((o) => ({ ...o, id: `a:${o.id}`, oid: o.id, nombre: [o.nombre, o.apellido, o.materno].filter(Boolean).join(" ") }));
-    return base.map((p) => { const e = g.editados[p.id] || {}; return { ...p, seccion: s, nombre: e.nombre || p.nombre, texto: e.texto || llenar(c.plantilla, p), cinta: c.cinta, editado: !!(e.nombre || e.texto) }; });
+    return base.map((p) => { const e = g.editados[p.id] || {}; return { ...p, seccion: s, nombre: e.nombre || p.nombre, texto: e.texto || llenar(s === "organizadores" && p.cargo === "lider" && c.plantillaLider ? c.plantillaLider : c.plantilla, p), cinta: c.cinta, editado: !!(e.nombre || e.texto) }; });
   }
   const visibles = () => personas().filter((p) => (!["invitados", "ganadores"].includes(seccion) || filtro === "todos" || p.tipo === filtro)
     && (!busca || sinTildes(`${p.nombre} ${(p.items || []).join(" ")} ${p.area || ""} ${p.delegacion || ""} ${p.rol || ""} ${p.concursoNombre || ""}`).toLowerCase().includes(busca)));
@@ -276,7 +282,8 @@ export function crearCertificados(ctx) {
       <section class="tarjeta cert-cfg">
         <div class="cert-cfg__cinta"><label class="campo"><span>Cinta del certificado</span><input data-cinta maxlength="28" value="${esc(c.cinta)}"></label>
           <div class="reparto" style="margin:0">${["de participación", "equipo organizador", "de reconocimiento"].map((t) => `<button class="btn btn--mini ${t === c.cinta ? "btn--naranja" : ""}" data-cinta-rapida="${t}">${t}</button>`).join("")}</div></div>
-        <label class="campo"><span>Texto del certificado <small class="tenue">(variables: ${esc(S.vars)})</small></span><textarea data-plantilla rows="3" maxlength="700">${esc(c.plantilla)}</textarea></label>
+        <label class="campo"><span>${seccion === "organizadores" ? "Texto para los <b>voluntarios</b>" : "Texto del certificado"} <small class="tenue">(variables: ${esc(S.vars)})</small></span><textarea data-plantilla rows="3" maxlength="700">${esc(c.plantilla)}</textarea></label>
+        ${seccion === "organizadores" ? `<label class="campo"><span>Texto para los <b>líderes</b> <small class="tenue">(se usa con quienes tengan cargo «Líder»)</small></span><textarea data-plantilla-lider rows="3" maxlength="700">${esc(c.plantillaLider)}</textarea></label>` : ""}
         <div class="cert-cfg__acc"><button class="btn btn--mini" data-restaurar-cfg>${I.girar}Texto original</button><button class="btn btn--mini" data-muestra ${todas.length ? "" : "disabled"}>${I.vivo}Ver cómo queda</button></div>
       </section>
       ${seccion === "ganadores" ? editorGanadores() : ""}
@@ -291,7 +298,7 @@ export function crearCertificados(ctx) {
         </div>
       </div>
       <div class="tabla-envoltura"><table class="tabla cert-tabla"><thead><tr><th style="width:36px"><input type="checkbox" data-todas ${lista.length && lista.every((p) => !quitados.has(p.id)) ? "checked" : ""} aria-label="Elegir todos"></th>
-        <th>Nombre</th><th>${seccion === "invitados" ? "Rol" : seccion === "organizadores" ? "Área" : seccion === "ganadores" ? "Puesto · concurso · delegación" : "Delegación"}</th>${seccion === "invitados" ? "<th>Texto del certificado</th>" : ""}<th></th></tr></thead><tbody>
+        <th>Nombre</th><th>${seccion === "invitados" ? "Rol" : seccion === "organizadores" ? "Área" : seccion === "ganadores" ? "Puesto · concurso · delegación" : "Delegación"}</th>${seccion === "invitados" ? "<th>Texto del certificado</th>" : seccion === "organizadores" ? "<th>Cargo</th>" : ""}<th></th></tr></thead><tbody>
         ${lista.slice(0, 400).map((p) => fila(p)).join("") || `<tr><td colspan="5"><div class="vacio"><b>${seccion === "invitados" ? "No hay personas aquí" : "La lista está vacía"}</b>${seccion === "invitados" ? "Crea jurados, talleristas o ponentes en sus pestañas, o usa «Agregar persona»." : seccion === "ganadores" ? "Arriba, en cada concurso, escribe los nombres de los integrantes de cada puesto (o usa «Traer top 3 de Resultados»)." : seccion === "organizadores" ? "Usa «Cargar Excel» con la lista de voluntarios (nombre, apellido y área) o «Agregar»." : "Usa «Cargar Excel» con la lista de inscritos (por ejemplo, la hoja CONFIRMADOS) o «Agregar»."}</div></td></tr>`}
       </tbody></table></div>
       ${lista.length > 400 ? `<p class="ayuda">Se muestran 400 de ${lista.length}. Usa el buscador para encontrar a alguien; la descarga incluye a todos los marcados.</p>` : ""}
@@ -300,12 +307,12 @@ export function crearCertificados(ctx) {
     function fila(p) {
       const fuera = quitados.has(p.id);
       const col = seccion === "invitados" ? `<td><span class="chip cert-tipo cert-tipo--${p.tipo}">${TIPOS_INV[p.tipo]}</span></td><td class="cert-texto">${esc(textoRol(p) || "—")}</td>`
-        : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></td>`
+        : seccion === "organizadores" ? `<td><select class="mini-select" data-area="${p.oid}"><option value="">Elige el área…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === p.area ? "selected" : ""}>${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></td><td><select class="mini-select" data-cargo="${p.oid}">${CARGOS_ORG.map((c) => `<option value="${c.id}" ${c.id === p.cargo ? "selected" : ""}>${c.txt}</option>`).join("")}</select></td>`
         : seccion === "ganadores" ? `<td class="cert-texto"><b>${MEDALLA[p.puesto] || ""} ${esc(PUESTOS[p.puesto] || "")}</b> · ${esc(p.concursoNombre)} · ${esc(p.delegacion || "sin delegación")}${p.lider ? ` <span class="chip chip--ambar log-tag">★ líder</span>` : ""}</td>`
         : `<td class="cert-texto">${esc(p.delegacion || "—")}</td>`;
       return `<tr class="${fuera ? "cert-fuera" : ""}"><td><input type="checkbox" data-sel="${esc(p.id)}" ${fuera ? "" : "checked"} aria-label="Incluir"></td>
         <td><b>${esc(p.nombre)}</b>${p.editado ? ` <span class="chip chip--ambar log-tag">editado</span>` : ""}${seccion === "organizadores" && !p.area ? ` <span class="chip chip--rojo log-tag">sin área</span>` : ""}</td>${col}
-        <td style="white-space:nowrap"><button class="btn btn--mini" data-ver="${esc(p.id)}">${I.vivo}Vista previa</button> <button class="btn btn--mini btn--icono" data-pdf="${esc(p.id)}" title="Descargar su PDF" aria-label="Descargar su PDF">${I.descargar}</button>
+        <td style="white-space:nowrap">${["organizadores", "participantes"].includes(seccion) ? `<button class="btn btn--mini" data-editar="${esc(p.oid)}" title="Editar nombre, apellidos${seccion === "organizadores" ? ", área y cargo" : " y delegación"}">${I.lapiz}Editar</button> ` : ""}<button class="btn btn--mini" data-ver="${esc(p.id)}">${I.vivo}Vista previa</button> <button class="btn btn--mini btn--icono" data-pdf="${esc(p.id)}" title="Descargar su PDF" aria-label="Descargar su PDF">${I.descargar}</button>
           ${p.tipo === "otro" || seccion !== "invitados" ? `<button class="btn btn--mini btn--icono btn--peligro" data-borrar="${esc(p.id)}" title="Quitar de la lista" aria-label="Quitar">${I.basura}</button>` : ""}</td></tr>`;
     }
 
@@ -320,6 +327,7 @@ export function crearCertificados(ctx) {
     $("[data-cinta]", v).onchange = (e) => { ponCfg({ cinta: e.target.value.trim() || SECCIONES[seccion].cinta }); repintar(); };
     $$("[data-cinta-rapida]", v).forEach((b) => (b.onclick = () => { ponCfg({ cinta: b.dataset.cintaRapida }); repintar(); }));
     $("[data-plantilla]", v).onchange = (e) => { ponCfg({ plantilla: e.target.value.trim() || SECCIONES[seccion].plantilla }); repintar(); };
+    $("[data-plantilla-lider]", v)?.addEventListener("change", (e) => { ponCfg({ plantillaLider: e.target.value.trim() || SECCIONES.organizadores.plantillaLider }); repintar(); });
     $("[data-restaurar-cfg]", v).onclick = () => { delete g.config[seccion]; guardar(); repintar(); aviso("Texto y cinta originales"); };
     $("[data-muestra]", v).onclick = () => { const p = el[0] || todas[0]; if (p) previa(p, v); };
     // Selección
@@ -327,6 +335,8 @@ export function crearCertificados(ctx) {
     $("[data-todas]", v).onchange = (e) => { lista.forEach((p) => (e.target.checked ? quitados.delete(p.id) : quitados.add(p.id))); repintar(); };
     // Filas
     $$("[data-area]", v).forEach((s) => (s.onchange = () => { const o = g.organizadores.find((x) => x.id === s.dataset.area); if (o) { o.area = s.value; guardar(); repintar(); } }));
+    $$("[data-cargo]", v).forEach((s) => (s.onchange = () => { const o = g.organizadores.find((x) => x.id === s.dataset.cargo); if (o) { o.cargo = s.value; guardar(); repintar(); } }));
+    $$("[data-editar]", v).forEach((b) => (b.onclick = () => formPersona(v, b.dataset.editar)));
     $$("[data-ver]", v).forEach((b) => (b.onclick = () => previa(por(b.dataset.ver), v)));
     $$("[data-pdf]", v).forEach((b) => (b.onclick = async () => { const p = por(b.dataset.pdf); b.disabled = true; try { bajar(pdfDeImagenes([await jpeg(await dibujar(p))]), archivo(p)); } catch (e) { aviso(e.message, "error"); } b.disabled = false; }));
     $$("[data-borrar]", v).forEach((b) => (b.onclick = () => {
@@ -409,16 +419,16 @@ export function crearCertificados(ctx) {
     const org = seccion === "organizadores";
     importarExcel({
       titulo: org ? "Cargar voluntarios del equipo organizador" : "Cargar participantes inscritos",
-      ayuda: org ? "Excel con <b>nombres</b>, <b>apellido paterno</b> y <b>apellido materno</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing, Logística o TI). Si no trae el área, la eliges después en la lista."
+      ayuda: org ? "Excel con <b>nombres</b>, <b>apellido paterno</b> y <b>apellido materno</b> (o el nombre completo en una columna) y, si lo tienes, el <b>área</b> (DP, PMO, Ventas, RRPP, Marketing, Logística o TI) y el <b>cargo</b> (si dice líder, jefe o coordinador queda como Líder; si no, Voluntario). Lo que falte lo eliges después en la lista."
         : "El mismo Excel de inscritos que usas en Charlas (por ejemplo, la hoja CONFIRMADOS). Toma los <b>nombres</b>, el <b>apellido paterno</b> y el <b>apellido materno</b> (o el nombre completo) y, si quieres, la <b>delegación</b> o universidad.",
       campos: [
         { id: "nombre", txt: "Nombre(s) o nombre completo", claves: /^(nombres?|nombre completo|nombres y apellidos|apellidos y nombres|participante|voluntario|integrante)\b/, requerido: true, nombre: true },
         { id: "apellido", txt: "Apellido paterno (o los dos apellidos)", claves: /^(apellido paterno|ap\.? ?paterno|ap\.? ?pat\b|primer apellido|apellidos?$)/, nombre: true },
         { id: "materno", txt: "Apellido materno", claves: /^(apellido materno|ap\.? ?materno|ap\.? ?mat\b|segundo apellido)/, nombre: true },
-        org ? { id: "area", txt: "Área", claves: /^(area|área|cargo|equipo|comite|comité)\b/ } : { id: "delegacion", txt: "Delegación o universidad", claves: /^(delegacion|universidad|institucion|casa de estudios|siglas)\b/ },
+        ...(org ? [{ id: "area", txt: "Área", claves: /^(area|área|equipo|comite|comité)\b/ }, { id: "cargo", txt: "Cargo (voluntario o líder)", claves: /^(cargo|rol|puesto|funcion|función)\b/ }] : [{ id: "delegacion", txt: "Delegación o universidad", claves: /^(delegacion|universidad|institucion|casa de estudios|siglas)\b/ }]),
       ],
       alImportar: (filas, reemplazar) => {
-        const lista = filas.map((f) => ({ id: uid(), nombre: f.nombre, apellido: f.apellido || "", materno: f.materno || "", ...(org ? { area: areaDe(f.area) } : { delegacion: f.delegacion || "" }) }));
+        const lista = filas.map((f) => ({ id: uid(), nombre: f.nombre, apellido: f.apellido || "", materno: f.materno || "", ...(org ? { area: areaDe(f.area), cargo: /lider|jefe|coordinador|director|head|lead/.test(sinTildes(String(f.cargo || "")).toLowerCase()) ? "lider" : "voluntario" } : { delegacion: f.delegacion || "" }) }));
         if (reemplazar) { g[seccion] = lista; Object.keys(g.editados).filter((k) => k.startsWith(org ? "o:" : "a:")).forEach((k) => delete g.editados[k]); }
         else g[seccion].push(...lista);
         guardar(); quitados.clear(); pintar(v); aviso(`${lista.length} persona${lista.length === 1 ? "" : "s"} cargada${lista.length === 1 ? "" : "s"}`);
@@ -439,22 +449,30 @@ export function crearCertificados(ctx) {
     return "";
   }
 
-  function formPersona(v) {
+  // Agregar (sin editarId) o editar a un voluntario / participante ya cargado
+  function formPersona(v, editarId = null) {
     const inv = seccion === "invitados", org = seccion === "organizadores";
-    const m = modal(`<h2>${inv ? "Agregar persona" : org ? "Agregar voluntario" : "Agregar participante"}</h2><form class="form">
-      <label class="campo"><span>${inv ? "Nombre completo" : "Nombre(s)"}</span><input name="nombre" maxlength="80" required placeholder="Ej. María"></label>
+    const x = editarId ? (g[seccion] || []).find((o) => o.id === editarId) : null;
+    if (editarId && !x) return;
+    const val = (k) => esc(x?.[k] || "");
+    const m = modal(`<h2>${x ? (org ? "Editar integrante del equipo" : "Editar participante") : inv ? "Agregar persona" : org ? "Agregar al equipo organizador" : "Agregar participante"}</h2><form class="form">
+      <label class="campo"><span>${inv ? "Nombre completo" : "Nombre(s)"}</span><input name="nombre" maxlength="80" required placeholder="Ej. María" value="${val("nombre")}"></label>
       ${inv ? `<label class="campo"><span>Su participación fue «como…»</span><input name="rol" maxlength="120" placeholder="Ej. auspiciador oficial"></label>`
-        : `<div class="cert-map" style="margin:0"><label class="campo"><span>Apellido paterno</span><input name="apellido" maxlength="60" placeholder="Ej. López"></label>
-           <label class="campo"><span>Apellido materno</span><input name="materno" maxlength="60" placeholder="Ej. Torres"></label></div>
-           ${org ? `<label class="campo"><span>Área</span><select name="area"><option value="">Elige…</option>${AREAS_ORG.map((a) => `<option value="${a.id}">${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></label>`
-             : `<label class="campo"><span>Delegación o universidad (opcional)</span><input name="delegacion" maxlength="120"></label>`}`}
-      <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}Agregar</button></div></form>`);
+        : `<div class="cert-map" style="margin:0"><label class="campo"><span>Apellido paterno</span><input name="apellido" maxlength="60" placeholder="Ej. López" value="${val("apellido")}"></label>
+           <label class="campo"><span>Apellido materno</span><input name="materno" maxlength="60" placeholder="Ej. Torres" value="${val("materno")}"></label></div>
+           ${org ? `<div class="cert-map" style="margin:0"><label class="campo"><span>Área</span><select name="area"><option value="">Elige…</option>${AREAS_ORG.map((a) => `<option value="${a.id}" ${a.id === x?.area ? "selected" : ""}>${a.corto ? esc(a.corto) : `${a.id} · ${esc(a.txt)}`}</option>`).join("")}</select></label>
+             <label class="campo"><span>Cargo</span><select name="cargo">${CARGOS_ORG.map((c) => `<option value="${c.id}" ${c.id === (x?.cargo || "voluntario") ? "selected" : ""}>${c.txt}</option>`).join("")}</select></label></div>`
+             : `<label class="campo"><span>Delegación o universidad (opcional)</span><input name="delegacion" maxlength="120" value="${val("delegacion")}"></label>`}`}
+      ${x && g.editados[`${org ? "o" : "a"}:${x.id}`]?.nombre ? `<p class="ayuda" style="margin:0">Esta persona tenía el nombre corregido a mano en la vista previa; al guardar aquí se usa el de este formulario.</p>` : ""}
+      <div class="modal__acciones" style="margin-top:0"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn btn--naranja">${I.check}${x ? "Guardar cambios" : "Agregar"}</button></div></form>`);
     const f = $("form", m.el); $("[data-cancelar]", m.el).onclick = m.cerrar;
     f.onsubmit = (e) => {
       e.preventDefault(); const nombre = f.nombre.value.trim(); if (nombre.length < 2) return;
-      if (inv) g.otros.push({ id: `x:${uid()}`, nombre, rol: f.rol.value.trim() });
-      else g[seccion].push({ id: uid(), nombre, apellido: f.apellido.value.trim(), materno: f.materno.value.trim(), ...(org ? { area: f.area.value } : { delegacion: f.delegacion.value.trim() }) });
-      guardar(); m.cerrar(); if (inv) filtro = "otro"; pintar(v); aviso("Agregado");
+      const datos = inv ? null : { nombre, apellido: f.apellido.value.trim(), materno: f.materno.value.trim(), ...(org ? { area: f.area.value, cargo: f.cargo.value } : { delegacion: f.delegacion.value.trim() }) };
+      if (x) { Object.assign(x, datos); const k = `${org ? "o" : "a"}:${x.id}`; if (g.editados[k]) { delete g.editados[k].nombre; if (!g.editados[k].texto) delete g.editados[k]; } }
+      else if (inv) g.otros.push({ id: `x:${uid()}`, nombre, rol: f.rol.value.trim() });
+      else g[seccion].push({ id: uid(), ...datos });
+      guardar(); m.cerrar(); if (inv) filtro = "otro"; pintar(v); aviso(x ? "Cambios guardados" : "Agregado");
     };
   }
 

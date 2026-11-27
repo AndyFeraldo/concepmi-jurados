@@ -10,10 +10,10 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611252306";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611252306";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611252306";
-import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611252306";
+import { api } from "./api.js?v=202611271529";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271529";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271529";
+import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271529";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -331,10 +331,11 @@ export function crearShow(ctx) {
             <td><div class="sh-acc">${op ? `<button class="btn btn--mini btn--naranja" data-sortear="${p.id}" ${p.sorteados >= p.cantidad ? "disabled" : ""}>🎲 Sortear</button>` : ""}${ed ? `<button class="btn btn--mini" data-pr-editar="${p.id}">${I.lapiz}</button><button class="btn btn--mini btn--peligro" data-pr-borrar="${p.id}">${I.basura}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
           : `<div class="vacio"><b>Aún no hay premios</b>Agrega cada premio: tipo (beca, media beca, cuarto, descuento), nombre, sponsor y cantidad.</div>`}
         <div class="sh-acc">${ed ? `<button class="btn" data-pr-nuevo>${I.mas}Agregar premio</button>` : ""}<button class="btn btn--naranja" data-sorteo ${S.premios.length && op ? "" : "disabled"}>${I.copa}Proyectar sorteo de becas</button></div>
-        ${S.ganadores.length ? `<h3 class="sh-sub">Ganadores</h3><div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Premio</th><th>Código</th><th>Nombre</th><th>Delegación</th><th></th></tr></thead><tbody>
-          ${S.ganadores.map((g) => { const p = S.premios.find((x) => x.id === g.premio_id); return `<tr class="${g.anulado ? "sh-anulado" : ""}"><td>${esc(TIPOS[p?.tipo] || "")}${p?.titulo ? ` · ${esc(p.titulo)}` : ""}</td><td><code>${esc(g.codigo)}</code></td><td><b>${esc(g.nombre)}</b></td><td>${esc(g.delegacion)}</td>
+        ${S.ganadores.length ? `<h3 class="sh-sub">Ganadores</h3>${ed ? `<p class="ayuda" style="margin:0 0 8px">Celular y correo salen del Excel de inscritos (Charlas → Importar inscritos, con las columnas de celular y correo). Toca el celular para escribirle por WhatsApp.</p>` : ""}<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Premio</th><th>Código</th><th>Nombre</th><th>Delegación</th>${ed ? "<th>Celular</th><th>Correo</th>" : ""}<th></th></tr></thead><tbody>
+          ${S.ganadores.map((g) => { const p = S.premios.find((x) => x.id === g.premio_id); const tel = String(g.telefono || "").replace(/\D/g, ""), wa = tel ? (tel.length === 9 ? `51${tel}` : tel) : ""; return `<tr class="${g.anulado ? "sh-anulado" : ""}"><td>${esc(TIPOS[p?.tipo] || "")}${p?.titulo ? ` · ${esc(p.titulo)}` : ""}</td><td><code>${esc(g.codigo)}</code></td><td><b>${esc(g.nombre)}</b></td><td>${esc(g.delegacion)}</td>
+            ${ed ? `<td style="white-space:nowrap">${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener">📱 ${esc(g.telefono)}</a>` : `<small class="tenue">sin dato</small>`}</td><td>${g.correo ? `<a href="mailto:${esc(g.correo)}">✉️ ${esc(g.correo)}</a>` : `<small class="tenue">sin dato</small>`}</td>` : ""}
             <td>${g.anulado ? `<small class="tenue">Anulado · ${esc(g.motivo)}</small>` : op ? `<button class="btn btn--mini" data-anular="${g.id}">No estaba presente</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div>
-          ${ed ? `<button class="btn btn--mini btn--peligro" data-limpiar-sorteos style="margin-top:8px">${I.basura}Borrar todos los sorteos (pruebas)</button>` : ""}` : ""}`)}`;
+          <div class="sh-acc" style="margin-top:8px">${ed ? `<button class="btn btn--mini" data-ganadores-xls>${I.descargar}Descargar ganadores (Excel)</button><button class="btn btn--mini btn--peligro" data-limpiar-sorteos>${I.basura}Borrar todos los sorteos (pruebas)</button>` : ""}</div>` : ""}`)}`;
     enlazar(v, ed, op);
   }
 
@@ -370,6 +371,14 @@ export function crearShow(ctx) {
     $$("[data-sortear]", v).forEach((b) => (b.onclick = () => abrirSorteo(cod(), b.dataset.sortear, { alCerrar: () => recargar(v).catch(() => {}) })));
     $("[data-sorteo]", v).onclick = () => abrirSorteo(cod(), null, { alCerrar: () => recargar(v).catch(() => {}) });
     $$("[data-anular]", v).forEach((b) => (b.onclick = async () => { if (!(await confirmar("¿No estaba presente?", "Se anula este premio y se puede volver a sortear.", { boton: "Anular", peligro: true }))) return; try { await api.showAnular(cod(), b.dataset.anular); await recargar(v); } catch (e) { err(e); } }));
+    $("[data-ganadores-xls]", v)?.addEventListener("click", () => {
+      if (!window.XLSX) return aviso("No se pudo cargar el generador de Excel", "error");
+      const filas = S.ganadores.filter((g) => !g.anulado).map((g) => { const p = S.premios.find((x) => x.id === g.premio_id);
+        return { Premio: `${TIPOS[p?.tipo] || ""}${p?.titulo ? ` · ${p.titulo}` : ""}`, Sponsor: S.sponsors.find((s) => s.id === p?.sponsor_id)?.nombre || "", Código: g.codigo, DNI: g.dni || "", Nombre: g.nombre,
+          Delegación: g.delegacion_nombre || g.delegacion, Celular: g.telefono || "", Correo: g.correo || "", Fecha: new Date(g.creado).toLocaleString("es-PE") }; });
+      const wb = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(filas), "Ganadores");
+      window.XLSX.writeFile(wb, "Ganadores_sorteo_becas_VI_CONCEPMI.xlsx");
+    });
     $("[data-limpiar-sorteos]", v)?.addEventListener("click", async () => { if (!(await confirmar("¿Borrar todos los sorteos?", "Se borran todos los ganadores (por ejemplo, los de las pruebas). Los premios y sponsors se quedan.", { boton: "Borrar sorteos", peligro: true }))) return; try { await api.showLimpiar(cod(), "sorteos"); await recargar(v); aviso("Sorteos borrados"); } catch (e) { err(e); } });
   }
 

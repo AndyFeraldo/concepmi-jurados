@@ -9,8 +9,8 @@
 // La lista de duelos se edita en la pestaña y se guarda en ESE navegador (localStorage), porque se
 // usa en la misma laptop del proyector; si no hay lista guardada, se usan los sugeridos.
 // =========================================================
-import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611252306";
-import { pantalla, tono, fanfarria } from "./show.js?v=202611252306";
+import { $, esc, IMG, aviso, lanzarConfeti } from "./ui.js?v=202611271529";
+import { pantalla, tono, fanfarria } from "./show.js?v=202611271529";
 
 const CLAVE = "concepmi-duelos-v1";
 export const DUELOS = [

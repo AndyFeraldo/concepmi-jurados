@@ -11,11 +11,11 @@
 // Todo sale solo de `resultados()` de calculo.js. Espacio / → / PageDown avanza (no salta un suspenso en
 // curso), ← / PageUp retrocede, Esc sale. Al final: «Copa CONCEPMI» → abre la ceremonia de premiación.
 // =========================================================
-import { resultados, copaGeneral } from "./calculo.js?v=202611252306";
-import { porId } from "./concursos.js?v=202611252306";
-import { pantalla } from "./show.js?v=202611252306";
-import { hype } from "./hype.js?v=202611252306";
-import { $, esc, I, IMG, aviso, lanzarConfeti, pantallaActiva } from "./ui.js?v=202611252306";
+import { resultados, copaGeneral } from "./calculo.js?v=202611271529";
+import { porId } from "./concursos.js?v=202611271529";
+import { pantalla } from "./show.js?v=202611271529";
+import { hype } from "./hype.js?v=202611271529";
+import { $, esc, I, IMG, aviso, lanzarConfeti, pantallaActiva } from "./ui.js?v=202611271529";
 
 export const ORDEN_CIERRE = ["talent", "barras", "gymkana", "amateur-1", "amateur-2", "iathon", "conocimientos", "proyectos"];
 const NOMBRES = {
@@ -158,7 +158,7 @@ export function abrirCeremoniaCierre(data, { desde = null, proyectos = {} } = {}
     confetiFuerte(COLORES[1], 1);
   }
   async function abrirCopa() {
-    const { abrirPremiacion } = await import("./premiacion.js?v=202611252306");
+    const { abrirPremiacion } = await import("./premiacion.js?v=202611271529");
     hype.parar();
     pantallaActiva.transicion = true; p.cerrar(); pantallaActiva.transicion = false;
     abrirPremiacion(copaGeneral(data));
@@ -204,7 +204,7 @@ export function crearCierre(ctx) {
       <p class="ayuda">En la proyección: <b>Espacio / → / puntero</b> avanza (portada del concurso → 3.º → 2.º → 1.º → podio con la tabla completa). Cada lugar tiene <b>suspenso con redoble</b> (3.º 5 s, 2.º 6 s, 1.º 8 s) para que el presentador haga juego; mientras suena el redoble, Espacio no lo salta. <b>←</b> retrocede, <b>M</b> silencia la música, Esc sale. Al terminar Proyectos sale «Copa CONCEPMI»: Espacio abre la ceremonia de premiación.</p>`;
     $("[data-ver]", v).onclick = () => { visible = !visible; vista(v); };
     $("[data-todo]", v).onclick = async () => abrirCeremoniaCierre(ctx.data(), { proyectos: await nombresProyectos() });
-    $("[data-copa]", v).onclick = async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611252306"); abrirPremiacion(copaGeneral(ctx.data())); };
+    $("[data-copa]", v).onclick = async () => { const { abrirPremiacion } = await import("./premiacion.js?v=202611271529"); abrirPremiacion(copaGeneral(ctx.data())); };
     v.querySelectorAll("[data-desde]").forEach((b) => (b.onclick = async () => abrirCeremoniaCierre(ctx.data(), { desde: b.dataset.desde, proyectos: await nombresProyectos() })));
   }
   return { vista };

@@ -2,9 +2,9 @@
 // Admin · Charlas principales: trivia, pantalla del auditorio,
 // inscritos (Excel de inscripción) y preguntas (Excel)
 // =========================================================
-import { api } from "./api.js?v=202611252306";
-import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202611252306";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, pantallaActiva } from "./ui.js?v=202611252306";
+import { api } from "./api.js?v=202611271529";
+import { CHARLAS, charlaPorId, PUNTOS_PODIO, SEG_PREGUNTA, enlaceCharla } from "./charlas.js?v=202611271529";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, pantallaActiva } from "./ui.js?v=202611271529";
 
 const COLORES = ["rojo", "azul", "oro", "verde"];
 const FORMAS = ["▲", "◆", "●", "■"];
@@ -361,6 +361,8 @@ export function crearCharlas(ctx) {
         apellido: busca(/apellidos?/, /nombres y apellidos/),
         codigo: busca(/codigo|cod\.|id inscri|n.? de inscri/),
         delegacion: busca(/delegaci|universidad|institucion|casa de estudio/),
+        telefono: busca(/celular|telefono|movil|whatsapp|numero|n.? de contacto|contacto/, /dni|documento|correo|email/),
+        correo: busca(/correo|e-?mail|mail/),
       };
       if (cols.nombre >= 0 && cols.apellido === cols.nombre) cols.apellido = -1;
       pintarPaso2();
@@ -373,6 +375,8 @@ export function crearCharlas(ctx) {
         nombre: [cols.nombre >= 0 ? f[cols.nombre] : "", cols.apellido >= 0 ? f[cols.apellido] : ""].map((x) => String(x).trim()).filter(Boolean).join(" "),
         codigo: cols.codigo >= 0 ? String(f[cols.codigo]).trim() : "",
         delegacion_texto: cols.delegacion >= 0 ? String(f[cols.delegacion]).trim() : "",
+        telefono: cols.telefono >= 0 ? String(f[cols.telefono] ?? "").trim() : "",
+        correo: cols.correo >= 0 ? String(f[cols.correo] ?? "").trim() : "",
       }));
     }
 
@@ -401,6 +405,8 @@ export function crearCharlas(ctx) {
           <tr><th>Apellidos</th><td>${sel("apellido", true)}</td></tr>
           <tr><th>Código</th><td>${sel("codigo", true)}</td></tr>
           <tr><th>Delegación / universidad</th><td>${sel("delegacion")}</td></tr>
+          <tr><th>Celular <small class="tenue">(para contactar ganadores)</small></th><td>${sel("telefono", true)}</td></tr>
+          <tr><th>Correo</th><td>${sel("correo", true)}</td></tr>
         </tbody></table>
         ${dat.length ? `
         <h3 style="margin:14px 0 6px">2. ¿A qué delegación del panel corresponde cada universidad del Excel?</h3>
@@ -409,8 +415,8 @@ export function crearCharlas(ctx) {
           ${textos.map((x) => `<tr><td>${esc(x)}</td><td>${dat.filter((y) => y.delegacion_texto === x).length}</td><td><select data-mapa="${esc(x)}"><option value="">— Sin delegación (no podrá jugar) —</option>${ds.map((d) => `<option value="${d.id}" ${mapa[x] === d.id ? "selected" : ""}>${esc(d.siglas ? `${d.siglas} · ${d.nombre}` : d.nombre)}</option>`).join("")}</select></td></tr>`).join("")}
         </tbody></table>
         <h3 style="margin:14px 0 6px">3. Vista previa (${dat.length} inscritos)</h3>
-        <table class="tabla-mini"><thead><tr><th>DNI</th><th>Nombre</th><th>Código</th><th>Delegación</th></tr></thead><tbody>
-          ${dat.slice(0, 5).map((x) => `<tr><td>${esc(x.dni)}</td><td>${esc(x.nombre)}</td><td>${esc(x.codigo)}</td><td>${esc(nomDel(mapa[x.delegacion_texto]) )}</td></tr>`).join("")}
+        <table class="tabla-mini"><thead><tr><th>DNI</th><th>Nombre</th><th>Código</th><th>Delegación</th><th>Celular</th><th>Correo</th></tr></thead><tbody>
+          ${dat.slice(0, 5).map((x) => `<tr><td>${esc(x.dni)}</td><td>${esc(x.nombre)}</td><td>${esc(x.codigo)}</td><td>${esc(nomDel(mapa[x.delegacion_texto]) )}</td><td>${esc(x.telefono)}</td><td>${esc(x.correo)}</td></tr>`).join("")}
         </tbody></table>` : `<p class="ayuda" style="margin-top:10px">Elige la columna del DNI para continuar.</p>`}`;
       $("[data-hoja]", m.el).onchange = (e) => { hoja = e.target.value; mapa = {}; cargarHoja(); };
       $$("[data-col]", m.el).forEach((s) => (s.onchange = () => { cols[s.dataset.col] = Number(s.value); pintarPaso2(); }));
@@ -427,7 +433,7 @@ export function crearCharlas(ctx) {
         let r = null;
         for (let i = 0; i < dat.length; i += 300) r = await api.adminAsistentes(ctx.codigo(), dat.slice(i, i + 300));
         m.cerrar(); await ctx.recargar(true); listo?.();
-        aviso(`${dat.length} inscritos importados · ${r.total} en total${r.sin_delegacion ? ` · ${r.sin_delegacion} sin delegación` : ""}`, r.sin_delegacion ? "error" : "ok");
+        aviso(`${dat.length} inscritos importados · ${r.total} en total${r.con_contacto != null ? ` · ${r.con_contacto} con celular o correo` : ""}${r.sin_delegacion ? ` · ${r.sin_delegacion} sin delegación` : ""}`, r.sin_delegacion ? "error" : "ok");
       } catch (ex) { err.textContent = ex.message; btn.disabled = false; }
     };
   }

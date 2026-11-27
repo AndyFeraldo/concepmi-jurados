@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611252306";
-import { CONCURSOS, porId } from "./concursos.js?v=202611252306";
-import { TALLERES } from "./talleres.js?v=202611252306";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611252306";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611271529";
+import { CONCURSOS, porId } from "./concursos.js?v=202611271529";
+import { TALLERES } from "./talleres.js?v=202611271529";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611271529";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -255,7 +255,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611252306");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611271529");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -601,7 +601,7 @@ const demo = {
   async adminAsistentes(codigo, filas) { await espera(); exigirPermiso(codigo, "charlas", "editar"); const d = db(); let n = 0;
     for (const f of filas) { const dni = norm(f.dni); if (!dni || !String(f.nombre || "").trim()) continue;
       d.asistentes = d.asistentes.filter((a) => a.dni !== dni);
-      d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "" }); n++; }
+      d.asistentes.push({ dni, codigo: f.codigo || "", nombre: f.nombre.trim(), delegacion_id: f.delegacion_id || null, delegacion_texto: f.delegacion_texto || "", telefono: f.telefono || "", correo: (f.correo || "").toLowerCase() }); n++; }
     guardar(); return { importados: n, total: d.asistentes.length, sin_delegacion: d.asistentes.filter((a) => !a.delegacion_id).length }; },
   // ---- Logística (vista previa) ----
   async adminLogistica(codigo) { await espera(); exigirPermiso(codigo, "logistica", "ver"); const L = structuredClone(await logDemo()); L.archivos = L.archivos.map(({ datos, ...a }) => a); return L; },
@@ -856,7 +856,7 @@ const demo = {
   async showDatos(codigo) { await espera(); const n = showNivel(codigo); if (!n) throw new Error("Tu acceso no incluye el Show en vivo"); const s = showDb(), d = db();
     const del = (id) => d.delegaciones.find((x) => x.id === id);
     return structuredClone({ nivel: n, config: s.config, sponsors: s.sponsors, premios: s.premios.map((p) => ({ ...p, sorteados: s.ganadores.filter((g) => g.premio_id === p.id && !g.anulado).length })),
-      ganadores: s.ganadores.map((g) => ({ ...g, delegacion: del(g.delegacion_id)?.siglas || g.delegacion_texto || "—", delegacion_nombre: del(g.delegacion_id)?.nombre || g.delegacion_texto })),
+      ganadores: s.ganadores.map((g) => { const a = n === "editar" ? (d.asistentes || []).find((x) => x.dni === g.dni) : null; return { ...g, delegacion: del(g.delegacion_id)?.siglas || g.delegacion_texto || "—", delegacion_nombre: del(g.delegacion_id)?.nombre || g.delegacion_texto, dni: n === "editar" ? g.dni : null, telefono: a ? a.telefono || "" : null, correo: a ? a.correo || "" : null }; }),
       archivos: Object.fromEntries(Object.entries(s.archivos).map(([k, v]) => [k, { nombre: v.nombre, tamano: v.tamano, subido: v.subido }])),
       participantes: d.asistentes.filter((a) => a.codigo).length, mensajes: s.mensajes.filter((m) => !m.oculto).length }); },
   async showParticipantes(codigo) { await espera(); showExigir(codigo, "ver"); return db().asistentes.filter((a) => a.codigo).map((a) => a.codigo).sort(() => Math.random() - 0.5); },

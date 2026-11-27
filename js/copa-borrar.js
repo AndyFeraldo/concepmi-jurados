@@ -9,11 +9,11 @@
 //   · Talleres: quita los ganadores (jur_admin_taller_borrar). Charlas: borra sala, respuestas y podio.
 // No toca delegaciones, jurados, talleristas, ponentes, equipos, entregas ni códigos.
 // =========================================================
-import { api } from "./api.js?v=202611252306";
-import { CONCURSOS } from "./concursos.js?v=202611252306";
-import { TALLERES } from "./talleres.js?v=202611252306";
-import { CHARLAS } from "./charlas.js?v=202611252306";
-import { $, $$, esc, I, aviso, modal } from "./ui.js?v=202611252306";
+import { api } from "./api.js?v=202611271529";
+import { CONCURSOS } from "./concursos.js?v=202611271529";
+import { TALLERES } from "./talleres.js?v=202611271529";
+import { CHARLAS } from "./charlas.js?v=202611271529";
+import { $, $$, esc, I, aviso, modal } from "./ui.js?v=202611271529";
 
 const MANUAL = ["conocimientos", "talent"];
 
