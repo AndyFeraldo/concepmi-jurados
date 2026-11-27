@@ -10,10 +10,10 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611271547";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271547";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271547";
-import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271547";
+import { api } from "./api.js?v=202611271603";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271603";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271603";
+import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271603";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -328,7 +328,7 @@ export function crearShow(ctx) {
         ${S.premios.length ? `<div class="tabla-envoltura"><table class="tabla sh-premios"><thead><tr><th>Tipo</th><th>Premio</th><th>Sponsor</th><th class="num">Cantidad</th><th class="num">Sorteados</th><th></th></tr></thead><tbody>
           ${S.premios.map((p) => `<tr><td><span class="chip chip--${p.tipo === "beca" ? "verde" : p.tipo === "descuento" ? "celeste" : "ambar"}">${esc(TIPOS[p.tipo])}</span></td><td><b>${esc(p.titulo || "—")}</b>${p.detalle ? `<br><small class="tenue">${esc(p.detalle)}</small>` : ""}</td>
             <td>${esc(sp(p.sponsor_id)?.nombre || "—")}</td><td class="num">${p.cantidad}</td><td class="num">${p.sorteados}/${p.cantidad}</td>
-            <td><div class="sh-acc">${op ? `<button class="btn btn--mini btn--naranja" data-sortear="${p.id}" ${p.sorteados >= p.cantidad ? "disabled" : ""}>🎲 Sortear</button>` : ""}${ed ? `<button class="btn btn--mini" data-pr-editar="${p.id}">${I.lapiz}</button><button class="btn btn--mini btn--peligro" data-pr-borrar="${p.id}">${I.basura}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
+            <td><div class="sh-acc">${op ? `<button class="btn btn--mini btn--naranja" data-sortear="${p.id}" ${p.sorteados >= p.cantidad ? "disabled" : ""}>🎲 Sortear</button>${p.sorteados < p.cantidad ? `<button class="btn btn--mini" data-auto-sortear="${p.id}" title="Sortea de una vez los ${p.cantidad - p.sorteados} cupos que faltan, al azar y sin pantalla">⚡ Sortear automáticamente (${p.cantidad - p.sorteados})</button>` : ""}` : ""}${ed ? `<button class="btn btn--mini" data-pr-editar="${p.id}">${I.lapiz}</button><button class="btn btn--mini btn--peligro" data-pr-borrar="${p.id}">${I.basura}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
           : `<div class="vacio"><b>Aún no hay premios</b>Agrega cada premio: tipo (beca, media beca, cuarto, descuento), nombre, sponsor y cantidad.</div>`}
         <div class="sh-acc">${ed ? `<button class="btn" data-pr-nuevo>${I.mas}Agregar premio</button>` : ""}<button class="btn btn--naranja" data-sorteo ${S.premios.length && op ? "" : "disabled"}>${I.copa}Proyectar sorteo de becas</button></div>
         ${S.ganadores.length ? `<h3 class="sh-sub">Ganadores</h3>${ed ? `<p class="ayuda" style="margin:0 0 8px">Celular y correo salen del Excel de inscritos (Charlas → Importar inscritos, con las columnas de celular y correo). Toca el celular para escribirle por WhatsApp.</p>` : ""}<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Premio</th><th>Sponsor</th><th>Código</th><th>Nombre</th><th>Delegación</th>${ed ? "<th>Celular</th><th>Correo</th>" : ""}<th></th></tr></thead><tbody>
@@ -369,6 +369,22 @@ export function crearShow(ctx) {
     $$("[data-pr-borrar]", v).forEach((b) => (b.onclick = async () => { const p = S.premios.find((x) => x.id === b.dataset.prBorrar);
       if (!(await confirmar("¿Quitar este premio?", `Se quita <b>${esc(TIPOS[p.tipo])}${p.titulo ? ` · ${esc(p.titulo)}` : ""}</b>${p.sorteados ? " y sus ganadores" : ""}.`, { boton: "Quitar", peligro: true }))) return; try { await api.showPremio(cod(), { id: p.id, borrar: true }); await recargar(v); } catch (e) { err(e); } }));
     $$("[data-sortear]", v).forEach((b) => (b.onclick = () => abrirSorteo(cod(), b.dataset.sortear, { alCerrar: () => recargar(v).catch(() => {}) })));
+    // Sortear automáticamente: completa de una vez los cupos que faltan de un premio (mismo sorteo al azar de la base, uno tras otro)
+    $$("[data-auto-sortear]", v).forEach((b) => (b.onclick = async () => {
+      const p = S.premios.find((x) => x.id === b.dataset.autoSortear); if (!p) return;
+      const faltan = p.cantidad - p.sorteados; if (faltan <= 0) return;
+      const nom = `${p.detalle || p.titulo || TIPOS[p.tipo]}${S.sponsors.find((s) => s.id === p.sponsor_id) ? ` · ${S.sponsors.find((s) => s.id === p.sponsor_id).nombre}` : ""}`;
+      if (!(await confirmar("¿Sortear automáticamente?", `Se elegirán <b>${faltan} ganador${faltan === 1 ? "" : "es"}</b> al azar para <b>${esc(nom)}</b>, sin pantalla de sorteo. Solo participan inscritos que aún no ganaron nada. Aparecerán en la tabla de ganadores.`, { boton: `Sortear ${faltan}` }))) return;
+      $$("[data-auto-sortear], [data-sortear]", v).forEach((x) => (x.disabled = true));
+      let hechos = 0, error = null;
+      for (let k = 0; k < faltan; k++) {
+        b.textContent = `⏳ Sorteando ${k + 1} de ${faltan}…`;
+        try { await api.showSortear(cod(), p.id); hechos++; } catch (e) { error = e; break; }
+      }
+      await recargar(v).catch(() => {});
+      if (hechos) lanzarConfeti();
+      aviso(error ? `Se sortearon ${hechos} de ${faltan}. Se detuvo: ${error.message}` : `¡Listo! ${hechos} ganador${hechos === 1 ? "" : "es"} sorteado${hechos === 1 ? "" : "s"} para ${nom}`, error ? "error" : "ok");
+    }));
     $("[data-sorteo]", v).onclick = () => abrirSorteo(cod(), null, { alCerrar: () => recargar(v).catch(() => {}) });
     $$("[data-anular]", v).forEach((b) => (b.onclick = async () => { if (!(await confirmar("¿No estaba presente?", "Se anula este premio y se puede volver a sortear.", { boton: "Anular", peligro: true }))) return; try { await api.showAnular(cod(), b.dataset.anular); await recargar(v); } catch (e) { err(e); } }));
     $("[data-ganadores-xls]", v)?.addEventListener("click", () => {

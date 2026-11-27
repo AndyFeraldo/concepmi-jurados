@@ -4,12 +4,12 @@
 // (acceso con Talleristas) o el operador de Proyección. Mismo sistema de archivos privados y la
 // misma pantalla de proyección que las charlas (js/sala-proyectos.js).
 // =========================================================
-import { api } from "./api.js?v=202611271547";
-import { TALLERES, tallerPorId, HORA_TALLERES } from "./talleres.js?v=202611271547";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271547";
-import { quitarArchivos } from "./presentacion.js?v=202611271547";
-import { htmlArchivos, conectarArchivos } from "./ponente.js?v=202611271547";
-import { $, esc, I, aviso, modal } from "./ui.js?v=202611271547";
+import { api } from "./api.js?v=202611271603";
+import { TALLERES, tallerPorId, HORA_TALLERES } from "./talleres.js?v=202611271603";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271603";
+import { quitarArchivos } from "./presentacion.js?v=202611271603";
+import { htmlArchivos, conectarArchivos } from "./ponente.js?v=202611271603";
+import { $, esc, I, aviso, modal } from "./ui.js?v=202611271603";
 
 export const MIN_TALLER = { exp: 80, preg: 10 }; // 11:30 – 1:00 = 90 min
 export const INFO_TALLER = {
