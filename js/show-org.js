@@ -1,12 +1,12 @@
 // Becas para el EQUIPO ORGANIZADOR (Show en vivo → 4 · Premios).
 // La lista sale de Certificados → Equipo organizador (guardada en este navegador) + los voluntarios del Día D
 // (base de datos, solo admin). Se juntan sin repetir nombres. Dos formas:
-//   · sortearOrg: elige al azar N personas que aún no ganaron nada.
+//   · sortearOrg: elige al azar N personas (pueden repetir premios distintos, nunca el mismo premio).
 //   · elegirOrg: el admin marca a quién darle el premio (ventana con buscador).
 // Ambas guardan con jur_show_asignar_org (modo «sorteo» o «elegido»).
-import { api } from "./api.js?v=202611271617";
-import { $, $$, esc, I, aviso, modal, lanzarConfeti } from "./ui.js?v=202611271617";
-import { AREAS_ORG } from "./certificados.js?v=202611271617";
+import { api } from "./api.js?v=202611271626";
+import { $, $$, esc, I, aviso, modal, lanzarConfeti } from "./ui.js?v=202611271626";
+import { AREAS_ORG } from "./certificados.js?v=202611271626";
 
 const CERT = "concepmi-certificados-v2";
 const limpio = (s) => String(s || "").trim().replace(/\s+/g, " ");
@@ -54,11 +54,11 @@ export async function sortearOrg({ codigo, S, premio, alTerminar }) {
   const p = S.premios.find((x) => x.id === premio); if (!p) return;
   const faltan = p.cantidad - p.sorteados; if (faltan <= 0) return;
   const { lista, diad } = await candidatosOrg(codigo); const ya = yaGanaron(S);
-  const libres = lista.filter((x) => !ya.has(x.clave));
+  const libres = lista.filter((x) => !(ya.get(x.clave) || []).some((y) => y.premio_id === p.id));
   const areas = [...new Set(libres.map((x) => x.area).filter(Boolean))];
   const m = modal(`<h2>🎲 Sortear para el equipo organizador</h2>
     <p class="ayuda" style="margin:0 0 10px">Premio: <b>${esc(nomPremio(S, p))}</b> · quedan <b>${faltan}</b> cupo${faltan === 1 ? "" : "s"}.</p>
-    ${lista.length ? `<div class="sh-org-resumen"><b>${libres.length}</b> de ${lista.length} personas participan <small class="tenue">(no entran quienes ya ganaron otro premio)</small></div>
+    ${lista.length ? `<div class="sh-org-resumen"><b>${libres.length}</b> de ${lista.length} personas participan <small class="tenue">(se puede ganar más de un premio; solo no entran quienes ya tienen este mismo)</small></div>
     <form class="form">
       <label class="campo"><span>¿Cuántos ganadores?</span><input name="n" type="number" min="1" max="${Math.min(faltan, libres.length) || 1}" value="${Math.min(faltan, libres.length) || 1}"></label>
       ${areas.length > 1 ? `<label class="campo"><span>Solo de un área (opcional)</span><select name="area"><option value="">Todas las áreas</option>${areas.map((a) => `<option value="${esc(a)}">${esc(areaTxt(a))}</option>`).join("")}</select></label>` : ""}

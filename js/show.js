@@ -10,11 +10,11 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611271617";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271617";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271617";
-import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271617";
-import { sortearOrg, elegirOrg } from "./show-org.js?v=202611271617";
+import { api } from "./api.js?v=202611271626";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271626";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271626";
+import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271626";
+import { sortearOrg, elegirOrg } from "./show-org.js?v=202611271626";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -319,7 +319,7 @@ export function crearShow(ctx) {
           <li>Si es solo TikTok Live: abre el live en la laptop del auditorio con el botón «Abrir la transmisión» y pulsa F11. Prueba antes que la laptop tenga sesión o acceso a TikTok.</li>
           <li>Con internet lento, baja la calidad en el celular que transmite.</li></ul></details>`)}
       ${sec(AGENDA[3], `
-        <div class="sh-part"><div><b>${S.participantes}</b> inscritos con código participan del sorteo</div><small>Sale de la lista de confirmados (el mismo Excel de Charlas → Importar inscritos). El ganador lo elige la base de datos al azar por su <b>código</b>; luego se revela su nombre y delegación. Nadie gana dos premios.</small>
+        <div class="sh-part"><div><b>${S.participantes}</b> inscritos con código participan del sorteo</div><small>Sale de la lista de confirmados (el mismo Excel de Charlas → Importar inscritos). El ganador lo elige la base de datos al azar por su <b>código</b>; luego se revela su nombre y delegación. Se puede ganar más de un premio, pero nunca dos veces el mismo.</small>
           ${ctx.importarInscritos ? `<button class="btn btn--mini" data-importar>${I.descargar}Importar Excel de confirmados</button>` : ""}</div>
         <h3 class="sh-sub">Sponsors (marcas aliadas)</h3>
         <div class="sh-sponsors">${S.sponsors.map((s) => `<article class="sh-sp"><div class="sh-sp__logo">${s.logo ? `<img src="${esc(s.logo)}" alt="">` : `<span>${esc(s.nombre.slice(0, 2).toUpperCase())}</span>`}</div><b>${esc(s.nombre)}</b>
@@ -375,7 +375,7 @@ export function crearShow(ctx) {
       const p = S.premios.find((x) => x.id === b.dataset.autoSortear); if (!p) return;
       const faltan = p.cantidad - p.sorteados; if (faltan <= 0) return;
       const nom = `${p.detalle || p.titulo || TIPOS[p.tipo]}${S.sponsors.find((s) => s.id === p.sponsor_id) ? ` · ${S.sponsors.find((s) => s.id === p.sponsor_id).nombre}` : ""}`;
-      if (!(await confirmar("¿Sortear automáticamente?", `Se elegirán <b>${faltan} ganador${faltan === 1 ? "" : "es"}</b> al azar para <b>${esc(nom)}</b>, sin pantalla de sorteo. Solo participan inscritos que aún no ganaron nada. Aparecerán en la tabla de ganadores.`, { boton: `Sortear ${faltan}` }))) return;
+      if (!(await confirmar("¿Sortear automáticamente?", `Se elegirán <b>${faltan} ganador${faltan === 1 ? "" : "es"}</b> al azar para <b>${esc(nom)}</b>, sin pantalla de sorteo. Participan todos los inscritos con código (se puede ganar más de un premio; solo no entran quienes ya tienen este mismo). Aparecerán en la tabla de ganadores.`, { boton: `Sortear ${faltan}` }))) return;
       $$("[data-auto-sortear], [data-sortear]", v).forEach((x) => (x.disabled = true));
       let hechos = 0, error = null;
       for (let k = 0; k < faltan; k++) {

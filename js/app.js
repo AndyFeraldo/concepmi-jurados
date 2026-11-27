@@ -1,17 +1,17 @@
 // =========================================================
 // Panel Maestro · VI CONCEPMI 2026 · arranque y portada
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611271617";
-import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611271617";
-import { CONCURSOS } from "./concursos.js?v=202611271617";
-import { vistaJurado } from "./jurado.js?v=202611271617";
-import { vistaAdmin } from "./admin.js?v=202611271617";
-import { vistaTallerista } from "./tallerista.js?v=202611271617";
-import { vistaQuiz } from "./quiz.js?v=202611271617";
-import { vistaMuro } from "./show-muro.js?v=202611271617";
-import { vistaEquipo } from "./equipo.js?v=202611271617";
-import { vistaPonente } from "./ponente-panel.js?v=202611271617";
-import { vistaCoordinador } from "./coordinador.js?v=202611271617";
+import { api, ES_DEMO } from "./api.js?v=202611271626";
+import { $, esc, I, IMG, modal, fondoAnimado } from "./ui.js?v=202611271626";
+import { CONCURSOS } from "./concursos.js?v=202611271626";
+import { vistaJurado } from "./jurado.js?v=202611271626";
+import { vistaAdmin } from "./admin.js?v=202611271626";
+import { vistaTallerista } from "./tallerista.js?v=202611271626";
+import { vistaQuiz } from "./quiz.js?v=202611271626";
+import { vistaMuro } from "./show-muro.js?v=202611271626";
+import { vistaEquipo } from "./equipo.js?v=202611271626";
+import { vistaPonente } from "./ponente-panel.js?v=202611271626";
+import { vistaCoordinador } from "./coordinador.js?v=202611271626";
 
 const app = $("#app");
 const SESION = "concepmi-jurados-sesion";
@@ -181,7 +181,7 @@ function abrir() {
   if (s?.rol === "admin") {
     // El admin también tiene el Panel de Proyección (cronograma): botón «Proyección» en su panel o la puerta Proyección
     const panel = () => vistaAdmin(app, s.codigo, null, { abrirProyeccion: proy });
-    const proy = async () => { const { vistaProyeccion } = await import("./proyeccion.js?v=202611271617"); vistaProyeccion(app, s.codigo, { nombre: "Administrador" }, { volver: panel }); };
+    const proy = async () => { const { vistaProyeccion } = await import("./proyeccion.js?v=202611271626"); vistaProyeccion(app, s.codigo, { nombre: "Administrador" }, { volver: panel }); };
     return s.puerta === "proyeccion" ? proy() : panel();
   }
   if (s?.rol === "coordinador") return vistaCoordinador(app, s.codigo, s.puerta);

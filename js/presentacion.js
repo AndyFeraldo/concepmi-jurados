@@ -7,10 +7,10 @@
 //  · Proyector: tarjeta «Expone ahora / Sigue» con turno, archivos y cronómetro 5 + 3 min.
 // Los archivos están en un espacio privado; se abren con enlaces temporales (api.presUrl).
 // =========================================================
-import { api, ES_DEMO } from "./api.js?v=202611271617";
-import { ENTREGABLES } from "./entregables.js?v=202611271617";
-import { porId } from "./concursos.js?v=202611271617";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611271617";
+import { api, ES_DEMO } from "./api.js?v=202611271626";
+import { ENTREGABLES } from "./entregables.js?v=202611271626";
+import { porId } from "./concursos.js?v=202611271626";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado } from "./ui.js?v=202611271626";
 
 const LIMA = "America/Lima";
 export const fechaLima = (t) => new Date(t).toLocaleString("es-PE", { timeZone: LIMA, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -118,7 +118,7 @@ export async function vistaPresentacion(app, codigo, salir) {
     $$("[data-ver]", app).forEach((b) => (b.onclick = () => abrirArchivo(codigo, P.presentacion.equipo_id, b.dataset.ver)));
     // Vista previa: la misma pantalla del auditorio, solo con este equipo
     $("[data-previa]", app)?.addEventListener("click", async () => {
-      const { abrirSalaProyectos } = await import("./sala-proyectos.js?v=202611271617");
+      const { abrirSalaProyectos } = await import("./sala-proyectos.js?v=202611271626");
       const pos = P.config.orden.indexOf(data.entrega.delegacion_id);
       abrirSalaProyectos({ concurso: `Vista previa · ${c?.nombre || "Concurso"}`, minutos: def?.cortos || { exp: 5, preg: 3 }, inicial: 0,
         equipos: [{ equipo_id: P.presentacion.equipo_id, delegacion: data.delegacion, proyecto: datos.proyecto, lider: datos.lider, videoDespues: datos.videoDespues || "", pres: P.presentacion }],

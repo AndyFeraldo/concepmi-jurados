@@ -3,10 +3,10 @@
 // En GitHub Pages usa Supabase. En la vista previa (DEMO) usa
 // datos de ejemplo guardados solo en tu navegador.
 // =========================================================
-import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611271617";
-import { CONCURSOS, porId } from "./concursos.js?v=202611271617";
-import { TALLERES } from "./talleres.js?v=202611271617";
-import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611271617";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js?v=202611271626";
+import { CONCURSOS, porId } from "./concursos.js?v=202611271626";
+import { TALLERES } from "./talleres.js?v=202611271626";
+import { CHARLAS, SEG_PREGUNTA, SEG_PAUSA, PUNTOS_PODIO } from "./charlas.js?v=202611271626";
 
 const DEMO = typeof window !== "undefined" && window.__CONCEPMI_DEMO__ === true;
 
@@ -256,7 +256,7 @@ function preguntasDemo() {
 async function logDemo() {
   const d = db();
   if (!d.log) {
-    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611271617");
+    const { SEMILLA_LOGISTICA } = await import("./demo-logistica.js?v=202611271626");
     const L = { config: { tc: 3.4, contingencia: 0.1, linea_base: 0 }, categorias: [], items: [], proveedores: [], fondos: [], gastos: [] };
     let flyer = null, herr = null;
     SEMILLA_LOGISTICA.forEach((c, ci) => {
@@ -876,8 +876,8 @@ const demo = {
     Object.assign(x, { tipo, titulo: String(titulo).trim(), detalle: String(detalle).trim(), sponsor_id: sponsor || null, cantidad: Number(cantidad) }); guardar(); return { id: x.id }; },
   async showSortear(codigo, premio) { await espera(300); showExigir(codigo, "operar"); const s = showDb(), d = db(); const p = s.premios.find((x) => x.id === premio); if (!p) throw new Error("Ese premio ya no existe");
     if (s.ganadores.filter((g) => g.premio_id === p.id && !g.anulado).length >= p.cantidad) throw new Error("Ya se sortearon todos los premios de este tipo");
-    const libres = d.asistentes.filter((a) => a.codigo && !s.ganadores.some((g) => g.dni === a.dni && (!g.anulado || g.premio_id === p.id)));
-    if (!libres.length) throw new Error("Ya no quedan participantes sin premio");
+    const libres = d.asistentes.filter((a) => a.codigo && !s.ganadores.some((g) => g.dni === a.dni && g.premio_id === p.id));
+    if (!libres.length) throw new Error("Ya no quedan participantes que no tengan este premio");
     const a = libres[Math.floor(Math.random() * libres.length)], del = d.delegaciones.find((x) => x.id === a.delegacion_id);
     const g = { id: uid(), premio_id: p.id, dni: a.dni, codigo: a.codigo, nombre: a.nombre, delegacion_id: a.delegacion_id, delegacion_texto: a.delegacion_texto || "", anulado: false, motivo: "", creado: new Date().toISOString() };
     s.ganadores.push(g); guardar(); return { id: g.id, premio_id: p.id, codigo: g.codigo, nombre: g.nombre, delegacion: del?.siglas || g.delegacion_texto || "—", delegacion_nombre: del?.nombre || g.delegacion_texto }; },
