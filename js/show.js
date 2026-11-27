@@ -10,11 +10,11 @@
 //   4 · Sorteo de becas: sponsors con logo, premios (beca, media beca, cuarto, descuento) y la ruleta de
 //       códigos; el ganador lo elige la base al azar entre los inscritos (Excel de confirmados).
 // =========================================================
-import { api } from "./api.js?v=202611271626";
-import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271626";
-import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271626";
-import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271626";
-import { sortearOrg, elegirOrg } from "./show-org.js?v=202611271626";
+import { api } from "./api.js?v=202611271646";
+import { abrirSalaProyectos } from "./sala-proyectos.js?v=202611271646";
+import { $, $$, esc, I, IMG, aviso, modal, confirmar, lanzarConfeti, fondoAnimado, pantallaActiva } from "./ui.js?v=202611271646";
+import { abrirDuelo, leerDuelos, guardarDuelos, DUELOS } from "./show-duelo.js?v=202611271646";
+import { sortearOrg, elegirOrg, ganadoresFueraDeCertificados } from "./show-org.js?v=202611271646";
 
 export const SHOW = { dia: "Martes 24 de noviembre", hora: "5:00 – 6:30 p. m.", lugar: "Auditorio" };
 export const AGENDA = [
@@ -332,6 +332,7 @@ export function crearShow(ctx) {
             <td><div class="sh-acc">${op ? `<button class="btn btn--mini btn--naranja" data-sortear="${p.id}" ${p.sorteados >= p.cantidad ? "disabled" : ""}>🎲 Sortear</button>${p.sorteados < p.cantidad ? `<button class="btn btn--mini" data-auto-sortear="${p.id}" title="Sortea de una vez los ${p.cantidad - p.sorteados} cupos que faltan, al azar y sin pantalla">⚡ Sortear automáticamente (${p.cantidad - p.sorteados})</button>` : ""}` : ""}${ed && p.sorteados < p.cantidad ? `<span class="sh-org-btns"><button class="btn btn--mini sh-org-btn" data-org-sortear="${p.id}" title="Sortea al azar entre los voluntarios y líderes del equipo organizador">👥 Sortear equipo organizador</button><button class="btn btn--mini sh-org-btn" data-org-elegir="${p.id}" title="Elige tú a quién del equipo organizador darle este premio">✋ Elegir voluntario</button></span>` : ""}${ed ? `<button class="btn btn--mini" data-pr-editar="${p.id}">${I.lapiz}</button><button class="btn btn--mini btn--peligro" data-pr-borrar="${p.id}">${I.basura}</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
           : `<div class="vacio"><b>Aún no hay premios</b>Agrega cada premio: tipo (beca, media beca, cuarto, descuento), nombre, sponsor y cantidad.</div>`}
         <div class="sh-acc">${ed ? `<button class="btn" data-pr-nuevo>${I.mas}Agregar premio</button>` : ""}<button class="btn btn--naranja" data-sorteo ${S.premios.length && op ? "" : "disabled"}>${I.copa}Proyectar sorteo de becas</button></div>
+        ${(() => { const fuera = ed ? ganadoresFueraDeCertificados(S) : []; return fuera.length ? `<div class="sh-org-aviso"><div><b>⚠️ ${fuera.length} ganador${fuera.length === 1 ? "" : "es"} del equipo organizador no ${fuera.length === 1 ? "está" : "están"} en Certificados</b><small>Salieron de la lista del Día D (con otro nombre o duplicados). Al retirarlos, su cupo vuelve a quedar libre para sortearlo otra vez.</small><ul>${fuera.map((g) => { const p = S.premios.find((x) => x.id === g.premio_id); return `<li><b>${esc(g.nombre)}</b> · ${esc(p?.detalle || p?.titulo || "")}</li>`; }).join("")}</ul></div><button class="btn btn--mini btn--peligro" data-org-retirar>Retirar y liberar ${fuera.length} cupo${fuera.length === 1 ? "" : "s"}</button></div>` : ""; })()}
         ${S.ganadores.length ? `<h3 class="sh-sub">Ganadores</h3>${ed ? `<p class="ayuda" style="margin:0 0 8px">Celular y correo salen del Excel de inscritos (Charlas → Importar inscritos, con las columnas de celular y correo). Toca el celular para escribirle por WhatsApp.</p>` : ""}<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Premio</th><th>Sponsor</th><th>Código</th><th>Nombre</th><th>Delegación</th>${ed ? "<th>Celular</th><th>Correo</th>" : ""}<th></th></tr></thead><tbody>
           ${S.ganadores.map((g) => { const p = S.premios.find((x) => x.id === g.premio_id); const tel = String(g.telefono || "").replace(/\D/g, ""), wa = tel ? (tel.length === 9 ? `51${tel}` : tel) : ""; return `<tr class="${g.anulado ? "sh-anulado" : ""}"><td><b>${esc(p?.detalle || p?.titulo || TIPOS[p?.tipo] || "")}</b><br><small class="tenue">${esc(TIPOS[p?.tipo] || p?.titulo || "")}</small></td><td>${esc(S.sponsors.find((s) => s.id === p?.sponsor_id)?.nombre || "—")}</td><td>${g.tipo === "organizador" ? `<span class="chip chip--morado">Equipo organizador</span><br><small class="tenue">${g.modo === "elegido" ? "✋ elegido" : "🎲 sorteo"}</small>` : `<code>${esc(g.codigo)}</code>`}</td><td><b>${esc(g.nombre)}</b></td><td>${g.tipo === "organizador" ? esc(g.area ? `Organización · ${g.area}` : "Organización") : esc(g.delegacion)}</td>
             ${ed ? `<td style="white-space:nowrap">${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener">📱 ${esc(g.telefono)}</a>` : `<small class="tenue">sin dato</small>`}</td><td>${g.correo ? `<a href="mailto:${esc(g.correo)}">✉️ ${esc(g.correo)}</a>` : `<small class="tenue">sin dato</small>`}</td>` : ""}
@@ -386,7 +387,15 @@ export function crearShow(ctx) {
       if (hechos) lanzarConfeti();
       aviso(error ? `Se sortearon ${hechos} de ${faltan}. Se detuvo: ${error.message}` : `¡Listo! ${hechos} ganador${hechos === 1 ? "" : "es"} sorteado${hechos === 1 ? "" : "s"} para ${nom}`, error ? "error" : "ok");
     }));
-    // Becas para el equipo organizador (lista de Certificados + Día D)
+    // Retirar ganadores del equipo que no están en Certificados (salieron del Día D) → se anulan y el cupo queda libre
+    $("[data-org-retirar]", v)?.addEventListener("click", async (e) => {
+      const fuera = ganadoresFueraDeCertificados(S); if (!fuera.length) return;
+      if (!(await confirmar("¿Retirar estos ganadores?", `Se anulan <b>${fuera.length}</b> premio${fuera.length === 1 ? "" : "s"} de personas que no están en Certificados → Equipo organizador. Quedan en el historial como anulados y sus cupos vuelven a estar libres para sortear.`, { boton: "Retirar", peligro: true }))) return;
+      e.target.disabled = true; let n = 0;
+      for (const g of fuera) { try { await api.showAnular(cod(), g.id, "No está en Certificados (duplicado del Día D)"); n++; } catch (ex) { err(ex); break; } }
+      await recargar(v).catch(() => {}); aviso(`Listo: ${n} retirado${n === 1 ? "" : "s"}, sus cupos quedaron libres`, "ok");
+    });
+    // Becas para el equipo organizador (lista de Certificados)
     $$("[data-org-sortear]", v).forEach((b) => (b.onclick = () => sortearOrg({ codigo: cod(), S, premio: b.dataset.orgSortear, alTerminar: () => recargar(v).catch(() => {}) }).catch(err)));
     $$("[data-org-elegir]", v).forEach((b) => (b.onclick = () => elegirOrg({ codigo: cod(), S, premio: b.dataset.orgElegir, alTerminar: () => recargar(v).catch(() => {}) }).catch(err)));
     $("[data-sorteo]", v).onclick = () => abrirSorteo(cod(), null, { alCerrar: () => recargar(v).catch(() => {}) });

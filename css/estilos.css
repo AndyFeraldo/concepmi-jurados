@@ -2457,3 +2457,6 @@ table.tabla{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:6
 .sh-org-fila--no{ opacity:.5; cursor:not-allowed; }
 .sh-org-fila input{ width:18px; height:18px; accent-color:var(--naranja); flex:none; }
 .sh-org-ganadores{ margin:0; padding-left:22px; display:grid; gap:4px; max-height:50vh; overflow:auto; }
+.sh-org-aviso{ display:flex; gap:14px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; margin:14px 0 6px; padding:12px 14px; border-radius:14px; border:1px solid rgba(245,158,11,.55); background:rgba(245,158,11,.12); }
+.sh-org-aviso small{ display:block; color:var(--niebla); margin-top:2px; }
+.sh-org-aviso ul{ margin:8px 0 0; padding-left:18px; font-size:.9rem; }

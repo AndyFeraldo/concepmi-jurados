@@ -1,12 +1,12 @@
 // Becas para el EQUIPO ORGANIZADOR (Show en vivo → 4 · Premios).
-// La lista sale de Certificados → Equipo organizador (guardada en este navegador) + los voluntarios del Día D
-// (base de datos, solo admin). Se juntan sin repetir nombres. Dos formas:
+// La lista sale SOLO de Certificados → Equipo organizador (guardada en este navegador; el Día D ya no se usa
+// porque duplicaba nombres escritos distinto). Dos formas:
 //   · sortearOrg: elige al azar N personas (pueden repetir premios distintos, nunca el mismo premio).
 //   · elegirOrg: el admin marca a quién darle el premio (ventana con buscador).
 // Ambas guardan con jur_show_asignar_org (modo «sorteo» o «elegido»).
-import { api } from "./api.js?v=202611271626";
-import { $, $$, esc, I, aviso, modal, lanzarConfeti } from "./ui.js?v=202611271626";
-import { AREAS_ORG } from "./certificados.js?v=202611271626";
+import { api } from "./api.js?v=202611271646";
+import { $, $$, esc, I, aviso, modal, lanzarConfeti } from "./ui.js?v=202611271646";
+import { AREAS_ORG } from "./certificados.js?v=202611271646";
 
 const CERT = "concepmi-certificados-v2";
 const limpio = (s) => String(s || "").trim().replace(/\s+/g, " ");
@@ -27,12 +27,19 @@ export async function candidatosOrg(codigo) {
     const g = JSON.parse(localStorage.getItem(CERT)) || {};
     (g.organizadores || []).forEach((o) => poner([o.nombre, o.apellido, o.materno].filter(Boolean).join(" "), { area: normArea(o.area), cargo: o.cargo || "voluntario" }, "Certificados"));
   } catch { /* sin lista en este navegador */ }
-  let diad = false;
-  try {
-    const d = await api.adminDiad(codigo); diad = true;
-    (d.personas || []).forEach((k) => poner(limpio([k.nombres, k.paterno, k.materno].filter(Boolean).join(" ")) || k.nombre, { area: normArea(k.area), telefono: k.telefono || "" }, "Día D"));
-  } catch { /* el Día D es solo del admin */ }
-  return { lista: [...mapa.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")), diad };
+  return { lista: [...mapa.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")), diad: false };
+}
+
+// Claves (nombre sin tildes) de quienes están en Certificados → Equipo organizador. Vacío = esta compu no tiene la lista.
+export function clavesCertificados() {
+  try { const g = JSON.parse(localStorage.getItem(CERT)) || {};
+    return new Set((g.organizadores || []).map((o) => claveOrg([o.nombre, o.apellido, o.materno].filter(Boolean).join(" "))).filter((k) => k.length >= 2));
+  } catch { return new Set(); }
+}
+// Ganadores del equipo (vigentes) que NO están en Certificados (p. ej. sacados antes del Día D con otro nombre)
+export function ganadoresFueraDeCertificados(S) {
+  const claves = clavesCertificados(); if (!claves.size) return [];
+  return S.ganadores.filter((g) => !g.anulado && g.tipo === "organizador" && !claves.has(String(g.dni || "").replace(/^org:/, "") || claveOrg(g.nombre)));
 }
 
 // Quién del equipo ya ganó algo (para no repetir en el sorteo y avisar al elegir)
@@ -108,7 +115,7 @@ export async function elegirOrg({ codigo, S, premio, alTerminar }) {
     caja.innerHTML = vis.map((x) => { const g = ya.get(x.clave) || [], mismo = g.some((y) => y.premio_id === p.id), lleno = !marcados.has(x.clave) && marcados.size >= faltan;
       return `<label class="sh-org-fila ${marcados.has(x.clave) ? "sh-org-fila--si" : ""} ${mismo ? "sh-org-fila--no" : ""}">
         <input type="checkbox" data-org="${esc(x.clave)}" ${marcados.has(x.clave) ? "checked" : ""} ${mismo || lleno ? "disabled" : ""}>
-        <span><b>${esc(x.nombre)}</b><small>${[x.area ? areaTxt(x.area) : "", x.cargo === "lider" ? "Líder" : "", x.fuentes.join(" + ")].filter(Boolean).map(esc).join(" · ")}</small></span>
+        <span><b>${esc(x.nombre)}</b><small>${[x.area ? areaTxt(x.area) : "", x.cargo === "lider" ? "Líder" : ""].filter(Boolean).map(esc).join(" · ")}</small></span>
         ${mismo ? `<span class="chip">ya tiene este premio</span>` : g.length ? `<span class="chip chip--ambar" title="${esc(g.map((y) => y.txt).join(", "))}">ya ganó ${g.length}</span>` : ""}</label>`; }).join("") || `<p class="tenue" style="padding:10px">Nadie coincide con «${esc(busca)}».</p>`;
     $$("[data-org]", caja).forEach((c) => (c.onchange = () => { c.checked ? marcados.add(c.dataset.org) : marcados.delete(c.dataset.org); pintar(); }));
     $("[data-org-cuenta]", m.el).textContent = `${marcados.size} de ${faltan} elegido${faltan === 1 ? "" : "s"}`;

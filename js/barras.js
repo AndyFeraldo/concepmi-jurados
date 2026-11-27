@@ -12,9 +12,9 @@
 // Permisos (los del Show en vivo): subir / quitar / sortear = admin o Show «editar»; escuchar y proyectar =
 // además Show «ver» y Proyección. Cada pista se descarga solo cuando le toca (poco tráfico).
 // =========================================================
-import { api } from "./api.js?v=202611271626";
-import { pantalla, tono, fanfarria } from "./show.js?v=202611271626";
-import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611271626";
+import { api } from "./api.js?v=202611271646";
+import { pantalla, tono, fanfarria } from "./show.js?v=202611271646";
+import { $, $$, esc, I, IMG, aviso, confirmar, lanzarConfeti } from "./ui.js?v=202611271646";
 
 const duracionDe = (blob) => new Promise((res) => {
   const a = new Audio(), u = URL.createObjectURL(blob);
